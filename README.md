@@ -73,7 +73,7 @@ Once the application is running:
 The deployment includes:
 
 - **Web Application** (port 5010): Router management interface
-- **PostgreSQL Database** (port 5432): Data persistence
+- **PostgreSQL Database** (port 5433): Data persistence
 - **Automatic networking**: Services can communicate securely
 
 ### Useful Commands
