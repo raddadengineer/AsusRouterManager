@@ -128,6 +128,53 @@ export default function SystemSettingsPage() {
     },
   });
 
+  const clearSettingsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", "/api/ssh/config");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Settings Cleared",
+        description: "SSH configuration has been cleared",
+      });
+      sshForm.reset({
+        host: "",
+        port: 22,
+        username: "",
+        password: "",
+        enabled: false,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/ssh/config"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear SSH settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const clearDataMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("DELETE", "/api/data/clear");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Data Cleared",
+        description: "All saved router data has been cleared",
+      });
+      queryClient.invalidateQueries();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to clear saved data",
+        variant: "destructive",
+      });
+    },
+  });
+
   const rebootMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest("POST", "/api/system/reboot");
@@ -481,6 +528,48 @@ export default function SystemSettingsPage() {
                       <>
                         <Save className="h-4 w-4 mr-2" />
                         Save Configuration
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                <div className="flex space-x-3 mt-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => clearSettingsMutation.mutate()}
+                    disabled={clearSettingsMutation.isPending}
+                    className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
+                  >
+                    {clearSettingsMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="h-4 w-4 mr-2" />
+                        Clear Settings
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => clearDataMutation.mutate()}
+                    disabled={clearDataMutation.isPending}
+                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    {clearDataMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Clearing...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Clear Data
                       </>
                     )}
                   </Button>

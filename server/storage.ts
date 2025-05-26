@@ -55,6 +55,8 @@ export interface IStorage {
   getSSHConfig(): Promise<SSHConfig | undefined>;
   saveSSHConfig(config: InsertSSHConfig): Promise<SSHConfig>;
   updateSSHConnectionStatus(status: string): Promise<void>;
+  clearSSHConfig(): Promise<void>;
+  clearAllData(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -435,6 +437,34 @@ export class MemStorage implements IStorage {
       this.saveSSHConfigToFile();
     }
   }
+
+  async clearSSHConfig(): Promise<void> {
+    this.sshConfiguration = undefined;
+    // Clear the config file
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const configPath = path.join(process.cwd(), 'ssh-config.json');
+      if (fs.existsSync(configPath)) {
+        fs.unlinkSync(configPath);
+      }
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+
+  async clearAllData(): Promise<void> {
+    // Clear all router data but keep SSH config
+    this.routerStatus = undefined;
+    this.connectedDevices.clear();
+    this.wifiNetworks.clear();
+    this.portForwardingRules.clear();
+    this.bandwidthData = [];
+    this.currentDeviceId = 1;
+    this.currentWifiId = 1;
+    this.currentRuleId = 1;
+    this.currentBandwidthId = 1;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -638,6 +668,19 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(sshConfig.id, existing.id));
     }
+  }
+
+  async clearSSHConfig(): Promise<void> {
+    await db.delete(sshConfig);
+  }
+
+  async clearAllData(): Promise<void> {
+    // Clear all router data but keep SSH config
+    await db.delete(routerStatus);
+    await db.delete(connectedDevices);
+    await db.delete(wifiNetworks);
+    await db.delete(portForwardingRules);
+    await db.delete(bandwidthData);
   }
 }
 

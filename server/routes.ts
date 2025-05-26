@@ -311,6 +311,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/ssh/config", async (req, res) => {
+    try {
+      await storage.clearSSHConfig();
+      res.json({ success: true, message: "SSH configuration cleared" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to clear SSH configuration" });
+    }
+  });
+
+  app.delete("/api/data/clear", async (req, res) => {
+    try {
+      await storage.clearAllData();
+      res.json({ success: true, message: "All router data cleared" });
+    } catch (error: any) {
+      res.status(500).json({ message: "Failed to clear router data" });
+    }
+  });
+
   app.post("/api/ssh/test", async (req, res) => {
     try {
       const validatedData = insertSSHConfigSchema.parse(req.body);
