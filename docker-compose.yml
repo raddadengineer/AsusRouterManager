@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://router_user:router_pass@db:5432/router_db
+    depends_on:
+      - db
+    networks:
+      - router-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=router_db
+      - POSTGRES_USER=router_user
+      - POSTGRES_PASSWORD=router_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - router-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  router-network:
+    driver: bridge
