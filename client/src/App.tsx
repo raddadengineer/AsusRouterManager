@@ -19,7 +19,6 @@ function Router() {
     <div className="flex h-screen bg-background text-foreground">
       <Sidebar />
       <main className="flex-1 overflow-auto">
-        <TopBar />
         <div className="p-6">
           <Switch>
             <Route path="/" component={Dashboard} />

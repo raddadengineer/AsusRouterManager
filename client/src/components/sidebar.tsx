@@ -27,7 +27,7 @@ const navigationItems = [
   },
   {
     href: "/devices",
-    label: "Connected Tablet",
+    label: "Connected Devices",
     icon: Tablet,
   },
   {

@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import BandwidthChart from "@/components/bandwidth-chart";
 import NetworkTopology from "@/components/network-topology";
 import DeviceTable from "@/components/device-table";
+import TopBar from "@/components/top-bar";
 import { useToast } from "@/hooks/use-toast";
 import { formatUptime } from "@/lib/utils";
 import {
@@ -37,7 +38,7 @@ export default function Dashboard() {
 
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
   const totalNetworkUsage = devices?.reduce((total, device) => 
-    device.isOnline ? total + device.downloadSpeed + device.uploadSpeed : total, 0
+    device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
   ) || 0;
 
   const handleQuickAction = async (action: string) => {
@@ -66,8 +67,14 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
+    <div>
+      <TopBar 
+        title="Dashboard" 
+        subtitle="Router management and monitoring overview"
+      />
+      <div className="p-6">
+        <div className="space-y-6">
+          {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
@@ -266,10 +273,12 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Tables Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <DeviceTable showSearch={false} />
-        <BandwidthChart />
+          {/* Tables Section */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <DeviceTable showSearch={false} />
+            <BandwidthChart />
+          </div>
+        </div>
       </div>
     </div>
   );
