@@ -95,6 +95,12 @@ export const insertBandwidthDataSchema = createInsertSchema(bandwidthData).omit(
   timestamp: true,
 });
 
+export const insertSSHConfigSchema = createInsertSchema(sshConfig).omit({
+  id: true,
+  lastConnected: true,
+  connectionStatus: true,
+});
+
 // Types
 export type RouterStatus = typeof routerStatus.$inferSelect;
 export type InsertRouterStatus = z.infer<typeof insertRouterStatusSchema>;
@@ -110,3 +116,6 @@ export type InsertPortForwardingRule = z.infer<typeof insertPortForwardingRuleSc
 
 export type BandwidthData = typeof bandwidthData.$inferSelect;
 export type InsertBandwidthData = z.infer<typeof insertBandwidthDataSchema>;
+
+export type SSHConfig = typeof sshConfig.$inferSelect;
+export type InsertSSHConfig = z.infer<typeof insertSSHConfigSchema>;

@@ -9,11 +9,14 @@ import {
   InsertPortForwardingRule,
   BandwidthData,
   InsertBandwidthData,
+  SSHConfig,
+  InsertSSHConfig,
   routerStatus,
   connectedDevices,
   wifiNetworks,
   portForwardingRules,
   bandwidthData,
+  sshConfig,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -47,6 +50,11 @@ export interface IStorage {
   // Bandwidth Data
   getBandwidthData(limit?: number): Promise<BandwidthData[]>;
   addBandwidthData(data: InsertBandwidthData): Promise<BandwidthData>;
+
+  // SSH Configuration
+  getSSHConfig(): Promise<SSHConfig | undefined>;
+  saveSSHConfig(config: InsertSSHConfig): Promise<SSHConfig>;
+  updateSSHConnectionStatus(status: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -533,6 +541,43 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return created;
+  }
+
+  async getSSHConfig(): Promise<SSHConfig | undefined> {
+    const [config] = await db.select().from(sshConfig).limit(1);
+    return config || undefined;
+  }
+
+  async saveSSHConfig(config: InsertSSHConfig): Promise<SSHConfig> {
+    const existing = await this.getSSHConfig();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(sshConfig)
+        .set(config)
+        .where(eq(sshConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [newConfig] = await db
+        .insert(sshConfig)
+        .values(config)
+        .returning();
+      return newConfig;
+    }
+  }
+
+  async updateSSHConnectionStatus(status: string): Promise<void> {
+    const existing = await this.getSSHConfig();
+    if (existing) {
+      await db
+        .update(sshConfig)
+        .set({ 
+          connectionStatus: status,
+          lastConnected: status === 'connected' ? new Date() : existing.lastConnected
+        })
+        .where(eq(sshConfig.id, existing.id));
+    }
   }
 }
 
