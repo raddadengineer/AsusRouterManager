@@ -79,8 +79,7 @@ export class MemStorage implements IStorage {
     this.currentRuleId = 1;
     this.currentBandwidthId = 1;
 
-    // Initialize with sample data
-    this.initializeSampleData();
+    // Start with empty data - populate only when SSH connection is established
   }
 
   private initializeSampleData() {
@@ -384,7 +383,11 @@ export class MemStorage implements IStorage {
   async saveSSHConfig(config: InsertSSHConfig): Promise<SSHConfig> {
     const newConfig: SSHConfig = {
       id: 1,
-      ...config,
+      host: config.host,
+      port: config.port || 22,
+      username: config.username,
+      password: config.password,
+      enabled: config.enabled || false,
       lastConnected: null,
       connectionStatus: 'disconnected',
     };

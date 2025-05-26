@@ -313,9 +313,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Test SSH connection to ASUS router
       const testConfig = {
         id: 1,
-        ...validatedData,
+        host: validatedData.host,
+        port: validatedData.port || 22,
+        username: validatedData.username,
+        password: validatedData.password,
+        enabled: validatedData.enabled || false,
         lastConnected: null,
-        connectionStatus: 'connecting'
+        connectionStatus: 'connecting' as string | null
       };
 
       await sshClient.connect(testConfig);
@@ -325,11 +329,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         message: "Successfully connected to ASUS router via SSH" 
       });
-    } catch (error) {
+    } catch (error: any) {
       await storage.updateSSHConnectionStatus('error');
       res.status(500).json({ 
         success: false, 
-        message: `SSH connection failed: ${error.message}` 
+        message: `SSH connection failed: ${error?.message || 'Unknown error'}` 
       });
     }
   });
@@ -400,10 +404,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           bandwidth
         }
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({ 
         success: false, 
-        message: `Failed to sync data: ${error.message}` 
+        message: `Failed to sync data: ${error?.message || 'Unknown error'}` 
       });
     }
   });
