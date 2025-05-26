@@ -1,0 +1,282 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { 
+  insertRouterStatusSchema,
+  insertConnectedDeviceSchema,
+  insertWifiNetworkSchema,
+  insertPortForwardingRuleSchema,
+  insertBandwidthDataSchema 
+} from "@shared/schema";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Router Status Routes
+  app.get("/api/router/status", async (req, res) => {
+    try {
+      const status = await storage.getRouterStatus();
+      res.json(status);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get router status" });
+    }
+  });
+
+  app.put("/api/router/status", async (req, res) => {
+    try {
+      const validatedData = insertRouterStatusSchema.parse(req.body);
+      const status = await storage.updateRouterStatus(validatedData);
+      res.json(status);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid router status data" });
+    }
+  });
+
+  // Connected Devices Routes
+  app.get("/api/devices", async (req, res) => {
+    try {
+      const devices = await storage.getConnectedDevices();
+      res.json(devices);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get connected devices" });
+    }
+  });
+
+  app.get("/api/devices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const device = await storage.getConnectedDevice(id);
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      res.json(device);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get device" });
+    }
+  });
+
+  app.post("/api/devices", async (req, res) => {
+    try {
+      const validatedData = insertConnectedDeviceSchema.parse(req.body);
+      const device = await storage.createConnectedDevice(validatedData);
+      res.status(201).json(device);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid device data" });
+    }
+  });
+
+  app.put("/api/devices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertConnectedDeviceSchema.partial().parse(req.body);
+      const device = await storage.updateConnectedDevice(id, validatedData);
+      if (!device) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      res.json(device);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid device data" });
+    }
+  });
+
+  app.delete("/api/devices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteConnectedDevice(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Device not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete device" });
+    }
+  });
+
+  // WiFi Networks Routes
+  app.get("/api/wifi", async (req, res) => {
+    try {
+      const networks = await storage.getWifiNetworks();
+      res.json(networks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get WiFi networks" });
+    }
+  });
+
+  app.get("/api/wifi/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const network = await storage.getWifiNetwork(id);
+      if (!network) {
+        return res.status(404).json({ message: "WiFi network not found" });
+      }
+      res.json(network);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get WiFi network" });
+    }
+  });
+
+  app.post("/api/wifi", async (req, res) => {
+    try {
+      const validatedData = insertWifiNetworkSchema.parse(req.body);
+      const network = await storage.createWifiNetwork(validatedData);
+      res.status(201).json(network);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid WiFi network data" });
+    }
+  });
+
+  app.put("/api/wifi/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertWifiNetworkSchema.partial().parse(req.body);
+      const network = await storage.updateWifiNetwork(id, validatedData);
+      if (!network) {
+        return res.status(404).json({ message: "WiFi network not found" });
+      }
+      res.json(network);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid WiFi network data" });
+    }
+  });
+
+  app.delete("/api/wifi/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteWifiNetwork(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "WiFi network not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete WiFi network" });
+    }
+  });
+
+  // Port Forwarding Rules Routes
+  app.get("/api/port-forwarding", async (req, res) => {
+    try {
+      const rules = await storage.getPortForwardingRules();
+      res.json(rules);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get port forwarding rules" });
+    }
+  });
+
+  app.get("/api/port-forwarding/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const rule = await storage.getPortForwardingRule(id);
+      if (!rule) {
+        return res.status(404).json({ message: "Port forwarding rule not found" });
+      }
+      res.json(rule);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get port forwarding rule" });
+    }
+  });
+
+  app.post("/api/port-forwarding", async (req, res) => {
+    try {
+      const validatedData = insertPortForwardingRuleSchema.parse(req.body);
+      const rule = await storage.createPortForwardingRule(validatedData);
+      res.status(201).json(rule);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid port forwarding rule data" });
+    }
+  });
+
+  app.put("/api/port-forwarding/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertPortForwardingRuleSchema.partial().parse(req.body);
+      const rule = await storage.updatePortForwardingRule(id, validatedData);
+      if (!rule) {
+        return res.status(404).json({ message: "Port forwarding rule not found" });
+      }
+      res.json(rule);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid port forwarding rule data" });
+    }
+  });
+
+  app.delete("/api/port-forwarding/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deletePortForwardingRule(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Port forwarding rule not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete port forwarding rule" });
+    }
+  });
+
+  // Bandwidth Data Routes
+  app.get("/api/bandwidth", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 24;
+      const data = await storage.getBandwidthData(limit);
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get bandwidth data" });
+    }
+  });
+
+  app.post("/api/bandwidth", async (req, res) => {
+    try {
+      const validatedData = insertBandwidthDataSchema.parse(req.body);
+      const data = await storage.addBandwidthData(validatedData);
+      res.status(201).json(data);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid bandwidth data" });
+    }
+  });
+
+  // System Actions Routes
+  app.post("/api/system/reboot", async (req, res) => {
+    try {
+      // In a real implementation, this would trigger a router reboot
+      res.json({ message: "Router reboot initiated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reboot router" });
+    }
+  });
+
+  app.post("/api/system/speed-test", async (req, res) => {
+    try {
+      // In a real implementation, this would trigger a speed test
+      const mockResults = {
+        downloadSpeed: 486.2,
+        uploadSpeed: 124.8,
+        latency: 12,
+        testDate: new Date().toISOString(),
+      };
+      res.json(mockResults);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to run speed test" });
+    }
+  });
+
+  app.post("/api/system/firmware-update", async (req, res) => {
+    try {
+      // In a real implementation, this would check for and install firmware updates
+      res.json({ message: "Firmware update check initiated" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check for firmware updates" });
+    }
+  });
+
+  app.post("/api/system/backup", async (req, res) => {
+    try {
+      // In a real implementation, this would create a configuration backup
+      res.json({ 
+        message: "Configuration backup created",
+        filename: `router-backup-${new Date().toISOString().split('T')[0]}.cfg`
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create backup" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}
