@@ -80,6 +80,36 @@ export class MemStorage implements IStorage {
     this.currentBandwidthId = 1;
 
     // Start with empty data - populate only when SSH connection is established
+    this.loadSSHConfigFromFile();
+  }
+
+  private loadSSHConfigFromFile() {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const configPath = path.join(process.cwd(), 'ssh-config.json');
+      
+      if (fs.existsSync(configPath)) {
+        const configData = fs.readFileSync(configPath, 'utf8');
+        this.sshConfiguration = JSON.parse(configData);
+      }
+    } catch (error) {
+      // Ignore errors, will start with no config
+    }
+  }
+
+  private saveSSHConfigToFile() {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const configPath = path.join(process.cwd(), 'ssh-config.json');
+      
+      if (this.sshConfiguration) {
+        fs.writeFileSync(configPath, JSON.stringify(this.sshConfiguration, null, 2));
+      }
+    } catch (error) {
+      // Ignore errors
+    }
   }
 
   private initializeSampleData() {
@@ -392,6 +422,7 @@ export class MemStorage implements IStorage {
       connectionStatus: 'disconnected',
     };
     this.sshConfiguration = newConfig;
+    this.saveSSHConfigToFile();
     return newConfig;
   }
 
@@ -401,6 +432,7 @@ export class MemStorage implements IStorage {
       if (status === 'connected') {
         this.sshConfiguration.lastConnected = new Date();
       }
+      this.saveSSHConfigToFile();
     }
   }
 }
