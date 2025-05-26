@@ -1,12 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { sshClient } from "./ssh-client";
 import { 
   insertRouterStatusSchema,
   insertConnectedDeviceSchema,
   insertWifiNetworkSchema,
   insertPortForwardingRuleSchema,
-  insertBandwidthDataSchema 
+  insertBandwidthDataSchema,
+  insertSSHConfigSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -274,6 +276,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to create backup" });
+    }
+  });
+
+  // SSH Configuration Routes
+  app.get("/api/ssh/config", async (req, res) => {
+    try {
+      const config = await storage.getSSHConfig();
+      if (config) {
+        // Don't send password in response for security
+        const { password, ...safeConfig } = config;
+        res.json({ ...safeConfig, password: '' });
+      } else {
+        res.json(null);
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get SSH configuration" });
+    }
+  });
+
+  app.post("/api/ssh/config", async (req, res) => {
+    try {
+      const validatedData = insertSSHConfigSchema.parse(req.body);
+      const savedConfig = await storage.saveSSHConfig(validatedData);
+      const { password, ...safeConfig } = savedConfig;
+      res.json({ ...safeConfig, password: '' });
+    } catch (error) {
+      res.status(400).json({ message: "Invalid SSH configuration data" });
+    }
+  });
+
+  app.post("/api/ssh/test", async (req, res) => {
+    try {
+      const validatedData = insertSSHConfigSchema.parse(req.body);
+      
+      // Test SSH connection to ASUS router
+      const testConfig = {
+        id: 1,
+        ...validatedData,
+        lastConnected: null,
+        connectionStatus: 'connecting'
+      };
+
+      await sshClient.connect(testConfig);
+      await storage.updateSSHConnectionStatus('connected');
+      
+      res.json({ 
+        success: true, 
+        message: "Successfully connected to ASUS router via SSH" 
+      });
+    } catch (error) {
+      await storage.updateSSHConnectionStatus('error');
+      res.status(500).json({ 
+        success: false, 
+        message: `SSH connection failed: ${error.message}` 
+      });
+    }
+  });
+
+  app.post("/api/ssh/sync-data", async (req, res) => {
+    try {
+      if (!sshClient.isConnectionActive()) {
+        return res.status(400).json({ message: "SSH connection not active. Please connect first." });
+      }
+
+      // Pull real data from ASUS router
+      const systemInfo = await sshClient.getSystemInfo();
+      const devices = await sshClient.getConnectedDevices();
+      const wifiNetworks = await sshClient.getWiFiNetworks();
+      const bandwidth = await sshClient.getBandwidthData();
+
+      // Update router status with real data
+      if (systemInfo) {
+        await storage.updateRouterStatus({
+          model: systemInfo.model || 'ASUS Router',
+          firmware: systemInfo.firmware || 'Unknown',
+          ipAddress: systemInfo.ipAddress || '192.168.1.1',
+          uptime: parseInt(systemInfo.uptime) || 0,
+          cpuUsage: parseFloat(systemInfo.cpuUsage) || 0,
+          memoryUsage: systemInfo.memoryUsage || 0,
+          memoryTotal: systemInfo.memoryTotal || 4,
+          temperature: parseFloat(systemInfo.temperature) || null,
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Successfully synchronized data from ASUS router",
+        data: {
+          systemInfo,
+          deviceCount: devices.length,
+          wifiNetworks: wifiNetworks.length
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: `Failed to sync data: ${error.message}` 
+      });
     }
   });
 

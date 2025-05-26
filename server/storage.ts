@@ -63,6 +63,7 @@ export class MemStorage implements IStorage {
   private wifiNetworks: Map<number, WifiNetwork>;
   private portForwardingRules: Map<number, PortForwardingRule>;
   private bandwidthData: BandwidthData[];
+  private sshConfiguration: SSHConfig | undefined;
   private currentDeviceId: number;
   private currentWifiId: number;
   private currentRuleId: number;
@@ -374,6 +375,30 @@ export class MemStorage implements IStorage {
     }
     
     return newData;
+  }
+
+  async getSSHConfig(): Promise<SSHConfig | undefined> {
+    return this.sshConfiguration;
+  }
+
+  async saveSSHConfig(config: InsertSSHConfig): Promise<SSHConfig> {
+    const newConfig: SSHConfig = {
+      id: 1,
+      ...config,
+      lastConnected: null,
+      connectionStatus: 'disconnected',
+    };
+    this.sshConfiguration = newConfig;
+    return newConfig;
+  }
+
+  async updateSSHConnectionStatus(status: string): Promise<void> {
+    if (this.sshConfiguration) {
+      this.sshConfiguration.connectionStatus = status;
+      if (status === 'connected') {
+        this.sshConfiguration.lastConnected = new Date();
+      }
+    }
   }
 }
 
