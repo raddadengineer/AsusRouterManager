@@ -16,8 +16,7 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Remove dev dependencies after build
-RUN npm prune --production
+# Don't remove dev dependencies as they're needed for Vite at runtime
 
 # Expose port 5010
 EXPOSE 5010
