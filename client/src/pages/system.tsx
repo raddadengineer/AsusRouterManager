@@ -485,6 +485,32 @@ export default function SystemSettingsPage() {
                     )}
                   </Button>
                 </div>
+
+                {connectionStatus === 'connected' && (
+                  <div className="mt-4">
+                    <Button
+                      type="button"
+                      onClick={() => fetch('/api/ssh/sync-data', { method: 'POST' })}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Sync Data from Merlin Router
+                    </Button>
+                  </div>
+                )}
+              </form>
+            </Form>
+
+            {connectionStatus === 'connected' && (
+              <Alert className="mt-4">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Merlin Features Available:</strong> Advanced device tracking, bandwidth monitoring, 
+                  Adaptive QoS, AiProtection, Guest Networks, AiMesh support, and more.
+                </AlertDescription>
+              </Alert>
+            )}
+                </div>
               </form>
             </Form>
           </CardContent>

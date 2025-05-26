@@ -345,12 +345,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const devices = await sshClient.getConnectedDevices();
       const wifiNetworks = await sshClient.getWiFiNetworks();
       const bandwidth = await sshClient.getBandwidthData();
+      const merlinFeatures = await sshClient.getMerlinFeatures();
 
       // Update router status with real data
       if (systemInfo) {
         await storage.updateRouterStatus({
           model: systemInfo.model || 'ASUS Router',
-          firmware: systemInfo.firmware || 'Unknown',
+          firmware: `${systemInfo.firmware || 'Unknown'} ${systemInfo.merlinVersion ? '(Merlin ' + systemInfo.merlinVersion + ')' : ''}`.trim(),
           ipAddress: systemInfo.ipAddress || '192.168.1.1',
           uptime: parseInt(systemInfo.uptime) || 0,
           cpuUsage: parseFloat(systemInfo.cpuUsage) || 0,
@@ -360,19 +361,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Sync connected devices to database
+      for (const device of devices) {
+        try {
+          await storage.createConnectedDevice({
+            name: device.name,
+            macAddress: device.macAddress,
+            ipAddress: device.ipAddress,
+            deviceType: device.deviceType,
+            isOnline: device.isOnline,
+            downloadSpeed: device.downloadSpeed || 0,
+            uploadSpeed: device.uploadSpeed || 0,
+          });
+        } catch (error) {
+          // Device might already exist, update instead
+          const existingDevices = await storage.getConnectedDevices();
+          const existing = existingDevices.find(d => d.macAddress === device.macAddress);
+          if (existing) {
+            await storage.updateConnectedDevice(existing.id, {
+              name: device.name,
+              ipAddress: device.ipAddress,
+              isOnline: device.isOnline,
+              downloadSpeed: device.downloadSpeed || 0,
+              uploadSpeed: device.uploadSpeed || 0,
+            });
+          }
+        }
+      }
+
       res.json({ 
         success: true, 
-        message: "Successfully synchronized data from ASUS router",
+        message: "Successfully synchronized data from ASUS Merlin router",
         data: {
           systemInfo,
           deviceCount: devices.length,
-          wifiNetworks: wifiNetworks.length
+          wifiNetworks: wifiNetworks.length,
+          merlinFeatures,
+          bandwidth
         }
       });
     } catch (error) {
       res.status(500).json({ 
         success: false, 
         message: `Failed to sync data: ${error.message}` 
+      });
+    }
+  });
+
+  app.get("/api/ssh/merlin-features", async (req, res) => {
+    try {
+      if (!sshClient.isConnectionActive()) {
+        return res.status(400).json({ message: "SSH connection not active. Please connect first." });
+      }
+
+      const merlinFeatures = await sshClient.getMerlinFeatures();
+      res.json(merlinFeatures);
+    } catch (error) {
+      res.status(500).json({ 
+        success: false, 
+        message: `Failed to get Merlin features: ${error.message}` 
       });
     }
   });
