@@ -297,12 +297,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ssh/config", async (req, res) => {
     try {
+      console.log("Received SSH config data:", req.body);
       const validatedData = insertSSHConfigSchema.parse(req.body);
       const savedConfig = await storage.saveSSHConfig(validatedData);
       const { password, ...safeConfig } = savedConfig;
       res.json({ ...safeConfig, password: '' });
-    } catch (error) {
-      res.status(400).json({ message: "Invalid SSH configuration data" });
+    } catch (error: any) {
+      console.error("SSH config validation error:", error);
+      res.status(400).json({ 
+        message: "Invalid SSH configuration data",
+        details: error?.issues || error?.message || "Unknown validation error"
+      });
     }
   });
 
