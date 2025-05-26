@@ -4,7 +4,7 @@ services:
   app:
     build: .
     ports:
-      - "5000:5000"
+      - "5010:5010"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://router_user:router_pass@db:5432/router_db

@@ -30,7 +30,7 @@ A modern web interface for managing ASUS routers with Merlin firmware, featuring
 docker-compose up -d
 ```
 
-4. **Access the interface** at `http://localhost:5000`
+4. **Access the interface** at `http://localhost:5010`
 
 ### What You Need
 
@@ -72,7 +72,7 @@ Once the application is running:
 
 The deployment includes:
 
-- **Web Application** (port 5000): Router management interface
+- **Web Application** (port 5010): Router management interface
 - **PostgreSQL Database** (port 5432): Data persistence
 - **Automatic networking**: Services can communicate securely
 
@@ -136,4 +136,4 @@ npm install
 npm run dev
 ```
 
-Access at `http://localhost:5000`
+Access at `http://localhost:5010`

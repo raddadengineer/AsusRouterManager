@@ -19,8 +19,8 @@ RUN npm run build
 # Remove dev dependencies after build
 RUN npm prune --production
 
-# Expose port 5000
-EXPOSE 5000
+# Expose port 5010
+EXPOSE 5010
 
 # Set environment variables
 ENV NODE_ENV=production
