@@ -9,7 +9,14 @@ import {
   InsertPortForwardingRule,
   BandwidthData,
   InsertBandwidthData,
+  routerStatus,
+  connectedDevices,
+  wifiNetworks,
+  portForwardingRules,
+  bandwidthData,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Router Status
@@ -362,4 +369,171 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getRouterStatus(): Promise<RouterStatus | undefined> {
+    const [status] = await db.select().from(routerStatus).limit(1);
+    return status || undefined;
+  }
+
+  async updateRouterStatus(status: InsertRouterStatus): Promise<RouterStatus> {
+    const existing = await this.getRouterStatus();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(routerStatus)
+        .set({
+          ...status,
+          temperature: status.temperature ?? null,
+          lastUpdated: new Date(),
+        })
+        .where(eq(routerStatus.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(routerStatus)
+        .values({
+          ...status,
+          temperature: status.temperature ?? null,
+          lastUpdated: new Date(),
+        })
+        .returning();
+      return created;
+    }
+  }
+
+  async getConnectedDevices(): Promise<ConnectedDevice[]> {
+    return await db.select().from(connectedDevices);
+  }
+
+  async getConnectedDevice(id: number): Promise<ConnectedDevice | undefined> {
+    const [device] = await db.select().from(connectedDevices).where(eq(connectedDevices.id, id));
+    return device || undefined;
+  }
+
+  async createConnectedDevice(device: InsertConnectedDevice): Promise<ConnectedDevice> {
+    const [created] = await db
+      .insert(connectedDevices)
+      .values({
+        ...device,
+        isOnline: device.isOnline ?? true,
+        downloadSpeed: device.downloadSpeed ?? 0,
+        uploadSpeed: device.uploadSpeed ?? 0,
+        connectedAt: new Date(),
+        lastSeen: new Date(),
+      })
+      .returning();
+    return created;
+  }
+
+  async updateConnectedDevice(id: number, device: Partial<InsertConnectedDevice>): Promise<ConnectedDevice | undefined> {
+    const [updated] = await db
+      .update(connectedDevices)
+      .set({
+        ...device,
+        lastSeen: new Date(),
+      })
+      .where(eq(connectedDevices.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteConnectedDevice(id: number): Promise<boolean> {
+    const result = await db.delete(connectedDevices).where(eq(connectedDevices.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getWifiNetworks(): Promise<WifiNetwork[]> {
+    return await db.select().from(wifiNetworks);
+  }
+
+  async getWifiNetwork(id: number): Promise<WifiNetwork | undefined> {
+    const [network] = await db.select().from(wifiNetworks).where(eq(wifiNetworks.id, id));
+    return network || undefined;
+  }
+
+  async createWifiNetwork(network: InsertWifiNetwork): Promise<WifiNetwork> {
+    const [created] = await db
+      .insert(wifiNetworks)
+      .values({
+        ...network,
+        channel: network.channel ?? null,
+        isEnabled: network.isEnabled ?? true,
+        securityMode: network.securityMode ?? "WPA2",
+        password: network.password ?? null,
+        connectedDevices: network.connectedDevices ?? 0,
+      })
+      .returning();
+    return created;
+  }
+
+  async updateWifiNetwork(id: number, network: Partial<InsertWifiNetwork>): Promise<WifiNetwork | undefined> {
+    const [updated] = await db
+      .update(wifiNetworks)
+      .set(network)
+      .where(eq(wifiNetworks.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteWifiNetwork(id: number): Promise<boolean> {
+    const result = await db.delete(wifiNetworks).where(eq(wifiNetworks.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getPortForwardingRules(): Promise<PortForwardingRule[]> {
+    return await db.select().from(portForwardingRules);
+  }
+
+  async getPortForwardingRule(id: number): Promise<PortForwardingRule | undefined> {
+    const [rule] = await db.select().from(portForwardingRules).where(eq(portForwardingRules.id, id));
+    return rule || undefined;
+  }
+
+  async createPortForwardingRule(rule: InsertPortForwardingRule): Promise<PortForwardingRule> {
+    const [created] = await db
+      .insert(portForwardingRules)
+      .values({
+        ...rule,
+        isEnabled: rule.isEnabled ?? true,
+        description: rule.description ?? null,
+      })
+      .returning();
+    return created;
+  }
+
+  async updatePortForwardingRule(id: number, rule: Partial<InsertPortForwardingRule>): Promise<PortForwardingRule | undefined> {
+    const [updated] = await db
+      .update(portForwardingRules)
+      .set(rule)
+      .where(eq(portForwardingRules.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deletePortForwardingRule(id: number): Promise<boolean> {
+    const result = await db.delete(portForwardingRules).where(eq(portForwardingRules.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getBandwidthData(limit: number = 24): Promise<BandwidthData[]> {
+    return await db
+      .select()
+      .from(bandwidthData)
+      .orderBy(bandwidthData.timestamp)
+      .limit(limit);
+  }
+
+  async addBandwidthData(data: InsertBandwidthData): Promise<BandwidthData> {
+    const [created] = await db
+      .insert(bandwidthData)
+      .values({
+        ...data,
+        timestamp: new Date(),
+      })
+      .returning();
+    return created;
+  }
+}
+
+export const storage = new DatabaseStorage();
