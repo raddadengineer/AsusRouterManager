@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { RouterStatus } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -34,7 +38,21 @@ import {
   FileText,
   RotateCcw,
   Trash2,
+  Terminal,
+  Link,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+
+const sshConnectionSchema = z.object({
+  host: z.string().min(1, "Router IP address is required"),
+  port: z.number().min(1).max(65535).default(22),
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+  enabled: z.boolean().default(false),
+});
+
+type SSHConnectionConfig = z.infer<typeof sshConnectionSchema>;
 
 export default function SystemSettingsPage() {
   const { toast } = useToast();
@@ -42,10 +60,72 @@ export default function SystemSettingsPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [speedTestRunning, setSpeedTestRunning] = useState(false);
   const [speedTestResults, setSpeedTestResults] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
 
   const { data: routerStatus, isLoading } = useQuery<RouterStatus>({
     queryKey: ["/api/router/status"],
     refetchInterval: 30000,
+  });
+
+  // SSH connection form
+  const sshForm = useForm<SSHConnectionConfig>({
+    resolver: zodResolver(sshConnectionSchema),
+    defaultValues: {
+      host: "192.168.1.1",
+      port: 22,
+      username: "admin",
+      password: "",
+      enabled: false,
+    },
+  });
+
+  // SSH connection queries
+  const { data: sshConfig } = useQuery<SSHConnectionConfig>({
+    queryKey: ["/api/ssh/config"],
+    retry: false,
+  });
+
+  const sshTestMutation = useMutation({
+    mutationFn: async (config: SSHConnectionConfig) => {
+      return await apiRequest("POST", "/api/ssh/test", config);
+    },
+    onSuccess: () => {
+      setConnectionStatus('connected');
+      toast({
+        title: "SSH Connection Successful",
+        description: "Successfully connected to your ASUS router",
+      });
+    },
+    onError: () => {
+      setConnectionStatus('error');
+      toast({
+        title: "SSH Connection Failed",
+        description: "Could not connect to router. Please check your credentials and network.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sshSaveMutation = useMutation({
+    mutationFn: async (config: SSHConnectionConfig) => {
+      return await apiRequest("POST", "/api/ssh/config", config);
+    },
+    onSuccess: () => {
+      toast({
+        title: "SSH Configuration Saved",
+        description: "Router connection settings have been saved",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/ssh/config"] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save SSH configuration",
+        variant: "destructive",
+      });
+    },
   });
 
   const rebootMutation = useMutation({
@@ -175,6 +255,36 @@ export default function SystemSettingsPage() {
     }
   };
 
+  const handleTestConnection = () => {
+    setConnectionStatus('connecting');
+    setIsConnecting(true);
+    const formData = sshForm.getValues();
+    sshTestMutation.mutate(formData);
+    setTimeout(() => setIsConnecting(false), 3000);
+  };
+
+  const handleSaveSSHConfig = (data: SSHConnectionConfig) => {
+    sshSaveMutation.mutate(data);
+  };
+
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'connected': return 'text-green-500';
+      case 'connecting': return 'text-yellow-500';
+      case 'error': return 'text-red-500';
+      default: return 'text-gray-500';
+    }
+  };
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'connected': return <CheckCircle2 className="h-4 w-4" />;
+      case 'connecting': return <RefreshCw className="h-4 w-4 animate-spin" />;
+      case 'error': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Network className="h-4 w-4" />;
+    }
+  };
+
   if (isLoading) {
     return (
       <div>
@@ -205,6 +315,181 @@ export default function SystemSettingsPage() {
         subtitle="Router administration and maintenance"
       />
       <div className="p-6 space-y-6">
+        {/* SSH Router Connection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Terminal className="h-5 w-5" />
+              <span>ASUS Router SSH Connection</span>
+              <div className={`flex items-center space-x-2 ml-auto ${getConnectionStatusColor()}`}>
+                {getConnectionStatusIcon()}
+                <span className="text-sm capitalize">{connectionStatus}</span>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert className="mb-4">
+              <Link className="h-4 w-4" />
+              <AlertDescription>
+                Connect to your ASUS router with Merlin firmware via SSH to pull real-time data. 
+                Ensure SSH is enabled in your router's administration settings.
+              </AlertDescription>
+            </Alert>
+
+            <Form {...sshForm}>
+              <form onSubmit={sshForm.handleSubmit(handleSaveSSHConfig)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={sshForm.control}
+                    name="host"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Router IP Address</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="192.168.1.1" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={sshForm.control}
+                    name="port"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SSH Port</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="22" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 22)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={sshForm.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="admin" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={sshForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input 
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Enter router password"
+                              {...field} 
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <FormField
+                    control={sshForm.control}
+                    name="enabled"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-normal">
+                          Enable SSH connection for real-time data
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex space-x-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={isConnecting || sshTestMutation.isPending}
+                    className="flex-1"
+                  >
+                    {isConnecting ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Testing Connection...
+                      </>
+                    ) : (
+                      <>
+                        <Network className="h-4 w-4 mr-2" />
+                        Test Connection
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    disabled={sshSaveMutation.isPending}
+                    className="flex-1"
+                  >
+                    {sshSaveMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Configuration
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+
         {/* System Status Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>

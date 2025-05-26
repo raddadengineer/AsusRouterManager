@@ -59,6 +59,17 @@ export const bandwidthData = pgTable("bandwidth_data", {
   totalUpload: real("total_upload").notNull(), // GB
 });
 
+export const sshConfig = pgTable("ssh_config", {
+  id: serial("id").primaryKey(),
+  host: text("host").notNull(),
+  port: integer("port").notNull().default(22),
+  username: text("username").notNull(),
+  password: text("password").notNull(),
+  enabled: boolean("enabled").notNull().default(false),
+  lastConnected: timestamp("last_connected"),
+  connectionStatus: text("connection_status").default("disconnected"), // disconnected, connected, error
+});
+
 // Insert schemas
 export const insertRouterStatusSchema = createInsertSchema(routerStatus).omit({
   id: true,
