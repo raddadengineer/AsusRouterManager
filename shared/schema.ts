@@ -78,6 +78,21 @@ export const sshConfig = pgTable("ssh_config", {
   connectionStatus: text("connection_status").default("disconnected"), // disconnected, connected, error
 });
 
+export const routerFeatures = pgTable("router_features", {
+  id: serial("id").primaryKey(),
+  adaptiveQosEnabled: boolean("adaptive_qos_enabled").default(false),
+  aiProtectionEnabled: boolean("ai_protection_enabled").default(false),
+  vpnServerEnabled: boolean("vpn_server_enabled").default(false),
+  aimeshIsMaster: boolean("aimesh_is_master").default(true),
+  aimeshNodeCount: integer("aimesh_node_count").default(0),
+  aimeshPeers: text("aimesh_peers"), // JSON array of MAC addresses
+  wirelessClients24ghz: integer("wireless_clients_24ghz").default(0),
+  wirelessClients5ghz: integer("wireless_clients_5ghz").default(0),
+  wirelessClients6ghz: integer("wireless_clients_6ghz").default(0),
+  wirelessClientsTotal: integer("wireless_clients_total").default(0),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
 // Insert schemas
 export const insertRouterStatusSchema = createInsertSchema(routerStatus).omit({
   id: true,
@@ -109,6 +124,11 @@ export const insertSSHConfigSchema = createInsertSchema(sshConfig).omit({
   connectionStatus: true,
 });
 
+export const insertRouterFeaturesSchema = createInsertSchema(routerFeatures).omit({
+  id: true,
+  lastUpdated: true,
+});
+
 // Types
 export type RouterStatus = typeof routerStatus.$inferSelect;
 export type InsertRouterStatus = z.infer<typeof insertRouterStatusSchema>;
@@ -127,3 +147,6 @@ export type InsertBandwidthData = z.infer<typeof insertBandwidthDataSchema>;
 
 export type SSHConfig = typeof sshConfig.$inferSelect;
 export type InsertSSHConfig = z.infer<typeof insertSSHConfigSchema>;
+
+export type RouterFeatures = typeof routerFeatures.$inferSelect;
+export type InsertRouterFeatures = z.infer<typeof insertRouterFeaturesSchema>;

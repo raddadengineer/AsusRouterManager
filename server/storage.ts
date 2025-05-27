@@ -57,6 +57,10 @@ export interface IStorage {
   updateSSHConnectionStatus(status: string): Promise<void>;
   clearSSHConfig(): Promise<void>;
   clearAllData(): Promise<void>;
+
+  // Router Features
+  getRouterFeatures(): Promise<RouterFeatures | undefined>;
+  updateRouterFeatures(features: InsertRouterFeatures): Promise<RouterFeatures>;
 }
 
 export class MemStorage implements IStorage {
@@ -702,7 +706,32 @@ export class DatabaseStorage implements IStorage {
     await db.delete(wifiNetworks);
     await db.delete(portForwardingRules);
     await db.delete(bandwidthData);
+    await db.delete(routerFeatures);
+  }
+
+  async getRouterFeatures(): Promise<RouterFeatures | undefined> {
+    const [features] = await db.select().from(routerFeatures).limit(1);
+    return features || undefined;
+  }
+
+  async updateRouterFeatures(features: InsertRouterFeatures): Promise<RouterFeatures> {
+    const existing = await this.getRouterFeatures();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(routerFeatures)
+        .set({ ...features, lastUpdated: new Date() })
+        .where(eq(routerFeatures.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(routerFeatures)
+        .values({ ...features, lastUpdated: new Date() })
+        .returning();
+      return created;
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
