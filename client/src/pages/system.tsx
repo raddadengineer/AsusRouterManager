@@ -513,7 +513,7 @@ export default function SystemSettingsPage() {
           </CardHeader>
           <CardContent>
             <Alert className="mb-4">
-              <Link className="h-4 w-4" />
+              <Network className="h-4 w-4" />
               <AlertDescription>
                 Connect to your ASUS router with Merlin firmware via SSH to pull real-time data. 
                 Ensure SSH is enabled in your router's administration settings.

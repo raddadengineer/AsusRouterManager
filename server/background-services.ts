@@ -273,7 +273,7 @@ class BackgroundServiceManager {
       jobData.job.start();
       jobData.config.isEnabled = true;
       jobData.config.status = 'stopped';
-      jobData.config.nextRun = jobData.job.nextDate()?.toDate();
+      jobData.config.nextRun = jobData.job.nextDate()?.toJSDate();
       return true;
     } catch (error) {
       console.error(`Failed to start job ${jobId}:`, error);
@@ -338,7 +338,7 @@ class BackgroundServiceManager {
   public getJobs(): BackgroundJob[] {
     return Array.from(this.jobs.values()).map(({ config }) => ({
       ...config,
-      nextRun: config.isEnabled ? this.jobs.get(config.id)?.job.nextDate()?.toDate() : undefined
+      nextRun: config.isEnabled ? this.jobs.get(config.id)?.job.nextDate()?.toJSDate() : undefined
     }));
   }
 
@@ -348,7 +348,7 @@ class BackgroundServiceManager {
 
     return {
       ...jobData.config,
-      nextRun: jobData.config.isEnabled ? jobData.job.nextDate()?.toDate() : undefined
+      nextRun: jobData.config.isEnabled ? jobData.job.nextDate()?.toJSDate() : undefined
     };
   }
 
