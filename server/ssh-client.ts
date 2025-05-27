@@ -258,9 +258,19 @@ export class SSHClient {
       const devices: any[] = [];
       const processedMacs = new Set();
 
+      // Validate MAC address to prevent placeholder data
+      const isValidMac = (mac: string): boolean => {
+        return mac && 
+               mac.length >= 12 && 
+               /^[0-9A-Fa-f:]+$/.test(mac) && 
+               mac !== 'MA:C' && 
+               mac !== 'MA:C IP' &&
+               !mac.includes('Hostname');
+      };
+
       // Process wireless clients first (most detailed info)
       for (const client of topologyReport.wirelessClients) {
-        if (client.mac && !processedMacs.has(client.mac.toLowerCase())) {
+        if (client.mac && isValidMac(client.mac) && !processedMacs.has(client.mac.toLowerCase())) {
           processedMacs.add(client.mac.toLowerCase());
           
           devices.push({
@@ -283,7 +293,7 @@ export class SSHClient {
 
       // Process wired clients
       for (const client of topologyReport.wiredClients) {
-        if (client.mac && !processedMacs.has(client.mac.toLowerCase())) {
+        if (client.mac && isValidMac(client.mac) && !processedMacs.has(client.mac.toLowerCase())) {
           processedMacs.add(client.mac.toLowerCase());
           
           const dhcpInfo = topologyReport.dhcpClients.find((d: any) => 
@@ -310,7 +320,7 @@ export class SSHClient {
 
       // Process remaining DHCP clients (offline devices)
       for (const dhcpClient of topologyReport.dhcpClients) {
-        if (dhcpClient.mac && !processedMacs.has(dhcpClient.mac.toLowerCase())) {
+        if (dhcpClient.mac && isValidMac(dhcpClient.mac) && !processedMacs.has(dhcpClient.mac.toLowerCase())) {
           processedMacs.add(dhcpClient.mac.toLowerCase());
           
           devices.push({
