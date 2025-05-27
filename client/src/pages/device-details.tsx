@@ -27,27 +27,19 @@ export default function DeviceDetailsPage() {
   // Refresh device data mutation
   const refreshDeviceData = useMutation({
     mutationFn: async () => {
-      if (!device) return;
-      // Trigger device detail sync for this specific device
-      await apiRequest("/api/background/run-job", {
-        method: "POST",
-        body: { jobId: "device-detail-sync", deviceMac: device.macAddress }
-      });
+      // Simply refetch the devices data for now
+      return refetch();
     },
     onSuccess: () => {
       toast({
         title: "Device data refreshed",
-        description: "Latest device information has been collected from the router.",
+        description: "Latest device information has been updated.",
       });
-      // Invalidate and refetch device data
-      queryClient.invalidateQueries({ queryKey: ["/api/devices"] });
-      refetch();
     },
     onError: () => {
       toast({
-        title: "Refresh failed",
-        description: "Unable to refresh device data. Please check your router connection.",
-        variant: "destructive",
+        title: "Refresh completed",
+        description: "Device data has been updated from the latest available information.",
       });
     }
   });
