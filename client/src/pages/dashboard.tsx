@@ -61,6 +61,17 @@ export default function Dashboard() {
     device.deviceType === 'tablet' || 
     device.deviceType === 'mobile'
   ) || [];
+  
+  // Calculate AiMesh nodes (including main router)
+  const aiMeshNodes = connectedDevices?.filter(device => 
+    device.deviceType === 'router' || 
+    device.name?.includes('AiMesh') ||
+    device.name?.includes('ASUS') ||
+    device.deviceType === 'access_point'
+  ) || [];
+  
+  // Add main router to count if not already detected
+  const totalAiMeshNodes = aiMeshNodes.length > 0 ? aiMeshNodes.length : 1;
   const totalNetworkUsage = devices?.reduce((total, device) => 
     device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
   ) || 0;
@@ -222,9 +233,9 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {wifiNetworks?.length || 0}
+                    {totalAiMeshNodes}
                   </div>
-                  <div className="text-sm text-muted-foreground">WiFi Networks</div>
+                  <div className="text-sm text-muted-foreground">AiMesh Nodes</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
