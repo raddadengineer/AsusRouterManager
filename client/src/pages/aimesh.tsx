@@ -460,7 +460,7 @@ export default function AiMeshPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card className="p-4">
                     <div className="flex items-center space-x-2">
-                      <Terminal className="h-5 w-5 text-green-500" />
+                      <Monitor className="h-5 w-5 text-green-500" />
                       <div>
                         <p className="text-sm font-medium">SSH Detection</p>
                         <p className="text-xs text-muted-foreground">nvram get sta_info</p>
@@ -470,7 +470,7 @@ export default function AiMeshPage() {
 
                   <Card className="p-4">
                     <div className="flex items-center space-x-2">
-                      <Database className="h-5 w-5 text-blue-500" />
+                      <Network className="h-5 w-5 text-blue-500" />
                       <div>
                         <p className="text-sm font-medium">DHCP Leases</p>
                         <p className="text-xs text-muted-foreground">cat /tmp/dnsmasq.leases</p>
@@ -490,7 +490,7 @@ export default function AiMeshPage() {
 
                   <Card className="p-4">
                     <div className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-orange-500" />
+                      <Gauge className="h-5 w-5 text-orange-500" />
                       <div>
                         <p className="text-sm font-medium">System Logs</p>
                         <p className="text-xs text-muted-foreground">logread | grep backhaul</p>
