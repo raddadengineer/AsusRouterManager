@@ -193,12 +193,18 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {connectedDevices?.length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Connected Devices</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {(connectedDevices?.length || 0) + (wifiNetworks?.length || 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Total Devices</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
