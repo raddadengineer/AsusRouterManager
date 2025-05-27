@@ -400,6 +400,106 @@ export class MemStorage implements IStorage {
     this.routerFeatures = newFeatures;
     return newFeatures;
   }
+
+  // Device Groups Methods
+  async getDeviceGroups(): Promise<DeviceGroup[]> {
+    return []; // Empty array for now
+  }
+
+  async getDeviceGroup(id: number): Promise<DeviceGroup | undefined> {
+    return undefined;
+  }
+
+  async createDeviceGroup(group: InsertDeviceGroup): Promise<DeviceGroup> {
+    const newGroup: DeviceGroup = {
+      id: Date.now(), // Simple ID generation
+      ...group,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newGroup;
+  }
+
+  async updateDeviceGroup(id: number, group: Partial<InsertDeviceGroup>): Promise<DeviceGroup | undefined> {
+    return undefined;
+  }
+
+  async deleteDeviceGroup(id: number): Promise<boolean> {
+    return true;
+  }
+
+  // Device Tags Methods
+  async getDeviceTags(): Promise<DeviceTag[]> {
+    return []; // Empty array for now
+  }
+
+  async getDeviceTag(id: number): Promise<DeviceTag | undefined> {
+    return undefined;
+  }
+
+  async createDeviceTag(tag: InsertDeviceTag): Promise<DeviceTag> {
+    const newTag: DeviceTag = {
+      id: Date.now(), // Simple ID generation
+      ...tag,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newTag;
+  }
+
+  async updateDeviceTag(id: number, tag: Partial<InsertDeviceTag>): Promise<DeviceTag | undefined> {
+    return undefined;
+  }
+
+  async deleteDeviceTag(id: number): Promise<boolean> {
+    return true;
+  }
+
+  // Device Group Management Methods
+  async addDeviceToGroup(deviceId: number, groupId: number): Promise<DeviceGroupMembership> {
+    const membership: DeviceGroupMembership = {
+      id: Date.now(),
+      deviceId,
+      groupId,
+      assignedAt: new Date(),
+    };
+    return membership;
+  }
+
+  async removeDeviceFromGroup(deviceId: number, groupId: number): Promise<boolean> {
+    return true;
+  }
+
+  async getDeviceGroups(deviceId: number): Promise<DeviceGroup[]> {
+    return [];
+  }
+
+  async getGroupDevices(groupId: number): Promise<ConnectedDevice[]> {
+    return [];
+  }
+
+  // Device Tag Management Methods
+  async assignTagToDevice(deviceId: number, tagId: number): Promise<DeviceTagAssignment> {
+    const assignment: DeviceTagAssignment = {
+      id: Date.now(),
+      deviceId,
+      tagId,
+      assignedAt: new Date(),
+    };
+    return assignment;
+  }
+
+  async removeTagFromDevice(deviceId: number, tagId: number): Promise<boolean> {
+    return true;
+  }
+
+  async getDeviceTags(deviceId: number): Promise<DeviceTag[]> {
+    return [];
+  }
+
+  async getTaggedDevices(tagId: number): Promise<ConnectedDevice[]> {
+    return [];
+  }
 }
 
 export class DatabaseStorage implements IStorage {
