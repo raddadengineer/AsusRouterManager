@@ -116,6 +116,34 @@ export class SSHClient {
       results.memoryTotal = total;
     }
 
+    // Parse detailed memory breakdown
+    if (results.memoryDetails) {
+      const memParts = results.memoryDetails.split(' ').map(parseFloat);
+      if (memParts.length >= 7) {
+        results.memoryUsed = memParts[0];
+        results.memoryTotalDetailed = memParts[1];
+        results.memoryAvailable = memParts[2];
+        results.memoryFree = memParts[3];
+        results.memoryBuffers = memParts[4];
+        results.memoryCached = memParts[5];
+        results.swapUsed = memParts[6];
+      }
+    }
+
+    // Parse storage information
+    results.nvramUsage = parseFloat(results.nvramUsage) || 0;
+    results.nvramTotal = parseFloat(results.nvramTotal) || 0.512;
+    results.jffsUsage = parseFloat(results.jffsUsage) || 0;
+    results.jffsTotal = parseFloat(results.jffsTotal) || 0;
+    results.tmpUsage = parseFloat(results.tmpUsage) || 0;
+    results.tmpTotal = parseFloat(results.tmpTotal) || 0;
+
+    // Calculate total storage
+    const totalStorageUsed = results.nvramUsage + results.jffsUsage + results.tmpUsage;
+    const totalStorageTotal = results.nvramTotal + results.jffsTotal + results.tmpTotal;
+    results.storageUsage = totalStorageUsed;
+    results.storageTotal = totalStorageTotal;
+
     // Parse load average
     if (results.loadAverage) {
       const loads = results.loadAverage.split(' ').map(parseFloat);
@@ -123,6 +151,10 @@ export class SSHClient {
       results.load5min = loads[1];
       results.load15min = loads[2];
     }
+
+    // Parse CPU info
+    results.cpuCores = parseInt(results.cpuCores) || 2;
+    results.cpuModel = results.cpuModel || 'ARMv7 Processor';
 
     return results;
   }
@@ -135,9 +167,10 @@ export class SSHClient {
       // Get DHCP leases for device names and additional info
       const dhcpLeases = await this.executeCommand("cat /var/lib/dhcp/dhcpd.leases 2>/dev/null || cat /tmp/dhcp_clients.txt 2>/dev/null || echo ''");
       
-      // Get wireless client info from both bands
-      const wifiClients24 = await this.executeCommand("wl -i eth1 assoclist 2>/dev/null || echo ''");
-      const wifiClients5 = await this.executeCommand("wl -i eth2 assoclist 2>/dev/null || echo ''");
+      // Get wireless client info from all bands
+      const wifiClients24 = await this.executeCommand("wl -i eth1 assoclist 2>/dev/null || wl -i wl0 assoclist 2>/dev/null || echo ''");
+      const wifiClients5 = await this.executeCommand("wl -i eth2 assoclist 2>/dev/null || wl -i wl1 assoclist 2>/dev/null || echo ''");
+      const wifiClients6 = await this.executeCommand("wl -i eth3 assoclist 2>/dev/null || wl -i wl2 assoclist 2>/dev/null || echo ''");
       
       // Get client bandwidth usage
       const bandwidthStats = await this.executeCommand("cat /proc/net/dev");
@@ -407,6 +440,24 @@ export class SSHClient {
       const ddnsEnabled = await this.executeCommand("nvram get ddns_enable_x");
       const ddnsProvider = await this.executeCommand("nvram get ddns_server_x");
       
+      // Get hardware acceleration features
+      const ctfDisabled = await this.executeCommand("nvram get ctf_disable");
+      const runnerDisabled = await this.executeCommand("nvram get runner_disable");
+      const fcDisabled = await this.executeCommand("nvram get fc_disable");
+      
+      // Get WAN IP information
+      const wanIp = await this.executeCommand("nvram get wan0_ipaddr || nvram get wan_ipaddr");
+      const wanGateway = await this.executeCommand("nvram get wan0_gateway || nvram get wan_gateway");
+      
+      // Get wireless client counts from all bands
+      const wifiClients24 = await this.executeCommand("wl -i wl0 assoclist 2>/dev/null | wc -l || echo '0'");
+      const wifiClients5 = await this.executeCommand("wl -i wl1 assoclist 2>/dev/null | wc -l || echo '0'");
+      const wifiClients6 = await this.executeCommand("wl -i wl2 assoclist 2>/dev/null | wc -l || echo '0'");
+      
+      // Get wireless features
+      const beamforming = await this.executeCommand("nvram get wl0_txbf");
+      const mu_mimo = await this.executeCommand("nvram get wl1_mumimo");
+
       return {
         adaptiveQos: {
           enabled: qosEnabled.trim() === '1',
@@ -437,6 +488,29 @@ export class SSHClient {
         ddns: {
           enabled: ddnsEnabled.trim() === '1',
           provider: ddnsProvider.trim(),
+        },
+        // Hardware Acceleration (disabled = 0 means enabled)
+        hardwareAcceleration: {
+          ctf: ctfDisabled.trim() === '0',
+          runner: runnerDisabled.trim() === '0',
+          flowCache: fcDisabled.trim() === '0',
+        },
+        // Network Information
+        network: {
+          wanIp: wanIp.trim(),
+          wanGateway: wanGateway.trim(),
+        },
+        // Wireless Client Information
+        wirelessClients: {
+          band24ghz: parseInt(wifiClients24.trim()) || 0,
+          band5ghz: parseInt(wifiClients5.trim()) || 0,
+          band6ghz: parseInt(wifiClients6.trim()) || 0,
+          total: (parseInt(wifiClients24.trim()) || 0) + (parseInt(wifiClients5.trim()) || 0) + (parseInt(wifiClients6.trim()) || 0),
+        },
+        // Wireless Features
+        wirelessFeatures: {
+          beamforming: beamforming.trim() === '1',
+          muMimo: mu_mimo.trim() === '1',
         },
       };
     } catch (error) {

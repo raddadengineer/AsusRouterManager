@@ -35,7 +35,12 @@ export default function SystemDetailsPage() {
 
   const { data: wifiNetworks } = useQuery<any[]>({
     queryKey: ["/api/wifi"],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Real-time updates every 5 seconds
+  });
+
+  const { data: routerFeatures } = useQuery<any>({
+    queryKey: ["/api/router/features"],
+    refetchInterval: 5000, // Real-time updates for hardware acceleration and wireless clients
   });
 
   const cpuUsageColor = (routerStatus?.cpuUsage || 0) > 80 ? "bg-red-500" : 
@@ -48,9 +53,11 @@ export default function SystemDetailsPage() {
   const storageUsagePercent = routerStatus?.storageUsage && routerStatus?.storageTotal 
     ? (routerStatus.storageUsage / routerStatus.storageTotal) * 100 : 0;
 
-  const wifiClients24 = connectedDevices?.filter(device => device.connectionType === '2.4GHz')?.length || 0;
-  const wifiClients5 = connectedDevices?.filter(device => device.connectionType === '5GHz')?.length || 0;
-  const wifiClients6 = connectedDevices?.filter(device => device.connectionType === '6GHz')?.length || 0;
+  // Use real wireless client data from router features
+  const wifiClients24 = routerFeatures?.wirelessClients?.band24ghz || 0;
+  const wifiClients5 = routerFeatures?.wirelessClients?.band5ghz || 0;
+  const wifiClients6 = routerFeatures?.wirelessClients?.band6ghz || 0;
+  const totalWifiClients = routerFeatures?.wirelessClients?.total || 0;
 
   return (
     <div>
