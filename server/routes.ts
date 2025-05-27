@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { sshClient } from "./ssh-client";
-import { asusAPI } from "./asus-api";
 import { 
   insertRouterStatusSchema,
   insertConnectedDeviceSchema,
@@ -33,17 +32,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Connected Devices Routes - Fix duplicates by using unique MAC addresses
+  // Connected Devices Routes
   app.get("/api/devices", async (req, res) => {
     try {
       const devices = await storage.getConnectedDevices();
-      
-      // Remove duplicates based on MAC address
-      const uniqueDevices = devices.filter((device, index, self) => 
-        index === self.findIndex(d => d.macAddress === device.macAddress)
-      );
-      
-      res.json(uniqueDevices);
+      res.json(devices);
     } catch (error) {
       res.status(500).json({ message: "Failed to get connected devices" });
     }
@@ -402,14 +395,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection not active. Please connect first." });
       }
 
-      // Pull real data from ASUS router via SSH only (no API endpoints exist)
-      const [systemInfo, devices, wifiNetworks, bandwidth, merlinFeatures] = await Promise.all([
-        sshClient.getSystemInfo(),
-        sshClient.getConnectedDevices(),
-        sshClient.getWiFiNetworks(),
-        sshClient.getBandwidthData(),
-        sshClient.getMerlinFeatures()
-      ]);
+      // Pull real data from ASUS router
+      const systemInfo = await sshClient.getSystemInfo();
+      const devices = await sshClient.getConnectedDevices();
+      const wifiNetworks = await sshClient.getWiFiNetworks();
+      const bandwidth = await sshClient.getBandwidthData();
+      const merlinFeatures = await sshClient.getMerlinFeatures();
 
       // Update router status with comprehensive real data
       if (systemInfo) {
@@ -440,29 +431,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Efficiently sync connected devices to database
-      const existingDevices = await storage.getConnectedDevices();
-      const existingByMac = new Map(existingDevices.map(d => [d.macAddress, d]));
-      
-      // First mark all devices as offline
-      for (const existing of existingDevices) {
-        if (existing.isOnline) {
-          await storage.updateConnectedDevice(existing.id, { isOnline: false });
-        }
-      }
-      
-      // Update or create devices from router data
+      // Sync connected devices to database
       for (const device of devices) {
-        const existing = existingByMac.get(device.macAddress);
-        if (existing) {
-          await storage.updateConnectedDevice(existing.id, {
-            name: device.name,
-            ipAddress: device.ipAddress,
-            isOnline: device.isOnline,
-            downloadSpeed: device.downloadSpeed || 0,
-            uploadSpeed: device.uploadSpeed || 0,
-          });
-        } else {
+        try {
           await storage.createConnectedDevice({
             name: device.name,
             macAddress: device.macAddress,
@@ -472,6 +443,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             downloadSpeed: device.downloadSpeed || 0,
             uploadSpeed: device.uploadSpeed || 0,
           });
+        } catch (error) {
+          // Device might already exist, update instead
+          const existingDevices = await storage.getConnectedDevices();
+          const existing = existingDevices.find(d => d.macAddress === device.macAddress);
+          if (existing) {
+            await storage.updateConnectedDevice(existing.id, {
+              name: device.name,
+              ipAddress: device.ipAddress,
+              isOnline: device.isOnline,
+              downloadSpeed: device.downloadSpeed || 0,
+              uploadSpeed: device.uploadSpeed || 0,
+            });
+          }
         }
       }
 
