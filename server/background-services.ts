@@ -375,7 +375,20 @@ class BackgroundServiceManager {
     console.log('All background jobs stopped');
   }
 
+  public runJobNow(jobId: string): boolean {
+    const jobData = this.jobs.get(jobId);
+    if (!jobData) {
+      console.log(`Job ${jobId} not found`);
+      return false;
+    }
 
+    console.log(`Manually executing job: ${jobId}`);
+    this.executeJob(jobId).catch(error => {
+      console.error(`Error in manual job execution ${jobId}:`, error);
+    });
+    
+    return true;
+  }
 }
 
 export const backgroundServiceManager = new BackgroundServiceManager();

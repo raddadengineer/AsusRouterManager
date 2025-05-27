@@ -1,25 +1,56 @@
 import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { ConnectedDevice } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Wifi, Cable, Signal, MapPin, Clock, Network, Activity } from "lucide-react";
+import { ArrowLeft, Wifi, Cable, Signal, MapPin, Clock, Network, Activity, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeviceIcon, getDeviceColorClass, formatMacAddress } from "@/lib/utils";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DeviceDetailsPage() {
   const params = useParams();
   const deviceId = params.id;
+  const { toast } = useToast();
 
-  const { data: devices, isLoading } = useQuery<ConnectedDevice[]>({
+  const { data: devices, isLoading, refetch } = useQuery<ConnectedDevice[]>({
     queryKey: ["/api/devices"],
     refetchInterval: 5000, // Refresh every 5 seconds for live data
   });
 
   const device = devices?.find(d => d.id.toString() === deviceId);
+
+  // Refresh device data mutation
+  const refreshDeviceData = useMutation({
+    mutationFn: async () => {
+      if (!device) return;
+      // Trigger device detail sync for this specific device
+      await apiRequest("/api/background/run-job", {
+        method: "POST",
+        body: { jobId: "device-detail-sync", deviceMac: device.macAddress }
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Device data refreshed",
+        description: "Latest device information has been collected from the router.",
+      });
+      // Invalidate and refetch device data
+      queryClient.invalidateQueries({ queryKey: ["/api/devices"] });
+      refetch();
+    },
+    onError: () => {
+      toast({
+        title: "Refresh failed",
+        description: "Unable to refresh device data. Please check your router connection.",
+        variant: "destructive",
+      });
+    }
+  });
 
   if (isLoading) {
     return (
@@ -104,6 +135,15 @@ export default function DeviceDetailsPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => refreshDeviceData.mutate()}
+            disabled={refreshDeviceData.isPending}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshDeviceData.isPending ? 'animate-spin' : ''}`} />
+            {refreshDeviceData.isPending ? 'Refreshing...' : 'Refresh'}
+          </Button>
           <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getDeviceColorClass(device.deviceType)}`}>
             {/* Device icon would go here */}
           </div>
