@@ -756,8 +756,12 @@ export class SSHClient {
         currentBand = line.replace('BAND:', '');
       } else if (line.startsWith('CLIENT:')) {
         const parts = line.replace('CLIENT:', '').split(':');
-        if (parts.length >= 3) {
-          const [mac, rssi, band] = parts;
+        if (parts.length >= 9) { // MAC (6 parts) + RSSI + Band
+          // First 6 parts are MAC address
+          const macParts = parts.slice(0, 6);
+          const mac = this.normalizeMacAddress(macParts.join(':'));
+          const rssi = parts[6];
+          const band = parts[7];
           const clientData = { mac, rssi, band };
           
           if (band === '2.4GHz') {
@@ -786,8 +790,12 @@ export class SSHClient {
       if (line.startsWith('DHCP:')) {
         const parts = line.replace('DHCP:', '').split(':');
         if (parts.length >= 3) {
-          const [mac, ip, hostname] = parts;
-          leases.push({ mac, ip, hostname });
+          // Reconstruct MAC address properly - first 6 parts are MAC, rest is IP and hostname
+          const macParts = parts.slice(0, 6);
+          const mac = macParts.join(':');
+          const ip = parts[6];
+          const hostname = parts.slice(7).join(':'); // In case hostname contains colons
+          leases.push({ mac: this.normalizeMacAddress(mac), ip, hostname });
         }
       }
     }
@@ -802,14 +810,49 @@ export class SSHClient {
     for (const line of lines) {
       if (line.startsWith('WIRED:')) {
         const parts = line.replace('WIRED:', '').split(':');
-        if (parts.length >= 2) {
-          const [mac, ip] = parts;
-          clients.push({ mac, ip });
+        if (parts.length >= 7) {
+          // First 6 parts are MAC address, last part is IP
+          const macParts = parts.slice(0, 6);
+          const mac = macParts.join(':');
+          const ip = parts[6];
+          clients.push({ mac: this.normalizeMacAddress(mac), ip });
         }
       }
     }
     
     return clients;
+  }
+
+  // Normalize MAC address format to prevent double colon issues
+  private normalizeMacAddress(mac: string): string {
+    if (!mac) return '';
+    
+    // Remove any extra spaces and convert to lowercase
+    let normalized = mac.trim().toLowerCase();
+    
+    // Handle cases where MAC might have double colons or other formatting issues
+    normalized = normalized.replace(/[^a-f0-9:]/g, ''); // Remove invalid characters
+    
+    // Split by colon and filter out empty parts
+    const parts = normalized.split(':').filter(part => part.length > 0);
+    
+    // Ensure each part is exactly 2 characters, pad with 0 if needed
+    const paddedParts = parts.map(part => {
+      if (part.length === 1) return '0' + part;
+      if (part.length === 2) return part;
+      if (part.length > 2) return part.substring(0, 2); // Truncate if too long
+      return '00'; // Default for empty parts
+    });
+    
+    // Ensure we have exactly 6 parts for a valid MAC address
+    while (paddedParts.length < 6) {
+      paddedParts.push('00');
+    }
+    
+    // Take only first 6 parts if there are more
+    const validParts = paddedParts.slice(0, 6);
+    
+    return validParts.join(':');
   }
 }
 
