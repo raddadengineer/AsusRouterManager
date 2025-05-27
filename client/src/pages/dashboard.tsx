@@ -296,12 +296,13 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Tables Section */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <DeviceTable showSearch={false} />
-        <BandwidthChart />
-      </div>
+          {/* Tables Section */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <DeviceTable showSearch={false} />
+            <BandwidthChart />
+          </div>
         </div>
+      </div>
     </div>
   );
 }
