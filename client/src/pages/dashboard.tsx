@@ -40,6 +40,12 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const { data: wifiNetworks } = useQuery({
+    queryKey: ["/api/wifi"],
+    refetchInterval: 30000,
+  });
+
+  const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
   const totalNetworkUsage = devices?.reduce((total, device) => 
     device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
@@ -187,16 +193,29 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64 bg-muted/30 rounded-lg flex items-center justify-center">
-                <div className="text-center">
-                  <Network className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Performance-optimized topology</p>
-                  <Link href="/topology">
-                    <Button variant="outline" size="sm" className="mt-2">
-                      View Full Network Map
-                    </Button>
-                  </Link>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {connectedDevices?.length || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Connected Devices</div>
                 </div>
+                <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {wifiNetworks?.length || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">WiFi Networks</div>
+                </div>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">
+                  Network Health: <span className="text-green-600 dark:text-green-400 font-medium">Good</span>
+                </div>
+                <Link href="/topology">
+                  <Button variant="outline" size="sm">
+                    View Full Topology
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

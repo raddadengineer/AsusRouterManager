@@ -260,7 +260,7 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
     nodes.push(mainRouter);
 
     // Add AiMesh nodes if they exist
-    if (aiMeshData.peers && aiMeshData.peers.length > 0) {
+    if (aiMeshData?.peers && Array.isArray(aiMeshData.peers) && aiMeshData.peers.length > 0) {
       aiMeshData.peers.forEach((peer: string, index: number) => {
         const angle = (index * 120) * (Math.PI / 180); // Space AiMesh nodes around main router
         const radius = 150;
@@ -317,7 +317,7 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
       nodes.push(deviceNode);
 
       // Connect device to appropriate node
-      const connectTo = isWireless && aiMeshData.peers.length > 0 
+      const connectTo = isWireless && aiMeshData?.peers && Array.isArray(aiMeshData.peers) && aiMeshData.peers.length > 0 
         ? `aimesh-${index % aiMeshData.peers.length}` // Distribute wireless devices among AiMesh nodes
         : 'main-router';
       
