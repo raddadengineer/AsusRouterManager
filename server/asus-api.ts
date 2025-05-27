@@ -202,13 +202,13 @@ export class AsusRouterAPI {
           isOnline: true,
         });
       } else if (line.startsWith('ARP:')) {
-        const [, mac, ip, interface, flags] = line.split(':');
+        const [, mac, ip, iface, flags] = line.split(':');
         const existing = deviceMap.get(mac) || {};
         deviceMap.set(mac, {
           ...existing,
           macAddress: mac,
           ipAddress: ip || existing.ipAddress,
-          networkInterface: interface,
+          networkInterface: iface,
           isOnline: true,
         });
       } else if (line.startsWith('CUSTOM:')) {
@@ -224,7 +224,7 @@ export class AsusRouterAPI {
     }
 
     // Convert map to array and add device type detection
-    for (const [mac, device] of deviceMap) {
+    Array.from(deviceMap.entries()).forEach(([mac, device]) => {
       devices.push({
         ...device,
         deviceType: device.deviceType || this.detectDeviceType(mac, device.name || ''),
@@ -233,7 +233,7 @@ export class AsusRouterAPI {
         connectedAt: new Date(),
         lastSeen: new Date(),
       });
-    }
+    });
 
     return devices;
   }
@@ -257,10 +257,10 @@ export class AsusRouterAPI {
           isGuest: false,
         });
       } else if (line.startsWith('GUEST:')) {
-        const [, ssid, interface, enabled] = line.split(':');
+        const [, ssid, iface, enabled] = line.split(':');
         networks.push({
           ssid,
-          band: interface.includes('wl0') ? '2.4GHz' : interface.includes('wl1') ? '5GHz' : '6GHz',
+          band: iface.includes('wl0') ? '2.4GHz' : iface.includes('wl1') ? '5GHz' : '6GHz',
           isEnabled: enabled === '1',
           isGuest: true,
           connectedDevices: 0,
