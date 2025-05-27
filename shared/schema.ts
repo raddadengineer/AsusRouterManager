@@ -66,6 +66,7 @@ export const sshConfig = pgTable("ssh_config", {
   username: text("username").notNull(),
   password: text("password").notNull(),
   enabled: boolean("enabled").notNull().default(false),
+  syncInterval: integer("sync_interval").notNull().default(5),
   lastConnected: timestamp("last_connected"),
   connectionStatus: text("connection_status").default("disconnected"), // disconnected, connected, error
 });

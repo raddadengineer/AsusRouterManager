@@ -50,6 +50,7 @@ const sshConnectionSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
   enabled: z.boolean().default(false),
+  syncInterval: z.number().min(1).max(300).default(5),
 });
 
 type SSHConnectionConfig = z.infer<typeof sshConnectionSchema>;
@@ -78,6 +79,7 @@ export default function SystemSettingsPage() {
       username: "admin",
       password: "",
       enabled: false,
+      syncInterval: 5,
     },
   });
 
@@ -96,6 +98,7 @@ export default function SystemSettingsPage() {
         username: sshConfig.username || "admin",
         password: sshConfig.password || "",
         enabled: sshConfig.enabled || false,
+        syncInterval: sshConfig.syncInterval || 5,
       });
       if (sshConfig.connectionStatus) {
         setConnectionStatus(sshConfig.connectionStatus === 'connected' ? 'connected' : 'disconnected');
@@ -105,12 +108,13 @@ export default function SystemSettingsPage() {
 
   // Auto-sync data when real-time is enabled and connected
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: NodeJS.Timeout | undefined;
     
     if (sshConfig?.enabled && connectionStatus === 'connected') {
-      console.log('Starting real-time data sync every 10 seconds');
+      const syncIntervalMs = (sshConfig.syncInterval || 5) * 1000;
+      console.log(`Starting real-time data sync every ${sshConfig.syncInterval || 5} seconds`);
       
-      // Sync data immediately, then every 10 seconds for real-time updates
+      // Sync data immediately, then at configured interval
       const syncData = async () => {
         try {
           const response = await fetch('/api/ssh/sync-data', { method: 'POST' });
@@ -122,17 +126,13 @@ export default function SystemSettingsPage() {
           }
         } catch (error) {
           console.log('Auto-sync failed:', error);
-          // If sync fails, try to reconnect
           setConnectionStatus('error');
         }
       };
       
-      // Start syncing immediately and then every 10 seconds
+      // Start syncing immediately and then at user-configured interval
       syncData();
-      interval = setInterval(syncData, 10000); // Every 10 seconds for true real-time
-    } else if (interval) {
-      console.log('Stopping real-time data sync');
-      clearInterval(interval);
+      interval = setInterval(syncData, syncIntervalMs);
     }
     
     return () => {
@@ -141,7 +141,7 @@ export default function SystemSettingsPage() {
         console.log('Cleanup: Stopped real-time data sync');
       }
     };
-  }, [sshConfig?.enabled, connectionStatus, queryClient]);
+  }, [sshConfig?.enabled, sshConfig?.syncInterval, connectionStatus, queryClient]);
 
   const sshTestMutation = useMutation({
     mutationFn: async (config: SSHConnectionConfig) => {
@@ -528,6 +528,27 @@ export default function SystemSettingsPage() {
                             placeholder="22" 
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 22)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={sshForm.control}
+                    name="syncInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sync Interval (seconds)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="5" 
+                            min="1"
+                            max="300"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
                           />
                         </FormControl>
                         <FormMessage />
