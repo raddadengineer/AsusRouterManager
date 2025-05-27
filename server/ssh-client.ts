@@ -432,39 +432,47 @@ export class SSHClient {
       const guestEnabled = await this.executeCommand("nvram get wl0.1_bss_enabled");
       const guest5Enabled = await this.executeCommand("nvram get wl1.1_bss_enabled");
       
-      // Get AiMesh status and detailed node information
-      const aimeshMode = await this.executeCommand("nvram get amas_enable");
-      const aimeshNodes = await this.executeCommand("cfg_clientlist | wc -l 2>/dev/null || echo '0'");
+      // Get AiMesh network topology using your script approach
+      const aimeshRole = await this.executeCommand("nvram get amas_mode");
+      const mainRouterMac = await this.executeCommand("nvram get et0macaddr");
+      const aimeshPeers = await this.executeCommand("nvram get amas_peerlist");
       
-      // Get detailed AiMesh node information
+      // Parse AiMesh peers
       const aimeshNodeList = await this.executeCommand(`
-        # Get AiMesh node details
-        if [ "$(nvram get amas_enable)" = "1" ]; then
-          cfg_clientlist 2>/dev/null | while read line; do
-            if [ -n "$line" ]; then
-              echo "Node: $line"
-            fi
+        PEERS=$(nvram get amas_peerlist)
+        if [ -n "$PEERS" ]; then
+          for PEER in $PEERS; do
+            echo "Node MAC: $PEER"
           done
         fi
       `);
       
-      // Get detailed wireless client information per band
-      const wifiDetails24 = await this.executeCommand(`
-        # Get 2.4GHz client details with MAC addresses
-        CLIENTS=""
-        if command -v wl >/dev/null 2>&1; then
-          CLIENTS=$(wl -i eth1 assoclist 2>/dev/null || wl -i wl0 assoclist 2>/dev/null || echo "")
-        fi
-        echo "$CLIENTS" | grep -o '[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]' | head -10
-      `);
-      
-      const wifiDetails5 = await this.executeCommand(`
-        # Get 5GHz client details with MAC addresses
-        CLIENTS=""
-        if command -v wl >/dev/null 2>&1; then
-          CLIENTS=$(wl -i eth2 assoclist 2>/dev/null || wl -i wl1 assoclist 2>/dev/null || echo "")
-        fi
-        echo "$CLIENTS" | grep -o '[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]' | head -10
+      // Get wireless clients by band using your script approach
+      const wirelessClientsByBand = await this.executeCommand(`
+        # Get wireless clients by band with RSSI
+        echo "===WIRELESS_CLIENTS_START==="
+        
+        for IF in wl0 wl1 wl2; do
+          IFNAME=$(nvram get \${IF}_ifname)
+          if [ -n "$IFNAME" ]; then
+            case "$IF" in
+              wl0) BAND="2.4GHz" ;;
+              wl1) BAND="5GHz" ;;
+              wl2) BAND="6GHz" ;;
+            esac
+            
+            echo "BAND:$BAND"
+            wl -i "$IFNAME" assoclist 2>/dev/null | while read -r line; do
+              MAC=$(echo "$line" | awk '{print $2}')
+              if [ -n "$MAC" ]; then
+                RSSI=$(wl -i "$IFNAME" rssi "$MAC" 2>/dev/null || echo "N/A")
+                echo "CLIENT:$MAC:$RSSI:$BAND"
+              fi
+            done
+          fi
+        done
+        
+        echo "===WIRELESS_CLIENTS_END==="
       `);
       
       // Get DDNS status
@@ -542,6 +550,28 @@ export class SSHClient {
       const beamforming24 = await this.executeCommand("nvram get wl_bfd_enable");
       const beamforming5 = await this.executeCommand("nvram get wl1_bfd_enable");
 
+      // Get DHCP leases and wired clients using your script approach
+      const dhcpLeases = await this.executeCommand(`
+        echo "===DHCP_LEASES_START==="
+        cat /tmp/dnsmasq.leases 2>/dev/null | while read -r lease; do
+          MAC=$(echo "$lease" | awk '{print $2}')
+          HOST=$(echo "$lease" | awk '{print $3}')
+          IP=$(echo "$lease" | awk '{print $4}')
+          echo "DHCP:$MAC:$IP:$HOST"
+        done
+        echo "===DHCP_LEASES_END==="
+      `);
+
+      const wiredClients = await this.executeCommand(`
+        echo "===WIRED_CLIENTS_START==="
+        arp | grep -v incomplete | grep br0 2>/dev/null | while read -r line; do
+          IP=$(echo "$line" | awk '{print $1}')
+          MAC=$(echo "$line" | awk '{print $3}')
+          echo "WIRED:$MAC:$IP"
+        done
+        echo "===WIRED_CLIENTS_END==="
+      `);
+
       return {
         adaptiveQos: {
           enabled: qosEnabled.trim() === '1',
@@ -566,9 +596,11 @@ export class SSHClient {
           enabled5: guest5Enabled.trim() === '1',
         },
         aiMesh: {
-          isMaster: aimeshMode.trim() === '1',
-          nodeCount: parseInt(aimeshNodes.trim()) || 0,
-          nodeList: aimeshNodeList.trim().split('\n').filter(line => line.includes('Node:')).map(line => line.replace('Node: ', '')),
+          isMaster: aimeshRole.trim() === '0', // 0 = main router, 1 = node
+          nodeCount: aimeshPeers.trim() ? aimeshPeers.trim().split(' ').length : 0,
+          nodeList: aimeshNodeList.trim().split('\n').filter(line => line.includes('Node MAC:')).map(line => line.replace('Node MAC: ', '')),
+          mainRouterMac: mainRouterMac.trim(),
+          peers: aimeshPeers.trim().split(' ').filter(peer => peer.length > 0),
         },
         ddns: {
           enabled: ddnsEnabled.trim() === '1',
@@ -585,17 +617,13 @@ export class SSHClient {
           wanIp: wanIp.trim(),
           wanGateway: wanGateway.trim(),
         },
-        // Wireless Client Information with detailed MAC addresses
-        wirelessClients: {
-          band24ghz: parseInt(wifiClients24.trim()) || 0,
-          band5ghz: parseInt(wifiClients5.trim()) || 0,
-          band6ghz: parseInt(wifiClients6.trim()) || 0,
-          total: (parseInt(wifiClients24.trim()) || 0) + (parseInt(wifiClients5.trim()) || 0) + (parseInt(wifiClients6.trim()) || 0),
-          details: {
-            band24ghz: wifiDetails24.trim().split('\n').filter(line => line.length > 0),
-            band5ghz: wifiDetails5.trim().split('\n').filter(line => line.length > 0),
-            band6ghz: []
-          }
+        // Parse wireless clients data from your script format
+        wirelessClients: this.parseWirelessClients(wirelessClientsByBand),
+        
+        // Additional network topology data
+        networkTopology: {
+          dhcpLeases: this.parseDHCPLeases(dhcpLeases),
+          wiredClients: this.parseWiredClients(wiredClients),
         },
         // Wireless Features
         wirelessFeatures: {
@@ -619,6 +647,83 @@ export class SSHClient {
 
   isConnectionActive(): boolean {
     return this.isConnected;
+  }
+
+  private parseWirelessClients(data: string) {
+    const bands = {
+      band24ghz: 0,
+      band5ghz: 0,
+      band6ghz: 0,
+      total: 0,
+      details: {
+        band24ghz: [] as Array<{mac: string, rssi: string, band: string}>,
+        band5ghz: [] as Array<{mac: string, rssi: string, band: string}>,
+        band6ghz: [] as Array<{mac: string, rssi: string, band: string}>
+      }
+    };
+
+    const lines = data.split('\n');
+    let currentBand = '';
+    
+    for (const line of lines) {
+      if (line.startsWith('BAND:')) {
+        currentBand = line.replace('BAND:', '');
+      } else if (line.startsWith('CLIENT:')) {
+        const parts = line.replace('CLIENT:', '').split(':');
+        if (parts.length >= 3) {
+          const [mac, rssi, band] = parts;
+          const clientData = { mac, rssi, band };
+          
+          if (band === '2.4GHz') {
+            bands.band24ghz++;
+            bands.details.band24ghz.push(clientData);
+          } else if (band === '5GHz') {
+            bands.band5ghz++;
+            bands.details.band5ghz.push(clientData);
+          } else if (band === '6GHz') {
+            bands.band6ghz++;
+            bands.details.band6ghz.push(clientData);
+          }
+        }
+      }
+    }
+    
+    bands.total = bands.band24ghz + bands.band5ghz + bands.band6ghz;
+    return bands;
+  }
+
+  private parseDHCPLeases(data: string) {
+    const leases = [];
+    const lines = data.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('DHCP:')) {
+        const parts = line.replace('DHCP:', '').split(':');
+        if (parts.length >= 3) {
+          const [mac, ip, hostname] = parts;
+          leases.push({ mac, ip, hostname });
+        }
+      }
+    }
+    
+    return leases;
+  }
+
+  private parseWiredClients(data: string) {
+    const clients = [];
+    const lines = data.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('WIRED:')) {
+        const parts = line.replace('WIRED:', '').split(':');
+        if (parts.length >= 2) {
+          const [mac, ip] = parts;
+          clients.push({ mac, ip });
+        }
+      }
+    }
+    
+    return clients;
   }
 }
 
