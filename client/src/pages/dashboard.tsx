@@ -11,6 +11,7 @@ import DeviceTable from "@/components/device-table";
 import TopBar from "@/components/top-bar";
 import { useToast } from "@/hooks/use-toast";
 import { formatUptime } from "@/lib/utils";
+import { Link } from "wouter";
 import {
   Tablet,
   TrendingUp,
@@ -21,6 +22,9 @@ import {
   Download,
   Save,
   ChevronRight,
+  ArrowRight,
+  Network,
+  Users,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -273,9 +277,128 @@ export default function Dashboard() {
         </Card>
       </div>
 
-          {/* Tables Section */}
+          {/* Network Overview and Connected Devices Summary */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <DeviceTable showSearch={false} />
+            {/* Network Topology Preview */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Network className="h-5 w-5 text-blue-600" />
+                    <span>Network Topology</span>
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Live network overview
+                  </p>
+                </div>
+                <Link href="/topology">
+                  <Button variant="outline" size="sm" className="shrink-0">
+                    View Details
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64 mb-4">
+                  <NetworkTopology className="h-full" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">{connectedDevicesCount}</div>
+                    <div className="text-xs text-muted-foreground">Online Devices</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {devices?.filter(d => d.connectionType?.includes('wireless')).length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Wireless</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">
+                      {devices?.filter(d => !d.connectionType?.includes('wireless')).length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Wired</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Connected Devices Summary */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5 text-green-600" />
+                    <span>Connected Devices</span>
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {connectedDevicesCount} devices online
+                  </p>
+                </div>
+                <Link href="/devices">
+                  <Button variant="outline" size="sm" className="shrink-0">
+                    View All
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {devicesLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {devices?.slice(0, 5).map((device) => (
+                      <div key={device.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Tablet className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{device.name}</div>
+                            <div className="text-xs text-muted-foreground">{device.ipAddress}</div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant={device.isOnline ? "default" : "secondary"} className="text-xs">
+                            {device.isOnline ? "Online" : "Offline"}
+                          </Badge>
+                          {device.isOnline && (device.downloadSpeed || device.uploadSpeed) && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              ↓{(device.downloadSpeed || 0).toFixed(1)} ↑{(device.uploadSpeed || 0).toFixed(1)} Mbps
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {devices && devices.length > 5 && (
+                      <div className="text-center pt-2">
+                        <Link href="/devices">
+                          <Button variant="ghost" size="sm" className="text-primary">
+                            View {devices.length - 5} more devices
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                    {(!devices || devices.length === 0) && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Tablet className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>No devices connected</p>
+                        <p className="text-sm">Connect to your router to see devices</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Bandwidth Chart */}
+          <div className="mt-6">
             <BandwidthChart />
           </div>
         </div>
