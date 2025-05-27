@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -99,6 +99,37 @@ export const routerFeatures = pgTable("router_features", {
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
+export const deviceGroups = pgTable("device_groups", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  color: varchar("color", { length: 7 }).default("#3B82F6"), // Hex color
+  icon: varchar("icon", { length: 50 }).default("devices"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const deviceTags = pgTable("device_tags", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull().unique(),
+  color: varchar("color", { length: 7 }).default("#6B7280"), // Hex color
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const deviceGroupMemberships = pgTable("device_group_memberships", {
+  id: serial("id").primaryKey(),
+  deviceId: integer("device_id").references(() => connectedDevices.id, { onDelete: "cascade" }),
+  groupId: integer("group_id").references(() => deviceGroups.id, { onDelete: "cascade" }),
+  addedAt: timestamp("added_at").defaultNow(),
+});
+
+export const deviceTagAssignments = pgTable("device_tag_assignments", {
+  id: serial("id").primaryKey(),
+  deviceId: integer("device_id").references(() => connectedDevices.id, { onDelete: "cascade" }),
+  tagId: integer("tag_id").references(() => deviceTags.id, { onDelete: "cascade" }),
+  assignedAt: timestamp("assigned_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertRouterStatusSchema = createInsertSchema(routerStatus).omit({
   id: true,
@@ -133,6 +164,27 @@ export const insertSSHConfigSchema = createInsertSchema(sshConfig).omit({
 export const insertRouterFeaturesSchema = createInsertSchema(routerFeatures).omit({
   id: true,
   lastUpdated: true,
+});
+
+export const insertDeviceGroupSchema = createInsertSchema(deviceGroups).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDeviceTagSchema = createInsertSchema(deviceTags).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDeviceGroupMembershipSchema = createInsertSchema(deviceGroupMemberships).omit({
+  id: true,
+  addedAt: true,
+});
+
+export const insertDeviceTagAssignmentSchema = createInsertSchema(deviceTagAssignments).omit({
+  id: true,
+  assignedAt: true,
 });
 
 // Types
