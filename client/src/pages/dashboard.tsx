@@ -316,56 +316,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
-          {/* Network Overview and Connected Devices Summary */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Network Topology Preview */}
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Network className="h-5 w-5 text-blue-600" />
-                    <span>Network Topology</span>
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Live network overview
-                  </p>
-                </div>
-                <Link href="/topology">
-                  <Button variant="outline" size="sm" className="shrink-0">
-                    View Details
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </Link>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64 mb-4 bg-muted/30 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <Network className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Network topology preview</p>
-                    <p className="text-xs text-muted-foreground">Click "View Details" for full visualization</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-blue-600">{connectedDevicesCount}</div>
-                    <div className="text-xs text-muted-foreground">Online Devices</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-green-600">
-                      {devices?.filter(d => d.connectionType?.includes('wireless')).length || 0}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Wireless</div>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-orange-600">
-                      {devices?.filter(d => !d.connectionType?.includes('wireless')).length || 0}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Wired</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+          {/* Connected Devices Summary */}
+          <div className="grid grid-cols-1 gap-6">
             {/* Connected Devices Summary */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
