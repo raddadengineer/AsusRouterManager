@@ -3,9 +3,10 @@ import type { ConnectedDevice, RouterStatus } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Router, Laptop, Smartphone, Monitor, Tv } from "lucide-react";
+import { RefreshCw, Router, Laptop, Smartphone, Monitor, Tv, Wifi, Radio, Signal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeviceIcon } from "@/lib/utils";
+import { useState } from "react";
 
 interface NetworkTopologyProps {
   className?: string;
@@ -48,139 +49,249 @@ const getDeviceColor = (type: string, isOnline: boolean) => {
 };
 
 export default function NetworkTopology({ className }: NetworkTopologyProps) {
+  const [selectedBand, setSelectedBand] = useState<'24ghz' | '5ghz' | '6ghz' | 'all'>('all');
+  
   const { data: devices, isLoading: devicesLoading } = useQuery<ConnectedDevice[]>({
     queryKey: ["/api/devices"],
-    refetchInterval: 30000,
   });
 
   const { data: routerStatus, isLoading: statusLoading } = useQuery<RouterStatus>({
     queryKey: ["/api/router/status"],
-    refetchInterval: 30000,
   });
 
-  const isLoading = devicesLoading || statusLoading;
+  const { data: routerFeatures, isLoading: featuresLoading } = useQuery({
+    queryKey: ["/api/router/features"],
+  });
 
-  if (isLoading) {
+  if (devicesLoading || statusLoading || featuresLoading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Network Topology</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Router className="h-5 w-5" />
+            Network Topology
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-80 w-full" />
+          <div className="space-y-4">
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  const onlineDevices = devices?.filter(device => device.isOnline) || [];
+  const connectedDevices = devices || [];
+  const wifiDevices = connectedDevices.filter(device => device.connectionType?.includes('WiFi'));
+  const wirelessClients = routerFeatures?.wirelessClients || { band24ghz: 0, band5ghz: 0, band6ghz: 0, total: 0 };
+  const aiMesh = routerFeatures?.aiMesh || { isMaster: false, nodeCount: 0, nodeList: [] };
+
+  const getBandDevices = (band: string) => {
+    switch (band) {
+      case '24ghz':
+        return wifiDevices.filter(device => device.connectionType?.includes('2.4GHz')).slice(0, wirelessClients.band24ghz);
+      case '5ghz':
+        return wifiDevices.filter(device => device.connectionType?.includes('5GHz')).slice(0, wirelessClients.band5ghz);
+      case '6ghz':
+        return wifiDevices.filter(device => device.connectionType?.includes('6GHz')).slice(0, wirelessClients.band6ghz);
+      default:
+        return wifiDevices;
+    }
+  };
+
+  const displayDevices = selectedBand === 'all' ? wifiDevices : getBandDevices(selectedBand);
 
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Network Topology</CardTitle>
-        <Button variant="ghost" size="icon">
-          <RefreshCw className="h-4 w-4" />
+        <CardTitle className="flex items-center gap-2">
+          <Router className="h-5 w-5" />
+          Interactive Network Topology
+        </CardTitle>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.location.reload()}
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="relative h-80 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg p-4 overflow-hidden">
-          {/* Background pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 left-0 w-full h-full" style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-            }}></div>
-          </div>
-
-          {/* Router at center */}
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center border-4 border-white shadow-lg">
-              <Router className="h-6 w-6 text-white" />
-            </div>
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-              <Badge variant="secondary" className="text-xs font-medium bg-gray-900 text-white">
-                {routerStatus?.model || "Router"}
+        <div className="space-y-6">
+          {/* Main Router */}
+          <div className="flex flex-col items-center">
+            <div className="relative">
+              <div className="w-20 h-20 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Router className="h-10 w-10 text-white" />
+              </div>
+              <Badge className="absolute -top-2 -right-2 bg-green-500">
+                {aiMesh.isMaster ? 'AiMesh Master' : 'Main Router'}
               </Badge>
             </div>
-            
-            {/* Router pulse animation */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 border-2 border-primary rounded-full animate-ping opacity-20"></div>
-          </div>
-
-          {/* Connected devices positioned around the router */}
-          {onlineDevices.slice(0, 8).map((device, index) => {
-            const angle = (index / Math.max(onlineDevices.length, 1)) * 2 * Math.PI;
-            const radius = 120;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-
-            return (
-              <div key={device.id} className="absolute z-10">
-                <div 
-                  className="transform -translate-x-1/2 -translate-y-1/2"
-                  style={{
-                    left: `calc(50% + ${x}px)`,
-                    top: `calc(50% + ${y}px)`,
-                  }}
-                >
-                  {/* Device node */}
-                  <div className={`w-10 h-10 ${getDeviceColor(device.deviceType, device.isOnline)} rounded-full flex items-center justify-center shadow-lg`}>
-                    <DeviceIcon type={device.deviceType} />
-                  </div>
-                  
-                  {/* Device label */}
-                  <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-                    <Badge variant="secondary" className="text-xs bg-gray-900 text-white whitespace-nowrap">
-                      {device.name.length > 10 ? `${device.name.substring(0, 10)}...` : device.name}
-                    </Badge>
-                  </div>
-
-                  {/* Connection line to router */}
-                  <svg 
-                    className="absolute top-5 left-5 pointer-events-none"
-                    style={{
-                      width: `${Math.abs(x) + 20}px`,
-                      height: `${Math.abs(y) + 20}px`,
-                      transform: `translate(${x < 0 ? x : -x}px, ${y < 0 ? y : -y}px)`,
-                    }}
-                  >
-                    <line
-                      x1={x < 0 ? Math.abs(x) : 0}
-                      y1={y < 0 ? Math.abs(y) : 0}
-                      x2={x < 0 ? 0 : Math.abs(x)}
-                      y2={y < 0 ? 0 : Math.abs(y)}
-                      stroke="#0066CC"
-                      strokeWidth="2"
-                      strokeDasharray="5,5"
-                      opacity="0.7"
-                    />
-                  </svg>
-
-                  {/* Data flow animation */}
-                  {(device.downloadSpeed || 0) > 0 && (
-                    <div 
-                      className="absolute w-2 h-2 bg-primary rounded-full opacity-60 animate-pulse"
-                      style={{
-                        left: `${x < 0 ? x / 2 : -x / 2}px`,
-                        top: `${y < 0 ? y / 2 : -y / 2}px`,
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Network stats overlay */}
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="flex justify-between text-sm text-gray-300">
-              <div>
-                <span className="text-white font-medium">{onlineDevices.length}</span> devices online
-              </div>
-              <div>
-                Total: <span className="text-white font-medium">{devices?.length || 0}</span> devices
+            <div className="mt-2 text-center">
+              <div className="text-sm font-medium">ASUS Router</div>
+              <div className="text-xs text-muted-foreground">
+                {routerStatus?.ipAddress || '192.168.1.1'}
               </div>
             </div>
+          </div>
+
+          {/* AiMesh Nodes */}
+          {aiMesh.isMaster && aiMesh.nodeCount > 0 && (
+            <>
+              <div className="flex justify-center">
+                <div className="w-px h-8 bg-border"></div>
+              </div>
+              
+              <div className="flex flex-col items-center">
+                <h4 className="text-sm font-medium mb-4">AiMesh Nodes ({aiMesh.nodeCount})</h4>
+                <div className="flex gap-6 justify-center">
+                  {Array.from({ length: aiMesh.nodeCount }, (_, i) => (
+                    <div key={i} className="flex flex-col items-center">
+                      <div className="relative">
+                        <div className="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                          <Wifi className="h-8 w-8 text-white" />
+                        </div>
+                        <Badge className="absolute -top-2 -right-2 bg-purple-500 text-xs">
+                          Node {i + 1}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-center">
+                        <div className="text-xs font-medium">AiMesh Node</div>
+                        <div className="text-xs text-muted-foreground">Active</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Band Selection */}
+          <div className="flex flex-col items-center space-y-4">
+            <div className="flex justify-center">
+              <div className="w-px h-8 bg-border"></div>
+            </div>
+            
+            <div className="flex gap-2 flex-wrap justify-center">
+              <Button
+                variant={selectedBand === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedBand('all')}
+                className="text-xs"
+              >
+                All Bands ({wirelessClients.total})
+              </Button>
+              <Button
+                variant={selectedBand === '24ghz' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedBand('24ghz')}
+                className="text-xs"
+              >
+                <Signal className="h-3 w-3 mr-1" />
+                2.4GHz ({wirelessClients.band24ghz})
+              </Button>
+              <Button
+                variant={selectedBand === '5ghz' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedBand('5ghz')}
+                className="text-xs"
+              >
+                <Radio className="h-3 w-3 mr-1" />
+                5GHz ({wirelessClients.band5ghz})
+              </Button>
+              <Button
+                variant={selectedBand === '6ghz' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSelectedBand('6ghz')}
+                className="text-xs"
+              >
+                <Wifi className="h-3 w-3 mr-1" />
+                6GHz ({wirelessClients.band6ghz})
+              </Button>
+            </div>
+          </div>
+
+          {/* Wireless Clients */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {displayDevices.slice(0, 12).map((device, index) => (
+              <div key={device.id || index} className="flex flex-col items-center space-y-2">
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getDeviceColor(device.deviceType, device.isOnline)} shadow-sm`}>
+                  <DeviceIcon type={device.deviceType} />
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-medium truncate w-20">
+                    {device.hostname || `Device ${index + 1}`}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {device.connectionType || 'WiFi'}
+                  </div>
+                  <Badge 
+                    variant={device.isOnline ? "default" : "secondary"}
+                    className="text-xs"
+                  >
+                    {device.isOnline ? "Online" : "Offline"}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+            
+            {/* Show wireless clients from actual router data */}
+            {Array.from({ 
+              length: Math.max(0, (selectedBand === 'all' ? wirelessClients.total : wirelessClients[selectedBand] || 0) - displayDevices.length) 
+            }).slice(0, 8).map((_, index) => (
+              <div key={`wireless-${index}`} className="flex flex-col items-center space-y-2">
+                <div className="w-12 h-12 bg-blue-400 rounded-lg flex items-center justify-center shadow-sm">
+                  <Smartphone className="h-4 w-4 text-white" />
+                </div>
+                <div className="text-center">
+                  <div className="text-xs font-medium">WiFi Client</div>
+                  <div className="text-xs text-muted-foreground">
+                    {selectedBand === 'all' ? 'Active' : selectedBand.replace('ghz', 'GHz').replace('24', '2.4')}
+                  </div>
+                  <Badge variant="default" className="text-xs">
+                    Online
+                  </Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Real-time Statistics from Router */}
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+              <Wifi className="h-4 w-4" />
+              Live Wireless Statistics from Router
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">2.4GHz Band:</span>
+                <span className="font-medium text-lg">{wirelessClients.band24ghz}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">5GHz Band:</span>
+                <span className="font-medium text-lg">{wirelessClients.band5ghz}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">6GHz Band:</span>
+                <span className="font-medium text-lg">{wirelessClients.band6ghz}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-muted-foreground">Total Wireless:</span>
+                <span className="font-medium text-lg text-blue-600">{wirelessClients.total}</span>
+              </div>
+            </div>
+            
+            {aiMesh.isMaster && (
+              <div className="mt-3 pt-3 border-t border-border">
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">AiMesh Network:</span>
+                  <span className="font-medium">{aiMesh.nodeCount + 1} nodes total</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

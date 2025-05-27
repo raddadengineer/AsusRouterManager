@@ -432,9 +432,40 @@ export class SSHClient {
       const guestEnabled = await this.executeCommand("nvram get wl0.1_bss_enabled");
       const guest5Enabled = await this.executeCommand("nvram get wl1.1_bss_enabled");
       
-      // Get AiMesh status using correct commands
+      // Get AiMesh status and detailed node information
       const aimeshMode = await this.executeCommand("nvram get amas_enable");
       const aimeshNodes = await this.executeCommand("cfg_clientlist | wc -l 2>/dev/null || echo '0'");
+      
+      // Get detailed AiMesh node information
+      const aimeshNodeList = await this.executeCommand(`
+        # Get AiMesh node details
+        if [ "$(nvram get amas_enable)" = "1" ]; then
+          cfg_clientlist 2>/dev/null | while read line; do
+            if [ -n "$line" ]; then
+              echo "Node: $line"
+            fi
+          done
+        fi
+      `);
+      
+      // Get detailed wireless client information per band
+      const wifiDetails24 = await this.executeCommand(`
+        # Get 2.4GHz client details with MAC addresses
+        CLIENTS=""
+        if command -v wl >/dev/null 2>&1; then
+          CLIENTS=$(wl -i eth1 assoclist 2>/dev/null || wl -i wl0 assoclist 2>/dev/null || echo "")
+        fi
+        echo "$CLIENTS" | grep -o '[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]' | head -10
+      `);
+      
+      const wifiDetails5 = await this.executeCommand(`
+        # Get 5GHz client details with MAC addresses
+        CLIENTS=""
+        if command -v wl >/dev/null 2>&1; then
+          CLIENTS=$(wl -i eth2 assoclist 2>/dev/null || wl -i wl1 assoclist 2>/dev/null || echo "")
+        fi
+        echo "$CLIENTS" | grep -o '[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]:[0-9a-fA-F][0-9a-fA-F]' | head -10
+      `);
       
       // Get DDNS status
       const ddnsEnabled = await this.executeCommand("nvram get ddns_enable_x");
@@ -537,6 +568,7 @@ export class SSHClient {
         aiMesh: {
           isMaster: aimeshMode.trim() === '1',
           nodeCount: parseInt(aimeshNodes.trim()) || 0,
+          nodeList: aimeshNodeList.trim().split('\n').filter(line => line.includes('Node:')).map(line => line.replace('Node: ', '')),
         },
         ddns: {
           enabled: ddnsEnabled.trim() === '1',
@@ -553,12 +585,17 @@ export class SSHClient {
           wanIp: wanIp.trim(),
           wanGateway: wanGateway.trim(),
         },
-        // Wireless Client Information
+        // Wireless Client Information with detailed MAC addresses
         wirelessClients: {
           band24ghz: parseInt(wifiClients24.trim()) || 0,
           band5ghz: parseInt(wifiClients5.trim()) || 0,
           band6ghz: parseInt(wifiClients6.trim()) || 0,
           total: (parseInt(wifiClients24.trim()) || 0) + (parseInt(wifiClients5.trim()) || 0) + (parseInt(wifiClients6.trim()) || 0),
+          details: {
+            band24ghz: wifiDetails24.trim().split('\n').filter(line => line.length > 0),
+            band5ghz: wifiDetails5.trim().split('\n').filter(line => line.length > 0),
+            band6ghz: []
+          }
         },
         // Wireless Features
         wirelessFeatures: {
