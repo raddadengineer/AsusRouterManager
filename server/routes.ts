@@ -350,6 +350,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WiFi Management Routes
+  app.post("/api/wifi/scan", async (req, res) => {
+    try {
+      if (!sshClient.isConnectionActive()) {
+        return res.status(400).json({ message: "SSH connection required for WiFi scan" });
+      }
+      
+      // Scan for nearby WiFi networks using ASUS router commands
+      const scanCommand = `iwlist scan 2>/dev/null | grep -E "(ESSID|Channel|Quality|Encryption)" || wl -i eth1 scan`;
+      const result = await sshClient.executeCommand(scanCommand);
+      
+      // Parse scan results (simplified implementation)
+      const networks = [];
+      const lines = result.split('\n');
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes('ESSID') || line.includes('SSID')) {
+          const ssid = line.match(/"([^"]+)"/)?.[1] || 'Hidden Network';
+          const channel = lines[i+1]?.match(/Channel:(\d+)/)?.[1] || '1';
+          const signal = lines[i+2]?.match(/Quality=(\d+)/)?.[1] || '50';
+          const security = lines[i+3]?.includes('WPA') ? 'WPA2' : lines[i+3]?.includes('WEP') ? 'WEP' : null;
+          
+          networks.push({
+            ssid,
+            channel: parseInt(channel),
+            rssi: -(100 - parseInt(signal)),
+            security,
+            band: parseInt(channel) > 14 ? '5GHz' : '2.4GHz'
+          });
+        }
+      }
+      
+      res.json({ networks, scannedAt: new Date().toISOString() });
+    } catch (error) {
+      console.error("WiFi scan failed:", error);
+      res.status(500).json({ message: `WiFi scan failed: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    }
+  });
+
+  app.post("/api/wifi/restart", async (req, res) => {
+    try {
+      if (!sshClient.isConnectionActive()) {
+        return res.status(400).json({ message: "SSH connection required to restart WiFi" });
+      }
+      
+      // Restart WiFi radios on ASUS router
+      const restartCommand = `service restart_wireless && sleep 2 && wl radio on && wl -i eth2 radio on`;
+      await sshClient.executeCommand(restartCommand);
+      
+      res.json({ 
+        message: "WiFi radios restarted successfully",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("WiFi restart failed:", error);
+      res.status(500).json({ message: `Failed to restart WiFi: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    }
+  });
+
   // SSH Configuration Routes
   app.get("/api/ssh/config", async (req, res) => {
     try {
