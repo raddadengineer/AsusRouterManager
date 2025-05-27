@@ -140,14 +140,24 @@ export class SSHClient {
         echo
 
         echo "------ Connected Wireless Clients ------"
-        # Use your improved wireless detection method
-        for i in wl0 wl1 wl2; do
-          wl -i $i assoclist 2>/dev/null | while read mac; do
-            if [ -n "$mac" ]; then
-              rssi=$(wl -i $i rssi "$mac" 2>/dev/null || echo "N/A")
+        # Get wireless interfaces using ASUS-specific command
+        sta_ifnames=$(nvram get sta_ifnames 2>/dev/null || echo "eth6 eth7 eth8")
+        
+        for iface in $sta_ifnames; do
+          band_name=""
+          case $iface in
+            eth6) band_name="2.4GHz" ;;
+            eth7) band_name="5GHz" ;;
+            eth8) band_name="6GHz" ;;
+            *) band_name="Unknown" ;;
+          esac
+          
+          wl -i $iface assoclist 2>/dev/null | while read mac rest; do
+            if [ -n "$mac" ] && [[ $mac =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}$ ]]; then
+              rssi=$(wl -i $iface rssi "$mac" 2>/dev/null | grep -o '[0-9-]*' | head -1)
               hostname=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $4}' | head -1)
               ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $3}' | head -1)
-              echo "$i (Wireless) | MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm"
+              echo "MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm | Band: $band_name | Interface: $iface"
             fi
           done
         done
