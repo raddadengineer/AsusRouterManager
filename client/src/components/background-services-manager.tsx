@@ -22,10 +22,57 @@ interface BackgroundJob {
 export default function BackgroundServicesManager() {
   const { toast } = useToast();
 
-  const { data: jobs, isLoading, refetch } = useQuery<BackgroundJob[]>({
+  // Define available background services that should always be visible
+  const defaultServices: BackgroundJob[] = [
+    {
+      id: 'device-discovery',
+      name: 'Device Discovery',
+      description: 'Scans network for new connected devices',
+      cronExpression: '*/2 * * * *',
+      isEnabled: true,
+      status: 'stopped'
+    },
+    {
+      id: 'device-detail-sync',
+      name: 'Device Detail Sync',
+      description: 'Updates device connection details and signal strength',
+      cronExpression: '*/2 * * * *',
+      isEnabled: true,
+      status: 'stopped'
+    },
+    {
+      id: 'bandwidth-monitoring',
+      name: 'Bandwidth Monitoring',
+      description: 'Monitors real-time bandwidth usage',
+      cronExpression: '*/1 * * * *',
+      isEnabled: true,
+      status: 'stopped'
+    },
+    {
+      id: 'router-health-check',
+      name: 'Router Health Check',
+      description: 'Monitors router system performance',
+      cronExpression: '*/5 * * * *',
+      isEnabled: true,
+      status: 'stopped'
+    },
+    {
+      id: 'wifi-network-scan',
+      name: 'WiFi Network Scan',
+      description: 'Scans for available WiFi networks',
+      cronExpression: '*/10 * * * *',
+      isEnabled: true,
+      status: 'stopped'
+    }
+  ];
+
+  const { data: backendJobs, isLoading, refetch } = useQuery<BackgroundJob[]>({
     queryKey: ["/api/background/jobs"],
     refetchInterval: 5000, // Refresh every 5 seconds
   });
+
+  // Use backend data if available, otherwise show default services
+  const jobs = backendJobs && backendJobs.length > 0 ? backendJobs : defaultServices;
 
   const runJobMutation = useMutation({
     mutationFn: async (jobId: string) => {
