@@ -34,6 +34,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Router features endpoint
+  app.get("/api/router/features", async (req, res) => {
+    try {
+      const features = await storage.getRouterFeatures();
+      if (!features) {
+        // Create default features if none exist
+        const defaultFeatures = {
+          adaptiveQosEnabled: false,
+          aiProtectionEnabled: false,
+          vpnServerEnabled: false,
+          aimeshIsMaster: false,
+          aimeshNodeCount: 0,
+          guestNetworkEnabled: false,
+          wirelessClients24ghz: 0,
+          wirelessClients5ghz: 0,
+          wirelessClients6ghz: 0,
+          wirelessClientsTotal: 0
+        };
+        const created = await storage.updateRouterFeatures(defaultFeatures);
+        return res.json(created);
+      }
+      res.json(features);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get router features" });
+    }
+  });
+
   // Connected Devices Routes
   app.get("/api/devices", async (req, res) => {
     try {
