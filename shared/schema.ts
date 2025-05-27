@@ -33,6 +33,12 @@ export const connectedDevices = pgTable("connected_devices", {
   lastSeen: timestamp("last_seen").defaultNow(),
   connectionType: text("connection_type").default("wired"), // wired, wireless, mesh
   hostname: text("hostname"),
+  // Enhanced wireless detection fields
+  wirelessBand: text("wireless_band"), // 2.4GHz, 5GHz, 6GHz, null for wired
+  signalStrength: integer("signal_strength"), // RSSI in dBm
+  wirelessInterface: text("wireless_interface"), // wl0, wl1, wl2
+  aimeshNode: text("aimesh_node"), // which AiMesh node device is connected to
+  aimeshNodeMac: text("aimesh_node_mac"), // MAC address of AiMesh node
 });
 
 export const wifiNetworks = pgTable("wifi_networks", {

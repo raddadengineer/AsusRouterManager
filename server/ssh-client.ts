@@ -159,37 +159,167 @@ export class SSHClient {
     return results;
   }
 
+  async getNetworkTopologyReport(): Promise<any> {
+    if (!this.isConnected) return null;
+
+    try {
+      console.log('Generating comprehensive network topology report...');
+      
+      // Use your exact script methodology for complete topology detection
+      const command = `
+        echo "=== ASUS Network Topology Report ==="
+        echo "Date: $(date)"
+        echo
+
+        echo "NODE NAME: $(nvram get productid)"
+        echo "ROUTER IP: $(nvram get lan_ipaddr)"
+        echo
+
+        echo "------ DHCP Clients (All Devices) ------"
+        echo "IP, MAC, Hostname"
+        cat /var/lib/misc/dnsmasq.leases | awk '{print $3", "$2", "$4}'
+        echo
+
+        echo "------ Connected Wireless Clients ------"
+        for iface in wl0 wl1 wl2; do
+          echo
+          echo "Interface: $iface"
+          wl -i $iface assoclist 2>/dev/null | while read mac; do
+            if [ -n "$mac" ]; then
+              rssi=$(wl -i $iface rssi "$mac" 2>/dev/null || echo "N/A")
+              hostname=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $4}' | head -1)
+              ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $3}' | head -1)
+              band="Unknown"
+              if [ "$iface" = "wl0" ]; then band="2.4GHz"; fi
+              if [ "$iface" = "wl1" ]; then band="5GHz"; fi
+              if [ "$iface" = "wl2" ]; then band="6GHz"; fi
+              echo "MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm | Band: $band"
+            fi
+          done
+        done
+
+        echo
+        echo "------ Wired Clients (via ARP Table) ------"
+        echo "IP, MAC, Interface"
+        ip neigh | grep -i "lladdr" | awk '{print $1", "$5", "$3}'
+
+        echo
+        echo "------ AiMesh Topology ------"
+        if [ -f /tmp/sysinfo/mesh_topology.json ]; then
+          echo "(Found mesh_topology.json)"
+          cat /tmp/sysinfo/mesh_topology.json
+        elif [ -f /tmp/sysinfo/mesh_status ]; then
+          echo "(Found mesh_status)"
+          cat /tmp/sysinfo/mesh_status
+        else
+          echo "AiMesh topology info not found."
+        fi
+
+        echo
+        echo "------ Finished ------"
+      `;
+      
+      const result = await this.executeCommand(command);
+      return this.parseNetworkTopologyReport(result);
+    } catch (error) {
+      console.error('Error generating network topology report:', error);
+      return null;
+    }
+  }
+
+  private parseNetworkTopologyReport(data: string): any {
+    const report = {
+      routerInfo: {},
+      dhcpClients: [],
+      wirelessClients: [],
+      wiredClients: [],
+      aimeshTopology: null
+    };
+
+    const lines = data.split('\n');
+    let currentSection = '';
+    
+    for (const line of lines) {
+      if (line.includes('NODE NAME:')) {
+        report.routerInfo.name = line.split(':')[1]?.trim();
+      } else if (line.includes('ROUTER IP:')) {
+        report.routerInfo.ip = line.split(':')[1]?.trim();
+      } else if (line.includes('DHCP Clients')) {
+        currentSection = 'dhcp';
+      } else if (line.includes('Connected Wireless Clients')) {
+        currentSection = 'wireless';
+      } else if (line.includes('Wired Clients')) {
+        currentSection = 'wired';
+      } else if (line.includes('AiMesh Topology')) {
+        currentSection = 'aimesh';
+      } else if (line.startsWith('MAC:') && currentSection === 'wireless') {
+        // Parse wireless client line: "MAC: aa:bb:cc | IP: 192.168.1.100 | Hostname: device | RSSI: -45 dBm | Band: 5GHz"
+        const macMatch = line.match(/MAC:\s*([a-fA-F0-9:]+)/);
+        const ipMatch = line.match(/IP:\s*([0-9.]+)/);
+        const hostnameMatch = line.match(/Hostname:\s*([^|]+)/);
+        const rssiMatch = line.match(/RSSI:\s*(-?\d+)/);
+        const bandMatch = line.match(/Band:\s*([^|]+)/);
+        
+        if (macMatch) {
+          report.wirelessClients.push({
+            mac: macMatch[1].trim(),
+            ip: ipMatch?.[1]?.trim() || '',
+            hostname: hostnameMatch?.[1]?.trim() || '',
+            rssi: rssiMatch ? parseInt(rssiMatch[1]) : null,
+            band: bandMatch?.[1]?.trim() || 'Unknown'
+          });
+        }
+      } else if (line.includes(',') && currentSection === 'dhcp') {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          report.dhcpClients.push({
+            ip: parts[0],
+            mac: parts[1],
+            hostname: parts[2]
+          });
+        }
+      } else if (line.includes(',') && currentSection === 'wired') {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          report.wiredClients.push({
+            ip: parts[0],
+            mac: parts[1],
+            interface: parts[2]
+          });
+        }
+      }
+    }
+
+    return report;
+  }
+
   async getConnectedDevices(): Promise<any[]> {
     try {
       console.log('Getting connected devices with enhanced detection...');
       
-      // Get DHCP leases first to get all known devices
-      const dhcpLeases = await this.executeCommand("cat /var/lib/misc/dnsmasq.leases");
+      // Get comprehensive topology report
+      const topologyReport = await this.getNetworkTopologyReport();
+      if (!topologyReport) return [];
+
       const devices: any[] = [];
-      
-      // Parse DHCP leases
-      const leaseLines = dhcpLeases.split('\n').filter(line => line.trim());
-      
-      for (const lease of leaseLines) {
-        const parts = lease.trim().split(/\s+/);
-        if (parts.length >= 4) {
-          const [timestamp, macAddress, ipAddress, hostname] = parts;
+      const processedMacs = new Set();
+
+      // Process wireless clients first (most detailed info)
+      for (const client of topologyReport.wirelessClients) {
+        if (client.mac && !processedMacs.has(client.mac.toLowerCase())) {
+          processedMacs.add(client.mac.toLowerCase());
           
-          if (macAddress && macAddress !== '00:00:00:00:00:00') {
-            // Use your enhanced script logic for each device
-            const deviceInfo = await this.getEnhancedDeviceInfo(macAddress);
-            
-            devices.push({
-              macAddress: macAddress.toUpperCase(),
-              name: deviceInfo.hostname || hostname || `Device-${macAddress.slice(-5)}`,
-              ipAddress: deviceInfo.ipAddress || ipAddress,
-              isOnline: deviceInfo.isOnline,
-              deviceType: this.getDeviceType(macAddress, deviceInfo.hostname || hostname),
-              connectionType: deviceInfo.connectionType,
-              signalStrength: deviceInfo.signalStrength,
-              wirelessInterface: deviceInfo.wirelessInterface,
-              aimeshNode: deviceInfo.aimeshNode,
-              hostname: deviceInfo.hostname || hostname,
+          devices.push({
+            macAddress: this.normalizeMacAddress(client.mac),
+            name: client.hostname || `Device-${client.mac.slice(-5)}`,
+            ipAddress: client.ip || '',
+            isOnline: true,
+            deviceType: this.getDeviceType(client.mac, client.hostname),
+            connectionType: `${client.band} WiFi`,
+            signalStrength: client.rssi,
+            wirelessInterface: this.getBandInterface(client.band),
+            aimeshNode: null, // Will be populated if found in AiMesh data
+            hostname: client.hostname,
               downloadSpeed: deviceInfo.downloadSpeed,
               uploadSpeed: deviceInfo.uploadSpeed
             });
