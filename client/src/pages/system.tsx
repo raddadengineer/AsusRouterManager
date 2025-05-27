@@ -537,27 +537,6 @@ export default function SystemSettingsPage() {
 
                   <FormField
                     control={sshForm.control}
-                    name="syncInterval"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sync Interval (seconds)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="5" 
-                            min="1"
-                            max="300"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={sshForm.control}
                     name="username"
                     render={({ field }) => (
                       <FormItem>
@@ -600,6 +579,27 @@ export default function SystemSettingsPage() {
                               )}
                             </Button>
                           </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={sshForm.control}
+                    name="syncInterval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sync Interval (seconds)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="5" 
+                            min="1"
+                            max="300"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 5)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -420,6 +420,7 @@ export class MemStorage implements IStorage {
       username: config.username,
       password: config.password,
       enabled: config.enabled || false,
+      syncInterval: config.syncInterval || 5,
       lastConnected: null,
       connectionStatus: 'disconnected',
     };
