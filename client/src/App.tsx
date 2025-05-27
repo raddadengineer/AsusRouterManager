@@ -12,6 +12,7 @@ import BandwidthMonitor from "@/pages/bandwidth";
 import SystemSettings from "@/pages/system";
 import SystemDetailsPage from "@/pages/system-details";
 import DeviceDetailsPage from "@/pages/device-details";
+import AiMeshPage from "@/pages/aimesh";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
@@ -51,6 +52,7 @@ function Router() {
               <Route path="/devices/:id" component={DeviceDetailsPage} />
               <Route path="/wifi" component={WiFiSettings} />
               <Route path="/port-forwarding" component={PortForwarding} />
+              <Route path="/aimesh" component={AiMeshPage} />
               <Route path="/bandwidth" component={BandwidthMonitor} />
               <Route path="/system" component={SystemSettings} />
               <Route path="/system/details" component={SystemDetailsPage} />

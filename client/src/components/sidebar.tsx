@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Menu,
   X,
+  Router,
 } from "lucide-react";
 
 const navigationItems = [
@@ -42,6 +43,11 @@ const navigationItems = [
     href: "/port-forwarding",
     label: "Port Forwarding",
     icon: ArrowRightLeft,
+  },
+  {
+    href: "/aimesh",
+    label: "AiMesh Network",
+    icon: Router,
   },
   {
     href: "/bandwidth",

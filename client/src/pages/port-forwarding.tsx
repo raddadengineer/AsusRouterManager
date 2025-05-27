@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import TopBar from "@/components/top-bar";
-import { Plus, Edit, Trash2, ArrowRightLeft } from "lucide-react";
+import { Plus, Edit, Trash2, ArrowRightLeft, Shield, Globe, Wifi, AlertTriangle, CheckCircle2, Copy, ExternalLink } from "lucide-react";
 
 export default function PortForwardingPage() {
   const { toast } = useToast();
