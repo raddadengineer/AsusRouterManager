@@ -156,7 +156,7 @@ class BackgroundServiceManager {
             hostname: deviceData.hostname
           });
         } else {
-          // Add new device
+          // Add new device (MAC address already normalized in SSH client)
           const newDevice: InsertConnectedDevice = {
             name: deviceData.name,
             macAddress: deviceData.macAddress,
@@ -166,7 +166,12 @@ class BackgroundServiceManager {
             connectionType: deviceData.connectionType,
             hostname: deviceData.hostname,
             downloadSpeed: deviceData.downloadSpeed,
-            uploadSpeed: deviceData.uploadSpeed
+            uploadSpeed: deviceData.uploadSpeed,
+            wirelessBand: deviceData.wirelessBand || null,
+            signalStrength: deviceData.signalStrength || null,
+            wirelessInterface: deviceData.wirelessInterface || null,
+            aimeshNode: deviceData.aimeshNode || null,
+            aimeshNodeMac: deviceData.aimeshNodeMac || null
           };
           await storage.createConnectedDevice(newDevice);
         }
@@ -368,6 +373,20 @@ class BackgroundServiceManager {
       this.stopJob(jobId);
     });
     console.log('All background jobs stopped');
+  }
+
+  private normalizeMacAddress(mac: string): string {
+    // Remove all non-hex characters and convert to uppercase
+    const cleanMac = mac.toUpperCase().replace(/[^A-F0-9]/g, '');
+    
+    // Ensure we have exactly 12 hex characters
+    if (cleanMac.length !== 12) {
+      console.warn(`Invalid MAC address length: ${mac} -> ${cleanMac}`);
+      return mac; // Return original if invalid
+    }
+    
+    // Split into pairs and join with colons
+    return cleanMac.match(/.{2}/g)?.join(':') || mac;
   }
 }
 
