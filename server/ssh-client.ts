@@ -86,9 +86,15 @@ export class SSHClient {
       // Enhanced system resource commands
       cpuModel: "cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d':' -f2 | sed 's/^ *//'",
       cpuCores: "nproc",
-      storageInfo: "df -h /tmp 2>/dev/null | awk 'NR==2 {gsub(/G/, \"\", $2); gsub(/G/, \"\", $3); gsub(/M/, \"\", $3); if($3 ~ /M/) $3=$3/1024; printf \"%.2f %.2f\", $3, $2}' || echo '0 0'",
-      memoryDetails: "cat /proc/meminfo | awk '/MemTotal:|MemFree:|MemAvailable:/ {gsub(/kB/, \"\", $2); if($1==\"MemTotal:\") total=$2/1024/1024; if($1==\"MemFree:\") free=$2/1024/1024; if($1==\"MemAvailable:\") avail=$2/1024/1024} END {used=total-free; printf \"%.2f %.2f %.2f\", used, total, avail}'",
-      diskUsage: "df -h /jffs 2>/dev/null | awk 'NR==2 {gsub(/[GM]/, \"\", $2); gsub(/[GM]/, \"\", $3); if($2 ~ /M/) $2=$2/1024; if($3 ~ /M/) $3=$3/1024; printf \"%.2f %.2f\", $3, $2}' || echo '0 0'",
+      // Detailed memory breakdown
+      memoryDetails: "cat /proc/meminfo | awk '/MemTotal:|MemFree:|MemAvailable:|Buffers:|Cached:|SwapTotal:|SwapFree:/ {gsub(/kB/, \"\", $2); if($1==\"MemTotal:\") total=$2/1024/1024; if($1==\"MemFree:\") free=$2/1024/1024; if($1==\"MemAvailable:\") avail=$2/1024/1024; if($1==\"Buffers:\") buffers=$2/1024/1024; if($1==\"Cached:\") cached=$2/1024/1024; if($1==\"SwapTotal:\") swapTotal=$2/1024/1024; if($1==\"SwapFree:\") swapFree=$2/1024/1024} END {used=total-free; swapUsed=swapTotal-swapFree; printf \"%.3f %.3f %.3f %.3f %.3f %.3f %.3f\", used, total, avail, free, buffers, cached, swapUsed}'",
+      // Storage breakdown: NVRAM, JFFS, /tmp
+      nvramUsage: "nvram show 2>/dev/null | wc -c | awk '{printf \"%.3f\", $1/1024/1024}' || echo '0'",
+      nvramTotal: "cat /proc/mtd | grep nvram | awk '{gsub(/[^0-9a-f]/, \"\", $2); printf \"%.3f\", strtonum(\"0x\"$2)/1024/1024}' || echo '0.512'",
+      jffsUsage: "df /jffs 2>/dev/null | awk 'NR==2 {gsub(/[KMG]/, \"\", $3); if($3 ~ /K/) $3=$3/1024/1024; if($3 ~ /M/) $3=$3/1024; if($3 ~ /G/) $3=$3; printf \"%.3f\", $3}' || echo '0'",
+      jffsTotal: "df /jffs 2>/dev/null | awk 'NR==2 {gsub(/[KMG]/, \"\", $2); if($2 ~ /K/) $2=$2/1024/1024; if($2 ~ /M/) $2=$2/1024; if($2 ~ /G/) $2=$2; printf \"%.3f\", $2}' || echo '0'",
+      tmpUsage: "df /tmp 2>/dev/null | awk 'NR==2 {gsub(/[KMG]/, \"\", $3); if($3 ~ /K/) $3=$3/1024/1024; if($3 ~ /M/) $3=$3/1024; if($3 ~ /G/) $3=$3; printf \"%.3f\", $3}' || echo '0'",
+      tmpTotal: "df /tmp 2>/dev/null | awk 'NR==2 {gsub(/[KMG]/, \"\", $2); if($2 ~ /K/) $2=$2/1024/1024; if($2 ~ /M/) $2=$2/1024; if($2 ~ /G/) $2=$2; printf \"%.3f\", $2}' || echo '0'",
     };
 
     const results: any = {};
