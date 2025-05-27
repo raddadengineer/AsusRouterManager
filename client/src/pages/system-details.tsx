@@ -302,7 +302,7 @@ export default function SystemDetailsPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">WAN IP:</span>
-                  <div className="font-medium font-mono">xxx.xxx.xxx.xxx</div>
+                  <div className="font-medium font-mono">{routerFeatures?.network?.wanIp || 'N/A'}</div>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Active Connections:</span>
