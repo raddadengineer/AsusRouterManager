@@ -89,9 +89,8 @@ export default function SystemLogs({ logType }: SystemLogsProps) {
     }
   ];
 
-  const displayLogs = logs && logs.length > 0 
-    ? logs 
-    : (logType === 'app' ? sampleAppLogs : sampleRouterLogs);
+  // Use actual logs when available, otherwise show empty state
+  const displayLogs = logs && logs.length > 0 ? logs : [];
 
   const getLevelColor = (level: string) => {
     switch (level.toUpperCase()) {
@@ -140,32 +139,37 @@ export default function SystemLogs({ logType }: SystemLogsProps) {
 
       <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs h-64 overflow-y-auto">
         <div className="space-y-1">
-          {displayLogs.map((log, index) => (
-            <div key={index} className="flex flex-wrap gap-2">
-              <span className="text-gray-400">
-                [{formatTimestamp(log.timestamp)}]
-              </span>
-              <span className={`font-semibold ${getLevelColor(log.level)}`}>
-                {log.level}
-              </span>
-              {log.source && (
-                <span className="text-purple-400">
-                  [{log.source}]
+          {displayLogs.length > 0 ? (
+            displayLogs.map((log, index) => (
+              <div key={index} className="flex flex-wrap gap-2">
+                <span className="text-gray-400">
+                  [{formatTimestamp(log.timestamp)}]
                 </span>
-              )}
-              <span className="text-green-400 flex-1">
-                {log.message}
-              </span>
+                <span className={`font-semibold ${getLevelColor(log.level)}`}>
+                  {log.level}
+                </span>
+                {log.source && (
+                  <span className="text-purple-400">
+                    [{log.source}]
+                  </span>
+                )}
+                <span className="text-green-400 flex-1">
+                  {log.message}
+                </span>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-400 text-center py-8">
+              <div className="mb-2">No {logType} logs available</div>
+              <div className="text-xs">
+                {logType === 'router' 
+                  ? 'Connect to your router via SSH to see live router logs' 
+                  : 'Logs will appear here as the application runs'}
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
-
-      {(!logs || logs.length === 0) && (
-        <div className="text-xs text-muted-foreground">
-          <strong>Note:</strong> Showing sample {logType} logs. Connect to your router to see actual log data.
-        </div>
-      )}
     </div>
   );
 }

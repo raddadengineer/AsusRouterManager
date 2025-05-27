@@ -241,7 +241,7 @@ export default function SystemSettingsPage() {
           
           toast({
             title: "Real-time Data Active",
-            description: "Connected and pulling live data every 15 seconds",
+            description: `Connected and pulling live data every ${config.syncInterval} seconds`,
           });
         } catch (error) {
           console.log('Initial sync failed:', error);
