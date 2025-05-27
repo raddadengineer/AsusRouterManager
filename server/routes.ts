@@ -402,12 +402,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection not active. Please connect first." });
       }
 
-      // Pull real data from ASUS router
-      const systemInfo = await sshClient.getSystemInfo();
-      const devices = await sshClient.getConnectedDevices();
-      const wifiNetworks = await sshClient.getWiFiNetworks();
-      const bandwidth = await sshClient.getBandwidthData();
-      const merlinFeatures = await sshClient.getMerlinFeatures();
+      // Pull real data from ASUS router via SSH only (no API endpoints exist)
+      const [systemInfo, devices, wifiNetworks, bandwidth, merlinFeatures] = await Promise.all([
+        sshClient.getSystemInfo(),
+        sshClient.getConnectedDevices(),
+        sshClient.getWiFiNetworks(),
+        sshClient.getBandwidthData(),
+        sshClient.getMerlinFeatures()
+      ]);
 
       // Update router status with comprehensive real data
       if (systemInfo) {
