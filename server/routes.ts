@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { sshClient } from "./ssh-client";
+import { routerSync } from "./router-sync";
 import { 
   insertRouterStatusSchema,
   insertConnectedDeviceSchema,
@@ -326,6 +327,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const savedConfig = await storage.saveSSHConfig(validatedData);
       await storage.updateSSHConnectionStatus('connected');
       
+      // Start automatic data sync to database for fast performance
+      const syncInterval = savedConfig.syncInterval || 5;
+      await routerSync.startSync(syncInterval);
+      console.log(`Database sync started with ${syncInterval} second interval`);
+      
       const { password, ...safeConfig } = savedConfig;
       res.json({ ...safeConfig, password: '', connectionTested: true });
     } catch (error: any) {
@@ -478,6 +484,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Router Features Routes - Now uses database data for fast performance
+  app.get("/api/router/features", async (req, res) => {
+    try {
+      const features = await storage.getRouterFeatures();
+      if (!features) {
+        return res.status(404).json({ error: "Router features not found" });
+      }
+      res.json(features);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get router features" });
+    }
+  });
+
   app.get("/api/ssh/merlin-features", async (req, res) => {
     try {
       if (!sshClient.isConnectionActive()) {
@@ -489,7 +508,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       res.status(500).json({ 
         success: false, 
-        message: `Failed to get Merlin features: ${error.message}` 
+        message: `Failed to get Merlin features: ${(error as Error).message}` 
       });
     }
   });

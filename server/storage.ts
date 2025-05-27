@@ -11,12 +11,15 @@ import {
   InsertBandwidthData,
   SSHConfig,
   InsertSSHConfig,
+  RouterFeatures,
+  InsertRouterFeatures,
   routerStatus,
   connectedDevices,
   wifiNetworks,
   portForwardingRules,
   bandwidthData,
   sshConfig,
+  routerFeatures,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
