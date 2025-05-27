@@ -673,7 +673,7 @@ export default function SystemSettingsPage() {
                     variant="outline"
                     onClick={() => clearSettingsMutation.mutate()}
                     disabled={clearSettingsMutation.isPending}
-                    className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950"
+                    className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                   >
                     {clearSettingsMutation.isPending ? (
                       <>
@@ -693,7 +693,7 @@ export default function SystemSettingsPage() {
                     variant="outline"
                     onClick={() => clearDataMutation.mutate()}
                     disabled={clearDataMutation.isPending}
-                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+                    className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                   >
                     {clearDataMutation.isPending ? (
                       <>
