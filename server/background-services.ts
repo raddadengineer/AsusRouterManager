@@ -153,8 +153,7 @@ class BackgroundServiceManager {
             ipAddress: deviceData.ipAddress,
             isOnline: deviceData.isOnline,
             connectionType: deviceData.connectionType,
-            hostname: deviceData.hostname,
-            lastSeen: new Date()
+            hostname: deviceData.hostname
           });
         } else {
           // Add new device
@@ -167,9 +166,7 @@ class BackgroundServiceManager {
             connectionType: deviceData.connectionType,
             hostname: deviceData.hostname,
             downloadSpeed: deviceData.downloadSpeed,
-            uploadSpeed: deviceData.uploadSpeed,
-            connectedAt: new Date(),
-            lastSeen: new Date()
+            uploadSpeed: deviceData.uploadSpeed
           };
           await storage.createConnectedDevice(newDevice);
         }
@@ -191,8 +188,7 @@ class BackgroundServiceManager {
         
         await storage.updateConnectedDevice(device.id, {
           connectionType: detailedInfo.connectionType,
-          isOnline: detailedInfo.isOnline,
-          lastSeen: detailedInfo.isOnline ? new Date() : device.lastSeen
+          isOnline: detailedInfo.isOnline
         });
       } catch (error) {
         console.error(`Error updating device details for ${device.macAddress}:`, error);
@@ -207,7 +203,6 @@ class BackgroundServiceManager {
       const bandwidthData = await sshClient.getBandwidthData();
       
       const newBandwidthData: InsertBandwidthData = {
-        timestamp: new Date(),
         downloadSpeed: parseFloat(bandwidthData.download) || 0,
         uploadSpeed: parseFloat(bandwidthData.upload) || 0,
         totalDownload: parseFloat(bandwidthData.totalDownload) || 0,
@@ -239,8 +234,7 @@ class BackgroundServiceManager {
         storageTotal: systemInfo.storageTotal || null,
         loadAverage: systemInfo.loadAverage || null,
         cpuCores: systemInfo.cpuCores || null,
-        cpuModel: systemInfo.cpuModel || null,
-        lastUpdated: new Date()
+        cpuModel: systemInfo.cpuModel || null
       };
 
       await storage.updateRouterStatus(routerStatus);
