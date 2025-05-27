@@ -36,20 +36,29 @@ export class RouterSyncService {
     this.isSyncing = true;
     
     try {
-      console.log("Syncing router data to database...");
+      console.log("Starting phased router data sync...");
 
-      // Sync all data concurrently for better performance
+      // Phase 1: Quick essential data (< 5 seconds)
       await Promise.all([
         this.syncSystemInfo(),
-        this.syncConnectedDevices(),
+        this.syncBandwidthData()
+      ]);
+      console.log("Phase 1 complete: System status and bandwidth");
+
+      // Phase 2: Network data (5-10 seconds) 
+      await this.syncConnectedDevices();
+      console.log("Phase 2 complete: Connected devices");
+
+      // Phase 3: Advanced features (10-15 seconds)
+      await Promise.all([
         this.syncWifiNetworks(),
-        this.syncBandwidthData(),
         this.syncRouterFeatures()
       ]);
+      console.log("Phase 3 complete: WiFi networks and router features");
 
-      console.log("Router data sync completed successfully");
+      console.log("All phases completed - router data sync finished");
     } catch (error) {
-      console.error("Error syncing router data:", error);
+      console.error("Error in phased sync:", error);
     } finally {
       this.isSyncing = false;
     }
@@ -81,29 +90,36 @@ export class RouterSyncService {
 
   private async syncConnectedDevices() {
     try {
+      console.log("Fetching connected devices...");
       const devices = await sshClient.getConnectedDevices();
-      
-      // Clear existing devices and add fresh data
-      await storage.clearAllData();
+      console.log(`Found ${devices.length} devices, processing in batches...`);
       
       // Get existing devices to avoid duplicates
       const existingDevices = await storage.getConnectedDevices();
       const existingMacs = new Set(existingDevices.map(d => d.macAddress));
 
-      for (const device of devices) {
-        if (!existingMacs.has(device.macAddress)) {
-          await storage.createConnectedDevice({
-            name: device.name || device.hostname || "Unknown Device",
-            macAddress: device.macAddress,
-            ipAddress: device.ipAddress,
-            deviceType: device.deviceType || "unknown",
-            isOnline: device.isOnline ?? true,
-            downloadSpeed: device.downloadSpeed || null,
-            uploadSpeed: device.uploadSpeed || null,
-            connectionType: device.connectionType || null,
-            hostname: device.hostname || null
-          });
-        }
+      // Process devices in batches of 5 for faster incremental updates
+      const batchSize = 5;
+      for (let i = 0; i < devices.length; i += batchSize) {
+        const batch = devices.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (device) => {
+          if (!existingMacs.has(device.macAddress)) {
+            await storage.createConnectedDevice({
+              name: device.name || device.hostname || "Unknown Device",
+              macAddress: device.macAddress,
+              ipAddress: device.ipAddress,
+              deviceType: device.deviceType || "unknown",
+              isOnline: device.isOnline ?? true,
+              downloadSpeed: device.downloadSpeed || null,
+              uploadSpeed: device.uploadSpeed || null,
+              connectionType: device.connectionType || null,
+              hostname: device.hostname || null
+            });
+          }
+        }));
+        
+        console.log(`Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(devices.length/batchSize)}`);
       }
     } catch (error) {
       console.error("Error syncing connected devices:", error);

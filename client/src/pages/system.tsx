@@ -16,6 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useSyncProgress } from "@/hooks/use-sync-progress";
+import SyncProgress from "@/components/sync-progress";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import TopBar from "@/components/top-bar";
@@ -64,6 +66,19 @@ export default function SystemSettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  
+  // Sync progress state
+  const {
+    isVisible: syncProgressVisible,
+    phases,
+    currentPhase,
+    overallProgress,
+    startSync,
+    updatePhaseProgress,
+    completePhase,
+    finishSync,
+    hideProgress
+  } = useSyncProgress();
 
   const { data: routerStatus, isLoading } = useQuery<RouterStatus>({
     queryKey: ["/api/router/status"],
