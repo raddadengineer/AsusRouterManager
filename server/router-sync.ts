@@ -38,39 +38,41 @@ export class RouterSyncService {
     this.isSyncing = true;
     
     try {
-      console.log("Starting optimized router data sync...");
+      console.log("Starting progressive router data sync...");
       const startTime = Date.now();
 
-      // Only sync what's needed based on cache
-      const tasksToRun = [];
-      
+      // Phase 1: Essential data (immediate - under 2 seconds)
+      console.log("Phase 1: Loading essential data...");
       if (this.shouldSync('systemInfo')) {
-        tasksToRun.push(this.syncSystemInfo());
-      }
-      
-      if (this.shouldSync('bandwidth')) {
-        tasksToRun.push(this.syncBandwidthData());
+        await this.syncSystemInfo();
       }
 
-      // Run essential data first
-      if (tasksToRun.length > 0) {
-        await Promise.all(tasksToRun);
-        console.log(`Essential data synced in ${Date.now() - startTime}ms`);
-      }
-
-      // Only sync devices if cache is stale
+      // Phase 2: Connected devices (fast - 2-5 seconds)
+      console.log("Phase 2: Loading connected devices...");
       if (this.shouldSync('devices')) {
         await this.syncConnectedDevices();
-        console.log(`Devices synced in ${Date.now() - startTime}ms`);
       }
 
-      // Background sync for less critical data
-      setTimeout(() => {
-        if (this.shouldSync('wifi')) this.syncWifiNetworks();
-        if (this.shouldSync('features')) this.syncRouterFeatures();
-      }, 100);
+      // Phase 3: WiFi networks (medium - 5-8 seconds)
+      console.log("Phase 3: Loading WiFi networks...");
+      if (this.shouldSync('wifi')) {
+        await this.syncWifiNetworks();
+      }
 
-      console.log(`Optimized sync completed in ${Date.now() - startTime}ms`);
+      // Phase 4: Bandwidth data (slower - 8-12 seconds)
+      console.log("Phase 4: Loading bandwidth data...");
+      if (this.shouldSync('bandwidth')) {
+        await this.syncBandwidthData();
+      }
+
+      // Phase 5: Router features (slowest - 12+ seconds)
+      console.log("Phase 5: Loading router features...");
+      if (this.shouldSync('features')) {
+        await this.syncRouterFeatures();
+      }
+
+      const totalTime = Date.now() - startTime;
+      console.log(`Progressive data sync completed in ${totalTime}ms`);
     } catch (error) {
       console.error("Error in optimized sync:", error);
     } finally {

@@ -68,17 +68,17 @@ export default function InteractiveTopology({ className }: InteractiveTopologyPr
 
   const { data: devices = [] } = useQuery<ConnectedDevice[]>({
     queryKey: ['/api/devices'],
-    refetchInterval: 15000
+    refetchInterval: 2000 // Fast progressive loading - refresh every 2 seconds
   });
 
   const { data: routerFeatures } = useQuery<RouterFeatures>({
     queryKey: ['/api/router/features'],
-    refetchInterval: 60000
+    refetchInterval: 5000 // Faster updates for real-time data
   });
 
   const { data: wifiNetworks = [] } = useQuery<any[]>({
     queryKey: ['/api/wifi'],
-    refetchInterval: 30000
+    refetchInterval: 3000 // Faster WiFi network updates
   });
 
   // Generate network nodes from real data
