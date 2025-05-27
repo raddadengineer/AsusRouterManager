@@ -85,32 +85,40 @@ export default function SystemDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Model:</span>
-                  <div className="font-medium">{routerStatus?.model || 'ASUS Router'}</div>
+              {routerStatus ? (
+                <div className="grid grid-cols-1 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Model:</span>
+                    <div className="font-medium">{routerStatus.model}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Firmware Build:</span>
+                    <div className="font-medium font-mono">{routerStatus.firmware}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Bootloader:</span>
+                    <div className="font-medium font-mono">CFE {routerStatus.bootloader}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">CPU Model:</span>
+                    <div className="font-medium">{routerStatus.cpuModel}</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">CPU Cores:</span>
+                    <div className="font-medium">{routerStatus.cpuCores} cores</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Wireless Driver:</span>
+                    <div className="font-medium">Broadcom wl {routerStatus.wirelessDriver}</div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Firmware Build:</span>
-                  <div className="font-medium font-mono">{routerStatus?.firmware || 'Unknown'}</div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Network className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">No router data available</p>
+                  <p className="text-xs">Connect to your ASUS router via SSH in System Settings</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Bootloader:</span>
-                  <div className="font-medium font-mono">CFE {routerStatus?.bootloader || 'Unknown'}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">CPU Model:</span>
-                  <div className="font-medium">{routerStatus?.cpuModel || 'ARM Processor'}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">CPU Cores:</span>
-                  <div className="font-medium">{routerStatus?.cpuCores || 'Unknown'} cores</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Wireless Driver:</span>
-                  <div className="font-medium">Broadcom wl {routerStatus?.wirelessDriver || 'Unknown'}</div>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -166,13 +174,20 @@ export default function SystemDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-muted-foreground">Usage</span>
-                  <span className="font-medium">{routerStatus?.cpuUsage?.toFixed(1) || '0'}%</span>
+              {routerStatus ? (
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-muted-foreground">Usage</span>
+                    <span className="font-medium">{routerStatus.cpuUsage.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={routerStatus.cpuUsage} className={`h-2 ${cpuUsageColor}`} />
                 </div>
-                <Progress value={routerStatus?.cpuUsage || 0} className={`h-2 ${cpuUsageColor}`} />
-              </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Cpu className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-xs">No CPU data available</p>
+                </div>
+              )}
               
               {routerStatus?.temperature && (
                 <div>
