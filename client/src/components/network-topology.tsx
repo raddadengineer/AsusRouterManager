@@ -240,13 +240,13 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
   }
 
   const connectedDevices = Array.isArray(devices) ? devices : [];
-  const aiMeshData = routerFeatures?.aiMesh || { isMaster: true, nodeCount: 0, peers: [] };
-  const wirelessData = routerFeatures?.wirelessClients || { total: 0, band24ghz: 0, band5ghz: 0, band6ghz: 0 };
+  const aiMeshData = routerFeatures?.aiMesh || {};
+  const wirelessData = routerFeatures?.wirelessClients || {};
 
   // Create network topology structure
   const createNetworkTopology = () => {
-    const nodes = [];
-    const connections = [];
+    const nodes: any[] = [];
+    const connections: any[] = [];
 
     // Main router node
     const mainRouter = {

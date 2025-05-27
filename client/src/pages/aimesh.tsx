@@ -71,64 +71,16 @@ export default function AiMeshPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
 
-  // Mock data for demonstration - in real app this would come from router API
-  const { data: meshNodes, isLoading } = useQuery<AiMeshNode[]>({
+  // Real AiMesh data from authentic router detection
+  const { data: meshResponse, isLoading } = useQuery<{nodes: AiMeshNode[], metadata: any}>({
     queryKey: ["/api/aimesh/nodes"],
     refetchInterval: 30000,
-    initialData: [
-      {
-        id: "main-router",
-        name: "Main Router",
-        model: "AX6000",
-        macAddress: "04:D9:F5:12:34:56",
-        ipAddress: "192.168.1.1",
-        role: "router",
-        status: "online",
-        signalStrength: 100,
-        connectedDevices: 12,
-        firmwareVersion: "3.0.0.4.388.23285",
-        location: "Living Room",
-        uptime: 345600,
-        bandwidth: { upload: 45.2, download: 156.8 },
-        temperature: 42,
-        memoryUsage: 67
-      },
-      {
-        id: "node-1",
-        name: "Bedroom Node",
-        model: "AX6000",
-        macAddress: "04:D9:F5:12:34:57",
-        ipAddress: "192.168.1.2",
-        role: "node",
-        status: "online",
-        signalStrength: 85,
-        connectedDevices: 8,
-        firmwareVersion: "3.0.0.4.388.23285",
-        location: "Master Bedroom",
-        uptime: 345500,
-        bandwidth: { upload: 23.1, download: 89.4 },
-        temperature: 38,
-        memoryUsage: 52
-      },
-      {
-        id: "node-2",
-        name: "Office Node",
-        model: "AX3000",
-        macAddress: "04:D9:F5:12:34:58",
-        ipAddress: "192.168.1.3",
-        role: "node",
-        status: "online",
-        signalStrength: 78,
-        connectedDevices: 5,
-        firmwareVersion: "3.0.0.4.388.23285",
-        location: "Home Office",
-        uptime: 345300,
-        bandwidth: { upload: 18.7, download: 67.2 },
-        temperature: 35,
-        memoryUsage: 48
-      }
-    ]
+    retry: 3,
+    staleTime: 10000,
   });
+
+  const meshNodes = meshResponse?.nodes || [];
+  const detectionMetadata = meshResponse?.metadata;
 
   const scanForNodesMutation = useMutation({
     mutationFn: async () => {

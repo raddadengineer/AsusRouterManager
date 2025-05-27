@@ -565,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [meshLogs, assocLogs, staInfo, wirelessData, dhcpAsus] = scanResults;
       
       // Parse scan results for newly discovered nodes
-      const discoveredNodes = [];
+      const discoveredNodes: any[] = [];
       
       // Check for new wireless associations
       const assocLines = assocLogs.split('\n').filter(line => line.includes('assoc'));
