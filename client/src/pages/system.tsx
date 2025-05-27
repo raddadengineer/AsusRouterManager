@@ -789,35 +789,94 @@ export default function SystemSettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Cpu className="h-5 w-5" />
-                <span>System Resources</span>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Cpu className="h-5 w-5" />
+                  <span>System Resources</span>
+                </div>
+                {connectionStatus === 'connected' && (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+                    Real-time
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
+            <CardContent className="space-y-5">
+              <div className="space-y-4">
+                {/* CPU Usage */}
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">CPU Usage</span>
-                    <span className="font-medium">{routerStatus?.cpuUsage.toFixed(1)}%</span>
+                    <span className="font-medium">{routerStatus?.cpuUsage ? `${routerStatus.cpuUsage.toFixed(1)}%` : 'N/A'}</span>
                   </div>
-                  <Progress value={routerStatus?.cpuUsage || 0} className="h-2" />
+                  <Progress value={routerStatus?.cpuUsage || 0} className={`h-2 ${cpuUsageColor}`} />
                 </div>
                 
+                {/* Memory Usage */}
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-muted-foreground">Memory Usage</span>
                     <span className="font-medium">
-                      {routerStatus?.memoryUsage.toFixed(1)} / {routerStatus?.memoryTotal.toFixed(0)} GB
+                      {routerStatus ? `${routerStatus.memoryUsage.toFixed(1)} / ${routerStatus.memoryTotal.toFixed(0)} GB` : 'N/A'}
                     </span>
                   </div>
-                  <Progress value={memoryUsagePercent} className="h-2" />
+                  <Progress value={memoryUsagePercent} className={`h-2 ${memoryUsageColor}`} />
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {routerStatus ? `${memoryUsagePercent.toFixed(1)}% used` : ''}
+                  </div>
                 </div>
+
+                {/* Storage Usage (if available) */}
+                {routerStatus?.storageUsage && (
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Internal Storage</span>
+                      <span className="font-medium">
+                        {routerStatus.storageUsage.toFixed(1)} / {routerStatus.storageTotal?.toFixed(0) || '8'} GB
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(routerStatus.storageUsage / (routerStatus.storageTotal || 8)) * 100} 
+                      className="h-2" 
+                    />
+                  </div>
+                )}
+
+                {/* Temperature */}
+                {routerStatus?.temperature && (
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">CPU Temperature</span>
+                      <span className="font-medium flex items-center space-x-1">
+                        <Thermometer className="h-3 w-3" />
+                        <span>{routerStatus.temperature.toFixed(1)}°C</span>
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(routerStatus.temperature / 80) * 100} 
+                      className={`h-2 ${routerStatus.temperature > 70 ? 'bg-red-500' : routerStatus.temperature > 60 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                    />
+                  </div>
+                )}
+
+                {/* Load Average (if available) */}
+                {routerStatus?.loadAverage && (
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Load Average</span>
+                      <span className="font-medium font-mono">{routerStatus.loadAverage}</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Overall Health:</span>
-                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500">
+                    <span className="text-muted-foreground">System Health:</span>
+                    <Badge variant="outline" className={
+                      connectionStatus === 'connected' && routerStatus 
+                        ? `bg-green-500/10 text-green-500 border-green-500`
+                        : `bg-yellow-500/10 text-yellow-500 border-yellow-500`
+                    }>
                       Excellent
                     </Badge>
                   </div>

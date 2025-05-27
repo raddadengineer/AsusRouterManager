@@ -374,17 +374,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bandwidth = await sshClient.getBandwidthData();
       const merlinFeatures = await sshClient.getMerlinFeatures();
 
-      // Update router status with real data
+      // Update router status with comprehensive real data
       if (systemInfo) {
+        // Parse storage info (used, total)
+        const storageData = systemInfo.storageInfo ? systemInfo.storageInfo.split(' ') : ['0', '0'];
+        const storageUsed = parseFloat(storageData[0]) || 0;
+        const storageTotal = parseFloat(storageData[1]) || 8;
+
+        // Parse memory details (used, total, available)
+        const memoryData = systemInfo.memoryDetails ? systemInfo.memoryDetails.split(' ') : [systemInfo.memoryUsage?.toString() || '0', systemInfo.memoryTotal?.toString() || '4', '0'];
+        const memoryUsed = parseFloat(memoryData[0]) || parseFloat(systemInfo.memoryUsage) || 0;
+        const memoryTotal = parseFloat(memoryData[1]) || parseFloat(systemInfo.memoryTotal) || 4;
+
         await storage.updateRouterStatus({
           model: systemInfo.model || 'ASUS Router',
           firmware: `${systemInfo.firmware || 'Unknown'} ${systemInfo.merlinVersion ? '(Merlin ' + systemInfo.merlinVersion + ')' : ''}`.trim(),
           ipAddress: systemInfo.ipAddress || '192.168.1.1',
           uptime: parseInt(systemInfo.uptime) || 0,
           cpuUsage: parseFloat(systemInfo.cpuUsage) || 0,
-          memoryUsage: systemInfo.memoryUsage || 0,
-          memoryTotal: systemInfo.memoryTotal || 4,
+          memoryUsage: memoryUsed,
+          memoryTotal: memoryTotal,
           temperature: parseFloat(systemInfo.temperature) || null,
+          storageUsage: storageUsed,
+          storageTotal: storageTotal,
+          loadAverage: systemInfo.loadAverage || null,
+          cpuCores: parseInt(systemInfo.cpuCores) || null,
+          cpuModel: systemInfo.cpuModel || null,
         });
       }
 

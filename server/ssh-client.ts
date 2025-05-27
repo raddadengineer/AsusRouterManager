@@ -80,9 +80,15 @@ export class SSHClient {
       timezone: "nvram get time_zone",
       firmwareDate: "nvram get builddate",
       kernelVersion: "uname -r",
-      loadAverage: "cat /proc/loadavg | awk '{print $1, $2, $3}'",
+      loadAverage: "cat /proc/loadavg | awk '{print $1\" \"$2\" \"$3}'",
       totalConnections: "cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null || echo '0'",
       maxConnections: "cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null || echo '0'",
+      // Enhanced system resource commands
+      cpuModel: "cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d':' -f2 | sed 's/^ *//'",
+      cpuCores: "nproc",
+      storageInfo: "df -h /tmp 2>/dev/null | awk 'NR==2 {gsub(/G/, \"\", $2); gsub(/G/, \"\", $3); gsub(/M/, \"\", $3); if($3 ~ /M/) $3=$3/1024; printf \"%.2f %.2f\", $3, $2}' || echo '0 0'",
+      memoryDetails: "cat /proc/meminfo | awk '/MemTotal:|MemFree:|MemAvailable:/ {gsub(/kB/, \"\", $2); if($1==\"MemTotal:\") total=$2/1024/1024; if($1==\"MemFree:\") free=$2/1024/1024; if($1==\"MemAvailable:\") avail=$2/1024/1024} END {used=total-free; printf \"%.2f %.2f %.2f\", used, total, avail}'",
+      diskUsage: "df -h /jffs 2>/dev/null | awk 'NR==2 {gsub(/[GM]/, \"\", $2); gsub(/[GM]/, \"\", $3); if($2 ~ /M/) $2=$2/1024; if($3 ~ /M/) $3=$3/1024; printf \"%.2f %.2f\", $3, $2}' || echo '0 0'",
     };
 
     const results: any = {};

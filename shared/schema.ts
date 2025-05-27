@@ -12,6 +12,11 @@ export const routerStatus = pgTable("router_status", {
   memoryUsage: real("memory_usage").notNull(),
   memoryTotal: real("memory_total").notNull(),
   temperature: real("temperature"),
+  storageUsage: real("storage_usage"), // GB used
+  storageTotal: real("storage_total"), // GB total
+  loadAverage: text("load_average"), // 1min, 5min, 15min averages
+  cpuCores: integer("cpu_cores"), // number of CPU cores
+  cpuModel: text("cpu_model"), // CPU model name
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
