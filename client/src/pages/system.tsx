@@ -108,18 +108,21 @@ export default function SystemSettingsPage() {
     let interval: NodeJS.Timeout;
     
     if (sshConfig?.enabled && connectionStatus === 'connected') {
-      // Sync data immediately, then every 30 seconds
+      // Sync data immediately, then every 15 seconds for real-time updates
       const syncData = async () => {
         try {
           await fetch('/api/ssh/sync-data', { method: 'POST' });
           queryClient.invalidateQueries();
+          console.log('Real-time data sync completed');
         } catch (error) {
           console.log('Auto-sync failed:', error);
+          // If sync fails repeatedly, show connection error
+          setConnectionStatus('error');
         }
       };
       
       syncData(); // Initial sync
-      interval = setInterval(syncData, 30000); // Every 30 seconds
+      interval = setInterval(syncData, 15000); // Every 15 seconds for real-time feel
     }
     
     return () => {
@@ -131,18 +134,30 @@ export default function SystemSettingsPage() {
     mutationFn: async (config: SSHConnectionConfig) => {
       return await apiRequest("POST", "/api/ssh/test", config);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setConnectionStatus('connected');
       toast({
         title: "SSH Connection Successful",
-        description: "Successfully connected to your ASUS router",
+        description: "Successfully connected to your ASUS router. Starting data sync...",
       });
+      
+      // Immediately sync data after successful connection
+      try {
+        await fetch('/api/ssh/sync-data', { method: 'POST' });
+        queryClient.invalidateQueries();
+        toast({
+          title: "Data Synced",
+          description: "Router data has been updated from your ASUS router",
+        });
+      } catch (error) {
+        console.log('Initial sync failed:', error);
+      }
     },
-    onError: () => {
+    onError: (error: any) => {
       setConnectionStatus('error');
       toast({
         title: "SSH Connection Failed",
-        description: "Could not connect to router. Please check your credentials and network.",
+        description: error?.message || "Could not connect to router. Please check your credentials and network.",
         variant: "destructive",
       });
     },
@@ -152,12 +167,40 @@ export default function SystemSettingsPage() {
     mutationFn: async (config: SSHConnectionConfig) => {
       return await apiRequest("POST", "/api/ssh/config", config);
     },
-    onSuccess: () => {
+    onSuccess: async (response, config) => {
       toast({
         title: "SSH Configuration Saved",
         description: "Router connection settings have been saved",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/ssh/config"] });
+      
+      // If real-time is enabled, automatically test connection and start syncing
+      if (config.enabled) {
+        setConnectionStatus('connecting');
+        setIsConnecting(true);
+        try {
+          await apiRequest("POST", "/api/ssh/test", config);
+          setConnectionStatus('connected');
+          
+          // Start immediate data sync
+          await fetch('/api/ssh/sync-data', { method: 'POST' });
+          queryClient.invalidateQueries();
+          
+          toast({
+            title: "Real-time Connection Active",
+            description: "Connected to router and syncing data every 30 seconds",
+          });
+        } catch (error) {
+          setConnectionStatus('error');
+          toast({
+            title: "Connection Failed",
+            description: "Saved settings but couldn't connect to router. Check your credentials.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsConnecting(false);
+        }
+      }
     },
     onError: () => {
       toast({
