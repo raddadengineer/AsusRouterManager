@@ -319,11 +319,21 @@ export default function SystemSettingsPage() {
         title: "System Reboot",
         description: "Router is rebooting. This may take a few minutes.",
       });
-      // Simulate reboot time
-      setTimeout(() => {
-        setIsRebooting(false);
-        queryClient.invalidateQueries({ queryKey: ["/api/router/status"] });
-      }, 60000);
+      // Monitor actual reboot completion via SSH status
+      const checkRebootStatus = async () => {
+        try {
+          const response = await fetch('/api/router/status');
+          if (response.ok) {
+            setIsRebooting(false);
+            queryClient.invalidateQueries({ queryKey: ["/api/router/status"] });
+          } else {
+            setTimeout(checkRebootStatus, 10000); // Check again in 10 seconds
+          }
+        } catch {
+          setTimeout(checkRebootStatus, 10000);
+        }
+      };
+      setTimeout(checkRebootStatus, 30000); // Start checking after 30 seconds
     },
     onError: () => {
       toast({
@@ -344,14 +354,27 @@ export default function SystemSettingsPage() {
         title: "Firmware Update",
         description: "Checking for firmware updates...",
       });
-      // Simulate update check
-      setTimeout(() => {
-        setIsUpdating(false);
-        toast({
-          title: "Firmware Update",
-          description: "Your firmware is up to date",
-        });
-      }, 5000);
+      // Check actual firmware status via router
+      const checkFirmwareStatus = async () => {
+        try {
+          const response = await fetch('/api/system/firmware-status');
+          const data = await response.json();
+          setIsUpdating(false);
+          toast({
+            title: "Firmware Check Complete",
+            description: data.hasUpdate ? "Update available!" : "Firmware is up to date",
+            variant: data.hasUpdate ? "default" : "default",
+          });
+        } catch {
+          setIsUpdating(false);
+          toast({
+            title: "Check Complete",
+            description: "Unable to verify firmware status",
+            variant: "destructive",
+          });
+        }
+      };
+      setTimeout(checkFirmwareStatus, 2000);
     },
     onError: () => {
       toast({
