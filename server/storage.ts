@@ -282,6 +282,14 @@ export class MemStorage implements IStorage {
   }
 
   async createConnectedDevice(device: InsertConnectedDevice): Promise<ConnectedDevice> {
+    // Check for existing device with same MAC address to prevent duplicates
+    for (const [existingId, existingDevice] of this.connectedDevices) {
+      if (existingDevice.macAddress === device.macAddress) {
+        // Update existing device instead of creating duplicate
+        return this.updateConnectedDevice(existingId, device) || existingDevice;
+      }
+    }
+    
     const id = this.currentDeviceId++;
     const newDevice: ConnectedDevice = {
       id,
@@ -291,6 +299,8 @@ export class MemStorage implements IStorage {
       uploadSpeed: device.uploadSpeed ?? 0,
       connectedAt: new Date(),
       lastSeen: new Date(),
+      connectionType: device.connectionType || 'wired',
+      hostname: device.hostname || device.name,
     };
     this.connectedDevices.set(id, newDevice);
     return newDevice;

@@ -100,10 +100,10 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
     );
   }
 
-  const connectedDevices = devices || [];
+  const connectedDevices = Array.isArray(devices) ? devices : [];
   
   // Filter devices for wireless display (UniFi shows all devices as potentially wireless)
-  const wifiDevices = connectedDevices.filter(device => 
+  const wifiDevices = connectedDevices.filter((device: any) => 
     device.deviceType === 'smartphone' || 
     device.deviceType === 'laptop' || 
     device.deviceType === 'tablet' ||
@@ -138,36 +138,36 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* UniFi-style Header */}
-      <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0">
+      {/* Header matching your dark theme */}
+      <Card className="bg-gray-900 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardHeader className="pb-4">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <Router className="h-6 w-6" />
+            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Router className="h-6 w-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-xl font-semibold">Network Topology</CardTitle>
-              <p className="text-blue-100 text-sm">Real-time wireless network visualization</p>
+              <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Network Topology</CardTitle>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Real-time wireless network visualization</p>
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/10 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold">{connectedDevices.length}</div>
-              <div className="text-xs text-blue-100">Total Devices</div>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{connectedDevices.length}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Total Devices</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold">{wirelessClients.total}</div>
-              <div className="text-xs text-blue-100">Wireless Clients</div>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{wirelessClients.total}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Wireless Clients</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold">{connectedDevices.filter(d => d.isOnline).length}</div>
-              <div className="text-xs text-blue-100">Online Now</div>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{connectedDevices.filter((d: any) => d.isOnline).length}</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Online Now</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold">3</div>
-              <div className="text-xs text-blue-100">Active Bands</div>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">3</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">Active Bands</div>
             </div>
           </div>
         </CardContent>
