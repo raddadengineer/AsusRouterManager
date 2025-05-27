@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { sshClient } from "./ssh-client";
+import { asusAPI } from "./asus-api";
 import { 
   insertRouterStatusSchema,
   insertConnectedDeviceSchema,
