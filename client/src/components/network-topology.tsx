@@ -100,21 +100,34 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
     );
   }
 
-  const connectedDevices = devices || [];
-  const wifiDevices = connectedDevices.filter(device => 
+  const connectedDevices = Array.isArray(devices) ? devices : [];
+  const allDevices = connectedDevices.length > 0 ? connectedDevices : [];
+  const wifiDevices = allDevices.filter(device => 
     device.deviceType === 'smartphone' || 
     device.deviceType === 'laptop' || 
-    device.deviceType === 'tablet'
+    device.deviceType === 'tablet' ||
+    device.deviceType === 'mobile' ||
+    device.connectionType?.includes('wireless') ||
+    device.connectionType?.includes('WiFi') ||
+    device.connectionType?.includes('2.4GHz') ||
+    device.connectionType?.includes('5GHz') ||
+    device.connectionType?.includes('6GHz')
   );
   
-  // Use real wireless client data when available, otherwise show device distribution
-  const wirelessClients = { 
-    band24ghz: Math.floor(wifiDevices.length / 3), 
-    band5ghz: Math.floor(wifiDevices.length / 3), 
-    band6ghz: Math.max(0, wifiDevices.length - Math.floor(wifiDevices.length / 3) * 2), 
-    total: wifiDevices.length 
+  // Get wireless client data from router - will show real counts once SSH is connected
+  const wirelessClients = {
+    band24ghz: routerFeatures?.wirelessClients?.band24ghz || 0,
+    band5ghz: routerFeatures?.wirelessClients?.band5ghz || 0,
+    band6ghz: routerFeatures?.wirelessClients?.band6ghz || 0,
+    total: routerFeatures?.wirelessClients?.total || 0
   };
-  const aiMesh = { isMaster: true, nodeCount: 0, nodeList: [] };
+  
+  // Get AiMesh data from router - will show real nodes once SSH is connected
+  const aiMesh = {
+    isMaster: routerFeatures?.aiMesh?.isMaster ?? false,
+    nodeCount: routerFeatures?.aiMesh?.nodeCount || 0,
+    nodeList: routerFeatures?.aiMesh?.nodeList || []
+  };
 
   const getBandDevices = (band: string) => {
     // For now, distribute devices evenly across bands
@@ -292,12 +305,14 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
               </Badge>
             </div>
 
-            {displayDevices.length === 0 ? (
+            {connectedDevices.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Wifi className="h-8 w-8 text-gray-400" />
                 </div>
-                <p className="text-gray-500 dark:text-gray-400">No devices connected to this band</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  No devices detected. Connect to your router via SSH in System Settings to see real network data.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">

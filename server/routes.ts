@@ -33,11 +33,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Connected Devices Routes
+  // Connected Devices Routes - Fix duplicates by using unique MAC addresses
   app.get("/api/devices", async (req, res) => {
     try {
       const devices = await storage.getConnectedDevices();
-      res.json(devices);
+      
+      // Remove duplicates based on MAC address
+      const uniqueDevices = devices.filter((device, index, self) => 
+        index === self.findIndex(d => d.macAddress === device.macAddress)
+      );
+      
+      res.json(uniqueDevices);
     } catch (error) {
       res.status(500).json({ message: "Failed to get connected devices" });
     }
