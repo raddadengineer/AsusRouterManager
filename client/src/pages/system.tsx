@@ -425,13 +425,30 @@ export default function SystemSettingsPage() {
     speedTestMutation.mutate();
   };
 
-  const handleFactoryReset = () => {
-    if (confirm("WARNING: This will reset all settings to factory defaults. This action cannot be undone. Are you sure?")) {
+  const factoryResetMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/system/factory-reset");
+    },
+    onSuccess: async (response) => {
+      const data = await response.json();
       toast({
-        title: "Factory Reset",
-        description: "Factory reset initiated. Router will reboot with default settings.",
+        title: "Factory Reset Initiated",
+        description: data.warning || "Router will reboot with default settings",
         variant: "destructive",
       });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Factory Reset Failed",
+        description: error?.message || "Failed to perform factory reset",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFactoryReset = () => {
+    if (confirm("WARNING: This will reset all settings to factory defaults. This action cannot be undone. Are you sure?")) {
+      factoryResetMutation.mutate();
     }
   };
 
