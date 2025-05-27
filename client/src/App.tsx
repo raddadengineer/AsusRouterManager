@@ -14,26 +14,49 @@ import SystemDetailsPage from "@/pages/system-details";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
+import { useState } from "react";
+import { Menu } from "lucide-react";
 
 function Router() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/topology" component={NetworkTopology} />
-            <Route path="/devices" component={ConnectedDevices} />
-            <Route path="/wifi" component={WiFiSettings} />
-            <Route path="/port-forwarding" component={PortForwarding} />
-            <Route path="/bandwidth" component={BandwidthMonitor} />
-            <Route path="/system" component={SystemSettings} />
-            <Route path="/system/details" component={SystemDetailsPage} />
-            <Route component={NotFound} />
-          </Switch>
+      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+      
+      <div className="flex-1 flex flex-col">
+        {/* Mobile Header */}
+        <div className="md:hidden flex items-center justify-between p-4 border-b border-border bg-card">
+          <button
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg hover:bg-accent"
+          >
+            <Menu className="h-6 w-6" />
+          </button>
+          <h1 className="text-lg font-semibold">ASUS Manager</h1>
+          <div className="w-10" /> {/* Spacer for center alignment */}
         </div>
-      </main>
+        
+        <main className="flex-1 overflow-auto">
+          <div className="p-4 md:p-6">
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/topology" component={NetworkTopology} />
+              <Route path="/devices" component={ConnectedDevices} />
+              <Route path="/wifi" component={WiFiSettings} />
+              <Route path="/port-forwarding" component={PortForwarding} />
+              <Route path="/bandwidth" component={BandwidthMonitor} />
+              <Route path="/system" component={SystemSettings} />
+              <Route path="/system/details" component={SystemDetailsPage} />
+              <Route component={NotFound} />
+            </Switch>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

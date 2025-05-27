@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import type { RouterStatus } from "@shared/schema";
 import { formatUptime } from "@/lib/utils";
+import { useState, useEffect } from "react";
 import {
   Wifi,
   BarChart3,
@@ -12,6 +13,8 @@ import {
   ArrowRightLeft,
   TrendingUp,
   CheckCircle2,
+  Menu,
+  X,
 } from "lucide-react";
 
 const navigationItems = [
@@ -52,7 +55,12 @@ const navigationItems = [
   },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const [location] = useLocation();
 
   const { data: routerStatus } = useQuery<RouterStatus>({
@@ -60,8 +68,37 @@ export default function Sidebar() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Close sidebar when clicking on a navigation item on mobile
+  const handleNavClick = () => {
+    if (window.innerWidth < 768) {
+      onToggle();
+    }
+  };
+
   return (
-    <aside className="w-60 bg-sidebar shadow-lg flex flex-col border-r border-sidebar-border">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onToggle}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed md:static inset-y-0 left-0 z-50 w-60 bg-sidebar shadow-lg flex flex-col border-r border-sidebar-border transition-transform duration-300 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}>
+        {/* Close button for mobile */}
+        <div className="md:hidden flex justify-end p-4">
+          <button
+            onClick={onToggle}
+            className="p-2 rounded-lg hover:bg-sidebar-accent"
+          >
+            <X className="h-5 w-5 text-sidebar-foreground" />
+          </button>
+        </div>
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center space-x-3">
@@ -88,6 +125,7 @@ export default function Sidebar() {
               <li key={item.href}>
                 <Link href={item.href}>
                   <a
+                    onClick={handleNavClick}
                     className={cn(
                       "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
                       isActive
@@ -120,5 +158,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }
