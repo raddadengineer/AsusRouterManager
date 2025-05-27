@@ -49,7 +49,7 @@ export default function BackgroundServicesManager() {
 
   const startJobMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      return apiRequest(`/api/background-services/${jobId}/start`, 'POST');
+      return apiRequest('POST', `/api/background-services/${jobId}/start`);
     },
     onSuccess: (_, jobId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/background-services'] });
@@ -70,7 +70,7 @@ export default function BackgroundServicesManager() {
 
   const stopJobMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      return apiRequest(`/api/background-services/${jobId}/stop`, 'POST');
+      return apiRequest('POST', `/api/background-services/${jobId}/stop`);
     },
     onSuccess: (_, jobId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/background-services'] });
@@ -91,7 +91,7 @@ export default function BackgroundServicesManager() {
 
   const updateScheduleMutation = useMutation({
     mutationFn: async ({ jobId, cronExpression }: { jobId: string; cronExpression: string }) => {
-      return apiRequest(`/api/background-services/${jobId}/schedule`, 'PUT', { cronExpression });
+      return apiRequest('PUT', `/api/background-services/${jobId}/schedule`, { cronExpression });
     },
     onSuccess: (_, { jobId }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/background-services'] });
