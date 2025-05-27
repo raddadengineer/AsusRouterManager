@@ -114,7 +114,7 @@ After successful SSH connection, the interface will:
 
 **Docker Issues:**
 - Ensure Docker is running
-- Check port 5000 is not in use
+- Check port 5010 is not in use
 - Run `docker-compose logs` for error details
 
 **Database Issues:**
