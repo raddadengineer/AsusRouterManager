@@ -395,7 +395,18 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {devices?.slice(0, 5).map((device) => (
+                    {devices
+                      ?.sort((a, b) => {
+                        // Sort by activity level: online first, then by total bandwidth
+                        if (a.isOnline && !b.isOnline) return -1;
+                        if (!a.isOnline && b.isOnline) return 1;
+                        
+                        const aActivity = (a.downloadSpeed || 0) + (a.uploadSpeed || 0);
+                        const bActivity = (b.downloadSpeed || 0) + (b.uploadSpeed || 0);
+                        return bActivity - aActivity;
+                      })
+                      .slice(0, 10)
+                      .map((device) => (
                       <div key={device.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -418,11 +429,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
-                    {devices && devices.length > 5 && (
+                    {devices && devices.length > 10 && (
                       <div className="text-center pt-2">
                         <Link href="/devices">
                           <Button variant="ghost" size="sm" className="text-primary">
-                            View {devices.length - 5} more devices
+                            View {devices.length - 10} more devices
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </Button>
                         </Link>
