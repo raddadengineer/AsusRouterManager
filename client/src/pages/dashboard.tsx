@@ -48,30 +48,42 @@ export default function Dashboard() {
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
   
-  // Calculate wired and wireless device counts
-  const wiredDevices = connectedDevices?.filter(device => 
-    device.connectionType?.includes('ethernet') || 
-    device.connectionType?.includes('wired') ||
-    (!device.connectionType?.includes('wireless') && device.deviceType !== 'smartphone' && device.deviceType !== 'tablet' && device.deviceType !== 'mobile')
-  ) || [];
+  // Calculate wired and wireless device counts with proper handling
+  const wiredDevices = connectedDevices.filter(device => 
+    device.connectionType?.toLowerCase().includes('ethernet') || 
+    device.connectionType?.toLowerCase().includes('wired') ||
+    device.connectionType?.toLowerCase().includes('lan') ||
+    (!device.connectionType?.toLowerCase().includes('wireless') && 
+     !device.connectionType?.toLowerCase().includes('wifi') &&
+     device.deviceType !== 'smartphone' && 
+     device.deviceType !== 'tablet' && 
+     device.deviceType !== 'mobile')
+  );
   
-  const wirelessDevices = connectedDevices?.filter(device => 
-    device.connectionType?.includes('wireless') || 
+  const wirelessDevices = connectedDevices.filter(device => 
+    device.connectionType?.toLowerCase().includes('wireless') || 
+    device.connectionType?.toLowerCase().includes('wifi') ||
     device.deviceType === 'smartphone' || 
     device.deviceType === 'tablet' || 
-    device.deviceType === 'mobile'
-  ) || [];
+    device.deviceType === 'mobile' ||
+    device.wirelessBand // Device has wireless band info
+  );
   
-  // Calculate AiMesh nodes (including main router)
-  const aiMeshNodes = connectedDevices?.filter(device => 
+  // Calculate AiMesh nodes with better detection
+  const aiMeshNodes = connectedDevices.filter(device => 
     device.deviceType === 'router' || 
-    device.name?.includes('AiMesh') ||
-    device.name?.includes('ASUS') ||
-    device.deviceType === 'access_point'
-  ) || [];
+    device.deviceType === 'access_point' ||
+    device.name?.toLowerCase().includes('aimesh') ||
+    device.name?.toLowerCase().includes('asus') ||
+    device.name?.toLowerCase().includes('router') ||
+    device.aimeshNodeMac // Device is connected to an AiMesh node
+  );
   
-  // Add main router to count if not already detected
-  const totalAiMeshNodes = aiMeshNodes.length > 0 ? aiMeshNodes.length : 1;
+  // Always include main router in count (minimum 1)
+  const totalAiMeshNodes = Math.max(aiMeshNodes.length, 1);
+  
+  // Calculate total devices properly
+  const totalConnectedDevices = connectedDevices.length;
   const totalNetworkUsage = devices?.reduce((total, device) => 
     device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
   ) || 0;
@@ -221,13 +233,13 @@ export default function Dashboard() {
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {wiredDevices?.length || 0}
+                    {wiredDevices.length}
                   </div>
                   <div className="text-sm text-muted-foreground">Wired Devices</div>
                 </div>
                 <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {wirelessDevices?.length || 0}
+                    {wirelessDevices.length}
                   </div>
                   <div className="text-sm text-muted-foreground">Wireless Devices</div>
                 </div>
@@ -239,7 +251,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {connectedDevices?.length || 0}
+                    {totalConnectedDevices}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Devices</div>
                 </div>
