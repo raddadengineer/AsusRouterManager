@@ -13,6 +13,7 @@ import SystemSettings from "@/pages/system";
 import SystemDetailsPage from "@/pages/system-details";
 import DeviceDetailsPage from "@/pages/device-details";
 import AiMeshPage from "@/pages/aimesh";
+import DeviceGroupsPage from "@/pages/device-groups";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
@@ -50,6 +51,7 @@ function Router() {
               <Route path="/topology" component={NetworkTopology} />
               <Route path="/devices" component={ConnectedDevices} />
               <Route path="/devices/:id" component={DeviceDetailsPage} />
+              <Route path="/device-groups" component={DeviceGroupsPage} />
               <Route path="/wifi" component={WiFiSettings} />
               <Route path="/port-forwarding" component={PortForwarding} />
               <Route path="/aimesh" component={AiMeshPage} />

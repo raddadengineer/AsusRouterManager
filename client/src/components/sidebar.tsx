@@ -35,6 +35,11 @@ const navigationItems = [
     icon: Tablet,
   },
   {
+    href: "/device-groups",
+    label: "Device Groups",
+    icon: Settings,
+  },
+  {
     href: "/wifi",
     label: "WiFi Settings",
     icon: Wifi,
