@@ -438,9 +438,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Sync connected devices to database
+      // Efficiently sync connected devices to database
+      const existingDevices = await storage.getConnectedDevices();
+      const existingByMac = new Map(existingDevices.map(d => [d.macAddress, d]));
+      
+      // First mark all devices as offline
+      for (const existing of existingDevices) {
+        if (existing.isOnline) {
+          await storage.updateConnectedDevice(existing.id, { isOnline: false });
+        }
+      }
+      
+      // Update or create devices from router data
       for (const device of devices) {
-        try {
+        const existing = existingByMac.get(device.macAddress);
+        if (existing) {
+          await storage.updateConnectedDevice(existing.id, {
+            name: device.name,
+            ipAddress: device.ipAddress,
+            isOnline: device.isOnline,
+            downloadSpeed: device.downloadSpeed || 0,
+            uploadSpeed: device.uploadSpeed || 0,
+          });
+        } else {
           await storage.createConnectedDevice({
             name: device.name,
             macAddress: device.macAddress,
@@ -450,19 +470,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             downloadSpeed: device.downloadSpeed || 0,
             uploadSpeed: device.uploadSpeed || 0,
           });
-        } catch (error) {
-          // Device might already exist, update instead
-          const existingDevices = await storage.getConnectedDevices();
-          const existing = existingDevices.find(d => d.macAddress === device.macAddress);
-          if (existing) {
-            await storage.updateConnectedDevice(existing.id, {
-              name: device.name,
-              ipAddress: device.ipAddress,
-              isOnline: device.isOnline,
-              downloadSpeed: device.downloadSpeed || 0,
-              uploadSpeed: device.uploadSpeed || 0,
-            });
-          }
         }
       }
 
