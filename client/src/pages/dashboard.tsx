@@ -345,8 +345,12 @@ export default function Dashboard() {
                     <span>{routerStatus?.firmware}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">IP Address:</span>
+                    <span className="text-muted-foreground">Internal IP:</span>
                     <span className="font-mono">{routerStatus?.ipAddress}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">External IP:</span>
+                    <span className="font-mono">{routerStatus?.externalIpAddress || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Uptime:</span>
