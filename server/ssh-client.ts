@@ -410,14 +410,14 @@ export class SSHClient {
 
   async getMerlinFeatures(): Promise<any> {
     try {
-      // Get Adaptive QoS status
-      const qosEnabled = await this.executeCommand("nvram get adaptive_qos_enable");
+      // Get Adaptive QoS status using correct commands
+      const qosEnabled = await this.executeCommand("nvram get qos_enable");
       const qosMode = await this.executeCommand("nvram get qos_type");
       
-      // Get AiProtection status
-      const aiProtection = await this.executeCommand("nvram get wrs_protect_enable");
-      const aiMalware = await this.executeCommand("nvram get wrs_cc_enable");
-      const aiVuln = await this.executeCommand("nvram get wrs_vp_enable");
+      // Get AiProtection status using correct commands
+      const aiProtection = await this.executeCommand("nvram get aiprotection_enable");
+      const aiMalware = await this.executeCommand("nvram get tm_malware");
+      const aiVuln = await this.executeCommand("nvram get tm_vprot");
       
       // Get VPN Server status
       const vpnServer = await this.executeCommand("nvram get vpn_server_enable");
@@ -432,18 +432,18 @@ export class SSHClient {
       const guestEnabled = await this.executeCommand("nvram get wl0.1_bss_enabled");
       const guest5Enabled = await this.executeCommand("nvram get wl1.1_bss_enabled");
       
-      // Get AiMesh status
-      const aimeshMode = await this.executeCommand("nvram get cfg_master");
+      // Get AiMesh status using correct commands
+      const aimeshMode = await this.executeCommand("nvram get amas_enable");
       const aimeshNodes = await this.executeCommand("cfg_clientlist | wc -l 2>/dev/null || echo '0'");
       
       // Get DDNS status
       const ddnsEnabled = await this.executeCommand("nvram get ddns_enable_x");
       const ddnsProvider = await this.executeCommand("nvram get ddns_server_x");
       
-      // Get hardware acceleration features
-      const ctfDisabled = await this.executeCommand("nvram get ctf_disable");
-      const runnerDisabled = await this.executeCommand("nvram get runner_disable");
-      const fcDisabled = await this.executeCommand("nvram get fc_disable");
+      // Get hardware acceleration features using correct commands
+      const ctfEnabled = await this.executeCommand("nvram get ctf_enable");
+      const runnerEnabled = await this.executeCommand("nvram get runner_enable");
+      const fcEnabled = await this.executeCommand("nvram get fc_enable");
       
       // Get WAN IP information
       const wanIp = await this.executeCommand("nvram get wan0_ipaddr || nvram get wan_ipaddr");
@@ -507,9 +507,9 @@ export class SSHClient {
         echo $TOTAL
       `);
       
-      // Get wireless features
-      const beamforming = await this.executeCommand("nvram get wl0_txbf");
-      const mu_mimo = await this.executeCommand("nvram get wl1_mumimo");
+      // Get wireless features using correct commands
+      const beamforming24 = await this.executeCommand("nvram get wl_bfd_enable");
+      const beamforming5 = await this.executeCommand("nvram get wl1_bfd_enable");
 
       return {
         adaptiveQos: {
@@ -542,11 +542,11 @@ export class SSHClient {
           enabled: ddnsEnabled.trim() === '1',
           provider: ddnsProvider.trim(),
         },
-        // Hardware Acceleration (disabled = 0 means enabled)
+        // Hardware Acceleration (enabled = 1 means enabled)
         hardwareAcceleration: {
-          ctf: ctfDisabled.trim() === '0',
-          runner: runnerDisabled.trim() === '0',
-          flowCache: fcDisabled.trim() === '0',
+          ctf: ctfEnabled.trim() === '1',
+          runner: runnerEnabled.trim() === '1',
+          flowCache: fcEnabled.trim() === '1',
         },
         // Network Information
         network: {
@@ -562,8 +562,9 @@ export class SSHClient {
         },
         // Wireless Features
         wirelessFeatures: {
-          beamforming: beamforming.trim() === '1',
-          muMimo: mu_mimo.trim() === '1',
+          beamforming: beamforming24.trim() === '1' || beamforming5.trim() === '1',
+          beamforming24: beamforming24.trim() === '1',
+          beamforming5: beamforming5.trim() === '1',
         },
       };
     } catch (error) {
