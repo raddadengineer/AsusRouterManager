@@ -145,8 +145,40 @@ export default function SystemSettingsPage() {
         }
       };
       
-      // Start syncing immediately and then at user-configured interval
-      syncData();
+      // Start syncing immediately with progress visualization
+      const syncWithProgress = async () => {
+        startSync();
+        
+        try {
+          // Phase 1: Essential data
+          updatePhaseProgress('essential', 50);
+          await fetch('/api/ssh/sync-essential', { method: 'POST' });
+          completePhase('essential');
+          
+          // Phase 2: Connected devices
+          updatePhaseProgress('devices', 50);
+          await fetch('/api/ssh/sync-devices', { method: 'POST' });
+          completePhase('devices');
+          
+          // Phase 3: Advanced features
+          updatePhaseProgress('advanced', 50);
+          await fetch('/api/ssh/sync-advanced', { method: 'POST' });
+          completePhase('advanced');
+          
+          finishSync();
+          queryClient.invalidateQueries();
+          console.log('✓ Phased data sync completed successfully');
+          
+          // Auto-hide progress after 2 seconds
+          setTimeout(hideProgress, 2000);
+        } catch (error) {
+          console.log('Phased sync failed:', error);
+          setConnectionStatus('error');
+          hideProgress();
+        }
+      };
+      
+      syncWithProgress();
       interval = setInterval(syncData, syncIntervalMs);
     }
     
@@ -1182,6 +1214,15 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Sync Progress Modal */}
+      <SyncProgress 
+        phases={phases}
+        currentPhase={currentPhase}
+        overallProgress={overallProgress}
+        isVisible={syncProgressVisible}
+        onClose={hideProgress}
+      />
     </div>
   );
 }
