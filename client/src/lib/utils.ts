@@ -87,7 +87,11 @@ export function getStatusColor(isOnline: boolean): string {
 }
 
 export function formatMacAddress(mac: string): string {
-  return mac.toUpperCase().replace(/(.{2})(?=.)/g, '$1:');
+  // Remove any existing colons, hyphens, or spaces and normalize
+  const cleanMac = mac.replace(/[:\-\s]/g, '').toUpperCase();
+  
+  // Add colons between every 2 characters
+  return cleanMac.replace(/(.{2})(?=.)/g, '$1:');
 }
 
 export function generateRandomMacAddress(): string {
