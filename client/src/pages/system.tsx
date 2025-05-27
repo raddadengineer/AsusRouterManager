@@ -894,15 +894,16 @@ export default function SystemSettingsPage() {
                         {connectionStatus === 'connected' && routerStatus ? 'Excellent' : 'Offline'}
                       </Badge>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => {/* TODO: Navigate to detailed system info page */}}
-                    >
-                      <Settings className="h-3 w-3 mr-1" />
-                      View Details
-                    </Button>
+                    <Link href="/system/details">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        <Settings className="h-3 w-3 mr-1" />
+                        View Details
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>

@@ -10,6 +10,7 @@ import WiFiSettings from "@/pages/wifi";
 import PortForwarding from "@/pages/port-forwarding";
 import BandwidthMonitor from "@/pages/bandwidth";
 import SystemSettings from "@/pages/system";
+import SystemDetailsPage from "@/pages/system-details";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
@@ -28,6 +29,7 @@ function Router() {
             <Route path="/port-forwarding" component={PortForwarding} />
             <Route path="/bandwidth" component={BandwidthMonitor} />
             <Route path="/system" component={SystemSettings} />
+            <Route path="/system/details" component={SystemDetailsPage} />
             <Route component={NotFound} />
           </Switch>
         </div>
