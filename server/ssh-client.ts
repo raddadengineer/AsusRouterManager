@@ -160,16 +160,48 @@ export class SSHClient {
         ip neigh | grep -i "lladdr" | awk '{print $1", "$5", "$3}'
 
         echo
-        echo "------ AiMesh Topology ------"
-        if [ -f /tmp/sysinfo/mesh_topology.json ]; then
-          echo "(Found mesh_topology.json)"
-          cat /tmp/sysinfo/mesh_topology.json
-        elif [ -f /tmp/sysinfo/mesh_status ]; then
-          echo "(Found mesh_status)"
-          cat /tmp/sysinfo/mesh_status
-        else
-          echo "AiMesh topology info not found."
+        echo "------ AiMesh Node Detection ------"
+        echo "=== AiMesh Node List ==="
+        if nvram get cfg_master >/dev/null 2>&1; then
+          echo "MAIN_NODE: $(nvram get lan_ipaddr) | MAC: $(nvram get lan_hwaddr) | Name: $(nvram get productid)"
         fi
+        
+        # Get all AiMesh nodes
+        echo "=== AiMesh Connected Nodes ==="
+        cfg_clientlist=$(nvram get cfg_clientlist 2>/dev/null || echo "")
+        if [ -n "$cfg_clientlist" ]; then
+          echo "$cfg_clientlist" | sed 's/</\n/g' | while read node; do
+            if [ -n "$node" ]; then
+              echo "AIMESH_NODE: $node"
+            fi
+          done
+        fi
+        
+        echo "=== Per-Node Device Detection ==="
+        # Check each AiMesh node for connected devices
+        for node_ip in $(echo "$cfg_clientlist" | sed 's/</\n/g' | awk -F'>' '{print $1}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'); do
+          if [ -n "$node_ip" ]; then
+            echo "--- Checking node: $node_ip ---"
+            # Try to get wireless clients from this specific node
+            ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no admin@$node_ip "
+              for iface in wl0 wl1 wl2; do
+                echo \"Interface $iface on node $node_ip:\"
+                wl -i \$iface assoclist 2>/dev/null | while read mac; do
+                  if [ -n \"\$mac\" ]; then
+                    rssi=\$(wl -i \$iface rssi \"\$mac\" 2>/dev/null || echo \"N/A\")
+                    hostname=\$(grep -i \"\$mac\" /var/lib/misc/dnsmasq.leases | awk '{print \$4}' | head -1)
+                    ip=\$(grep -i \"\$mac\" /var/lib/misc/dnsmasq.leases | awk '{print \$3}' | head -1)
+                    band=\"Unknown\"
+                    if [ \"\$iface\" = \"wl0\" ]; then band=\"2.4GHz\"; fi
+                    if [ \"\$iface\" = \"wl1\" ]; then band=\"5GHz\"; fi
+                    if [ \"\$iface\" = \"wl2\" ]; then band=\"6GHz\"; fi
+                    echo \"NODE_DEVICE: \$mac | IP: \$ip | Hostname: \$hostname | RSSI: \$rssi dBm | Band: \$band | Node: $node_ip\"
+                  fi
+                done
+              done
+            " 2>/dev/null || echo "Could not connect to node $node_ip"
+          fi
+        done
 
         echo
         echo "------ Finished ------"
@@ -189,7 +221,9 @@ export class SSHClient {
       dhcpClients: [] as any[],
       wirelessClients: [] as any[],
       wiredClients: [] as any[],
-      aimeshTopology: null
+      aimeshTopology: null,
+      aimeshNodes: [] as any[],
+      nodeDevices: new Map() // Store devices per node
     };
 
     const lines = data.split('\n');
@@ -206,7 +240,7 @@ export class SSHClient {
         currentSection = 'wireless';
       } else if (line.includes('Wired Clients')) {
         currentSection = 'wired';
-      } else if (line.includes('AiMesh Topology')) {
+      } else if (line.includes('AiMesh Node Detection')) {
         currentSection = 'aimesh';
       } else if (line.startsWith('MAC:') && currentSection === 'wireless') {
         const macMatch = line.match(/MAC:\s*([a-fA-F0-9:]+)/);
@@ -242,6 +276,54 @@ export class SSHClient {
             interface: parts[2]
           });
         }
+      } else if (line.startsWith('MAIN_NODE:') && currentSection === 'aimesh') {
+        // Parse main node info: MAIN_NODE: 192.168.1.1 | MAC: AA:BB:CC:DD:EE:FF | Name: RT-AX86U
+        const parts = line.split('|');
+        const ipMatch = parts[0]?.match(/MAIN_NODE:\s*([0-9.]+)/);
+        const macMatch = parts[1]?.match(/MAC:\s*([a-fA-F0-9:]+)/);
+        const nameMatch = parts[2]?.match(/Name:\s*(.+)/);
+        
+        if (ipMatch && macMatch) {
+          report.aimeshNodes.push({
+            ip: ipMatch[1].trim(),
+            mac: this.normalizeMacAddress(macMatch[1].trim()),
+            name: nameMatch?.[1]?.trim() || 'Main Router',
+            type: 'main'
+          });
+        }
+      } else if (line.startsWith('AIMESH_NODE:') && currentSection === 'aimesh') {
+        // Parse AiMesh node info: AIMESH_NODE: 192.168.1.100>AA:BB:CC:DD:EE:FF>1>RT-AX58U
+        const nodeData = line.replace('AIMESH_NODE:', '').trim();
+        const parts = nodeData.split('>');
+        
+        if (parts.length >= 2) {
+          report.aimeshNodes.push({
+            ip: parts[0]?.trim(),
+            mac: this.normalizeMacAddress(parts[1]?.trim() || ''),
+            name: parts[3]?.trim() || `AiMesh Node ${parts[0]}`,
+            type: 'node'
+          });
+        }
+      } else if (line.startsWith('NODE_DEVICE:') && currentSection === 'aimesh') {
+        // Parse per-node device: NODE_DEVICE: AA:BB:CC:DD:EE:FF | IP: 192.168.1.50 | Hostname: MyPhone | RSSI: -45 dBm | Band: 5GHz | Node: 192.168.1.100
+        const deviceMatch = line.match(/NODE_DEVICE:\s*([a-fA-F0-9:]+)\s*\|\s*IP:\s*([0-9.]*)\s*\|\s*Hostname:\s*([^|]*)\s*\|\s*RSSI:\s*(-?\d+)\s*dBm\s*\|\s*Band:\s*([^|]*)\s*\|\s*Node:\s*([0-9.]+)/);
+        
+        if (deviceMatch) {
+          const [, mac, ip, hostname, rssi, band, nodeIp] = deviceMatch;
+          
+          if (!report.nodeDevices.has(nodeIp)) {
+            report.nodeDevices.set(nodeIp, []);
+          }
+          
+          report.nodeDevices.get(nodeIp).push({
+            mac: this.normalizeMacAddress(mac),
+            ip: ip.trim(),
+            hostname: hostname.trim(),
+            rssi: parseInt(rssi),
+            band: band.trim(),
+            nodeIp: nodeIp.trim()
+          });
+        }
       }
     }
 
@@ -268,10 +350,42 @@ export class SSHClient {
                !mac.includes('Hostname');
       };
 
-      // Process wireless clients first (most detailed info)
+      // First, process devices from specific AiMesh nodes (most accurate data)
+      if (topologyReport.nodeDevices && topologyReport.nodeDevices.size > 0) {
+        for (const [nodeIp, nodeDevices] of topologyReport.nodeDevices) {
+          const aimeshNode = topologyReport.aimeshNodes.find(node => node.ip === nodeIp);
+          
+          for (const nodeDevice of nodeDevices) {
+            if (nodeDevice.mac && isValidMac(nodeDevice.mac) && !processedMacs.has(nodeDevice.mac.toLowerCase())) {
+              processedMacs.add(nodeDevice.mac.toLowerCase());
+              
+              devices.push({
+                macAddress: this.normalizeMacAddress(nodeDevice.mac),
+                name: nodeDevice.hostname || `Device-${nodeDevice.mac.slice(-5)}`,
+                ipAddress: nodeDevice.ip || '',
+                isOnline: true,
+                deviceType: this.getDeviceType(nodeDevice.mac, nodeDevice.hostname),
+                connectionType: `${nodeDevice.band} WiFi`,
+                signalStrength: nodeDevice.rssi,
+                wirelessInterface: this.getBandInterface(nodeDevice.band),
+                wirelessBand: nodeDevice.band,
+                aimeshNode: aimeshNode?.name || `Node ${nodeIp}`,
+                aimeshNodeMac: aimeshNode?.mac || null,
+                hostname: nodeDevice.hostname,
+                downloadSpeed: null,
+                uploadSpeed: null
+              });
+            }
+          }
+        }
+      }
+
+      // Then process wireless clients from main router (for devices not already processed)
       for (const client of topologyReport.wirelessClients) {
         if (client.mac && isValidMac(client.mac) && !processedMacs.has(client.mac.toLowerCase())) {
           processedMacs.add(client.mac.toLowerCase());
+          
+          const mainNode = topologyReport.aimeshNodes.find(node => node.type === 'main');
           
           devices.push({
             macAddress: this.normalizeMacAddress(client.mac),
@@ -283,7 +397,8 @@ export class SSHClient {
             signalStrength: client.rssi,
             wirelessInterface: this.getBandInterface(client.band),
             wirelessBand: client.band,
-            aimeshNode: null,
+            aimeshNode: mainNode?.name || 'Main Router',
+            aimeshNodeMac: mainNode?.mac || null,
             hostname: client.hostname,
             downloadSpeed: null,
             uploadSpeed: null
