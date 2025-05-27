@@ -595,8 +595,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 50;
       
       if (type === 'app') {
-        // Get real application logs
-        const appLogs = [
+        // Get real application logs from background service manager
+        const jobs = backgroundServiceManager.getJobs();
+        const appLogs = [];
+        
+        // Add recent background service executions
+        for (const job of jobs) {
+          if (job.lastRun) {
+            appLogs.push({
+              timestamp: job.lastRun.toISOString(),
+              level: job.status === 'error' ? 'ERROR' : 'INFO',
+              message: job.status === 'error' 
+                ? `Background job: ${job.name} failed - ${job.errorMessage}`
+                : `Completed background job: ${job.name}`,
+              source: 'background-services'
+            });
+          }
+        }
+        
+        // Add system startup logs
+        appLogs.push(
           {
             timestamp: new Date().toISOString(),
             level: 'INFO',
@@ -608,33 +626,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
             level: 'INFO',
             message: 'Application serving on port 5010',
             source: 'express'
-          },
-          {
-            timestamp: new Date(Date.now() - 60000).toISOString(),
-            level: 'INFO',
-            message: 'Background service manager initialized',
-            source: 'background-services'
           }
-        ];
+        );
+        
+        // Sort by timestamp and return most recent
+        appLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         res.json(appLogs.slice(0, limit));
       } else if (type === 'router') {
         // Get router logs via SSH if connected
         if (sshClient.isConnectionActive()) {
           try {
-            const logCommand = `dmesg | tail -10 && echo "---" && logread | tail -10`;
+            // Use the exact commands you suggested for Asus router logs
+            const logCommand = `logread | tail -${limit} && echo "---SYSLOG---" && cat /tmp/syslog.log | tail -${limit}`;
             const logOutput = await sshClient.executeCommand(logCommand);
             
-            const routerLogs = logOutput.split('\n')
-              .filter(line => line.trim() && !line.includes('---'))
-              .slice(-limit)
-              .map(line => ({
-                timestamp: new Date().toISOString(),
-                level: 'INFO',
-                message: line.trim(),
-                source: 'router'
-              }));
+            const sections = logOutput.split('---SYSLOG---');
+            const routerLogs = [];
             
-            res.json(routerLogs);
+            // Process logread output
+            if (sections[0]) {
+              const logreadLines = sections[0].split('\n').filter(line => line.trim());
+              logreadLines.forEach(line => {
+                const match = line.match(/^(\w{3}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(.+)/);
+                if (match) {
+                  routerLogs.push({
+                    timestamp: new Date().toISOString(),
+                    level: line.includes('error') || line.includes('ERROR') ? 'ERROR' : 
+                           line.includes('warn') || line.includes('WARN') ? 'WARN' : 'INFO',
+                    message: match[2].trim(),
+                    source: 'router-logread'
+                  });
+                }
+              });
+            }
+            
+            // Process syslog.log output
+            if (sections[1]) {
+              const syslogLines = sections[1].split('\n').filter(line => line.trim());
+              syslogLines.forEach(line => {
+                if (line.trim()) {
+                  routerLogs.push({
+                    timestamp: new Date().toISOString(),
+                    level: line.includes('error') || line.includes('ERROR') ? 'ERROR' : 
+                           line.includes('warn') || line.includes('WARN') ? 'WARN' : 'INFO',
+                    message: line.trim(),
+                    source: 'router-syslog'
+                  });
+                }
+              });
+            }
+            
+            // Sort by timestamp and return most recent
+            routerLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            res.json(routerLogs.slice(0, limit));
           } catch (error) {
             res.json([{
               timestamp: new Date().toISOString(),
