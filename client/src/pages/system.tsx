@@ -205,10 +205,23 @@ export default function SystemSettingsPage() {
       const { config } = result;
       
       setConnectionStatus('connected');
+      setIsConnecting(false);
       toast({
         title: "Connection Successful & Settings Saved",
         description: "SSH connection verified and configuration saved",
       });
+      
+      // Force update the form state to prevent double-save issues
+      setTimeout(() => {
+        sshForm.reset({
+          host: config.host,
+          port: config.port,
+          username: config.username,
+          password: config.password,
+          enabled: config.enabled,
+          syncInterval: config.syncInterval,
+        });
+      }, 100);
       
       queryClient.invalidateQueries({ queryKey: ["/api/ssh/config"] });
       
