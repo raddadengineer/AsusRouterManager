@@ -101,18 +101,18 @@ export const routerFeatures = pgTable("router_features", {
 
 export const deviceGroups = pgTable("device_groups", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 100 }).notNull(),
+  name: text("name").notNull(),
   description: text("description"),
-  color: varchar("color", { length: 7 }).default("#3B82F6"), // Hex color
-  icon: varchar("icon", { length: 50 }).default("devices"),
+  color: text("color").default("#3B82F6"), // Hex color
+  icon: text("icon").default("devices"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const deviceTags = pgTable("device_tags", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 50 }).notNull().unique(),
-  color: varchar("color", { length: 7 }).default("#6B7280"), // Hex color
+  name: text("name").notNull().unique(),
+  color: text("color").default("#6B7280"), // Hex color
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -208,3 +208,15 @@ export type InsertSSHConfig = z.infer<typeof insertSSHConfigSchema>;
 
 export type RouterFeatures = typeof routerFeatures.$inferSelect;
 export type InsertRouterFeatures = z.infer<typeof insertRouterFeaturesSchema>;
+
+export type DeviceGroup = typeof deviceGroups.$inferSelect;
+export type InsertDeviceGroup = z.infer<typeof insertDeviceGroupSchema>;
+
+export type DeviceTag = typeof deviceTags.$inferSelect;
+export type InsertDeviceTag = z.infer<typeof insertDeviceTagSchema>;
+
+export type DeviceGroupMembership = typeof deviceGroupMemberships.$inferSelect;
+export type InsertDeviceGroupMembership = z.infer<typeof insertDeviceGroupMembershipSchema>;
+
+export type DeviceTagAssignment = typeof deviceTagAssignments.$inferSelect;
+export type InsertDeviceTagAssignment = z.infer<typeof insertDeviceTagAssignmentSchema>;

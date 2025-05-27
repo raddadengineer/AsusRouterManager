@@ -13,6 +13,14 @@ import {
   InsertSSHConfig,
   RouterFeatures,
   InsertRouterFeatures,
+  DeviceGroup,
+  InsertDeviceGroup,
+  DeviceTag,
+  InsertDeviceTag,
+  DeviceGroupMembership,
+  InsertDeviceGroupMembership,
+  DeviceTagAssignment,
+  InsertDeviceTagAssignment,
   routerStatus,
   connectedDevices,
   wifiNetworks,
@@ -20,6 +28,10 @@ import {
   bandwidthData,
   sshConfig,
   routerFeatures,
+  deviceGroups,
+  deviceTags,
+  deviceGroupMemberships,
+  deviceTagAssignments,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -64,6 +76,32 @@ export interface IStorage {
   // Router Features
   getRouterFeatures(): Promise<RouterFeatures | undefined>;
   updateRouterFeatures(features: InsertRouterFeatures): Promise<RouterFeatures>;
+
+  // Device Groups
+  getDeviceGroups(): Promise<DeviceGroup[]>;
+  getDeviceGroup(id: number): Promise<DeviceGroup | undefined>;
+  createDeviceGroup(group: InsertDeviceGroup): Promise<DeviceGroup>;
+  updateDeviceGroup(id: number, group: Partial<InsertDeviceGroup>): Promise<DeviceGroup | undefined>;
+  deleteDeviceGroup(id: number): Promise<boolean>;
+
+  // Device Tags
+  getDeviceTags(): Promise<DeviceTag[]>;
+  getDeviceTag(id: number): Promise<DeviceTag | undefined>;
+  createDeviceTag(tag: InsertDeviceTag): Promise<DeviceTag>;
+  updateDeviceTag(id: number, tag: Partial<InsertDeviceTag>): Promise<DeviceTag | undefined>;
+  deleteDeviceTag(id: number): Promise<boolean>;
+
+  // Device Group Management
+  addDeviceToGroup(deviceId: number, groupId: number): Promise<DeviceGroupMembership>;
+  removeDeviceFromGroup(deviceId: number, groupId: number): Promise<boolean>;
+  getDeviceGroups(deviceId: number): Promise<DeviceGroup[]>;
+  getGroupDevices(groupId: number): Promise<ConnectedDevice[]>;
+
+  // Device Tag Management
+  assignTagToDevice(deviceId: number, tagId: number): Promise<DeviceTagAssignment>;
+  removeTagFromDevice(deviceId: number, tagId: number): Promise<boolean>;
+  getDeviceTags(deviceId: number): Promise<DeviceTag[]>;
+  getTaggedDevices(tagId: number): Promise<ConnectedDevice[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -610,6 +648,153 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // Device Groups Implementation
+  async getDeviceGroups(): Promise<DeviceGroup[]> {
+    return await db.select().from(deviceGroups).orderBy(deviceGroups.name);
+  }
+
+  async getDeviceGroup(id: number): Promise<DeviceGroup | undefined> {
+    const [group] = await db.select().from(deviceGroups).where(eq(deviceGroups.id, id));
+    return group || undefined;
+  }
+
+  async createDeviceGroup(group: InsertDeviceGroup): Promise<DeviceGroup> {
+    const [created] = await db
+      .insert(deviceGroups)
+      .values({
+        ...group,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return created;
+  }
+
+  async updateDeviceGroup(id: number, group: Partial<InsertDeviceGroup>): Promise<DeviceGroup | undefined> {
+    const [updated] = await db
+      .update(deviceGroups)
+      .set({ ...group, updatedAt: new Date() })
+      .where(eq(deviceGroups.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDeviceGroup(id: number): Promise<boolean> {
+    const result = await db.delete(deviceGroups).where(eq(deviceGroups.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Device Tags Implementation
+  async getDeviceTags(): Promise<DeviceTag[]> {
+    return await db.select().from(deviceTags).orderBy(deviceTags.name);
+  }
+
+  async getDeviceTag(id: number): Promise<DeviceTag | undefined> {
+    const [tag] = await db.select().from(deviceTags).where(eq(deviceTags.id, id));
+    return tag || undefined;
+  }
+
+  async createDeviceTag(tag: InsertDeviceTag): Promise<DeviceTag> {
+    const [created] = await db
+      .insert(deviceTags)
+      .values({
+        ...tag,
+        createdAt: new Date(),
+      })
+      .returning();
+    return created;
+  }
+
+  async updateDeviceTag(id: number, tag: Partial<InsertDeviceTag>): Promise<DeviceTag | undefined> {
+    const [updated] = await db
+      .update(deviceTags)
+      .set(tag)
+      .where(eq(deviceTags.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDeviceTag(id: number): Promise<boolean> {
+    const result = await db.delete(deviceTags).where(eq(deviceTags.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Device Group Management
+  async addDeviceToGroup(deviceId: number, groupId: number): Promise<DeviceGroupMembership> {
+    const [membership] = await db
+      .insert(deviceGroupMemberships)
+      .values({
+        deviceId,
+        groupId,
+        addedAt: new Date(),
+      })
+      .returning();
+    return membership;
+  }
+
+  async removeDeviceFromGroup(deviceId: number, groupId: number): Promise<boolean> {
+    const result = await db
+      .delete(deviceGroupMemberships)
+      .where(eq(deviceGroupMemberships.deviceId, deviceId) && eq(deviceGroupMemberships.groupId, groupId));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getDeviceGroups(deviceId: number): Promise<DeviceGroup[]> {
+    const result = await db
+      .select({ group: deviceGroups })
+      .from(deviceGroupMemberships)
+      .innerJoin(deviceGroups, eq(deviceGroupMemberships.groupId, deviceGroups.id))
+      .where(eq(deviceGroupMemberships.deviceId, deviceId));
+    return result.map(r => r.group);
+  }
+
+  async getGroupDevices(groupId: number): Promise<ConnectedDevice[]> {
+    const result = await db
+      .select({ device: connectedDevices })
+      .from(deviceGroupMemberships)
+      .innerJoin(connectedDevices, eq(deviceGroupMemberships.deviceId, connectedDevices.id))
+      .where(eq(deviceGroupMemberships.groupId, groupId));
+    return result.map(r => r.device);
+  }
+
+  // Device Tag Management
+  async assignTagToDevice(deviceId: number, tagId: number): Promise<DeviceTagAssignment> {
+    const [assignment] = await db
+      .insert(deviceTagAssignments)
+      .values({
+        deviceId,
+        tagId,
+        assignedAt: new Date(),
+      })
+      .returning();
+    return assignment;
+  }
+
+  async removeTagFromDevice(deviceId: number, tagId: number): Promise<boolean> {
+    const result = await db
+      .delete(deviceTagAssignments)
+      .where(eq(deviceTagAssignments.deviceId, deviceId) && eq(deviceTagAssignments.tagId, tagId));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getDeviceTags(deviceId: number): Promise<DeviceTag[]> {
+    const result = await db
+      .select({ tag: deviceTags })
+      .from(deviceTagAssignments)
+      .innerJoin(deviceTags, eq(deviceTagAssignments.tagId, deviceTags.id))
+      .where(eq(deviceTagAssignments.deviceId, deviceId));
+    return result.map(r => r.tag);
+  }
+
+  async getTaggedDevices(tagId: number): Promise<ConnectedDevice[]> {
+    const result = await db
+      .select({ device: connectedDevices })
+      .from(deviceTagAssignments)
+      .innerJoin(connectedDevices, eq(deviceTagAssignments.deviceId, connectedDevices.id))
+      .where(eq(deviceTagAssignments.tagId, tagId));
+    return result.map(r => r.device);
   }
 }
 

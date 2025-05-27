@@ -1139,6 +1139,187 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Smart Device Grouping API Routes
+  
+  // Device Groups Management
+  app.get("/api/device-groups", async (req, res) => {
+    try {
+      const groups = await storage.getDeviceGroups();
+      res.json(groups);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get device groups" });
+    }
+  });
+
+  app.get("/api/device-groups/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const group = await storage.getDeviceGroup(id);
+      if (!group) {
+        return res.status(404).json({ error: "Device group not found" });
+      }
+      
+      // Include devices in this group
+      const devices = await storage.getGroupDevices(id);
+      res.json({ ...group, devices });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get device group" });
+    }
+  });
+
+  app.post("/api/device-groups", async (req, res) => {
+    try {
+      const group = await storage.createDeviceGroup(req.body);
+      res.status(201).json(group);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create device group" });
+    }
+  });
+
+  app.patch("/api/device-groups/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const group = await storage.updateDeviceGroup(id, req.body);
+      if (!group) {
+        return res.status(404).json({ error: "Device group not found" });
+      }
+      res.json(group);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update device group" });
+    }
+  });
+
+  app.delete("/api/device-groups/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteDeviceGroup(id);
+      if (!success) {
+        return res.status(404).json({ error: "Device group not found" });
+      }
+      res.json({ message: "Device group deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete device group" });
+    }
+  });
+
+  // Device Tags Management
+  app.get("/api/device-tags", async (req, res) => {
+    try {
+      const tags = await storage.getDeviceTags();
+      res.json(tags);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get device tags" });
+    }
+  });
+
+  app.post("/api/device-tags", async (req, res) => {
+    try {
+      const tag = await storage.createDeviceTag(req.body);
+      res.status(201).json(tag);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to create device tag" });
+    }
+  });
+
+  app.patch("/api/device-tags/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tag = await storage.updateDeviceTag(id, req.body);
+      if (!tag) {
+        return res.status(404).json({ error: "Device tag not found" });
+      }
+      res.json(tag);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update device tag" });
+    }
+  });
+
+  app.delete("/api/device-tags/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteDeviceTag(id);
+      if (!success) {
+        return res.status(404).json({ error: "Device tag not found" });
+      }
+      res.json({ message: "Device tag deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete device tag" });
+    }
+  });
+
+  // Device Group Assignment
+  app.post("/api/devices/:deviceId/groups/:groupId", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.deviceId);
+      const groupId = parseInt(req.params.groupId);
+      const membership = await storage.addDeviceToGroup(deviceId, groupId);
+      res.status(201).json(membership);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add device to group" });
+    }
+  });
+
+  app.delete("/api/devices/:deviceId/groups/:groupId", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.deviceId);
+      const groupId = parseInt(req.params.groupId);
+      const success = await storage.removeDeviceFromGroup(deviceId, groupId);
+      if (!success) {
+        return res.status(404).json({ error: "Device group membership not found" });
+      }
+      res.json({ message: "Device removed from group successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove device from group" });
+    }
+  });
+
+  // Device Tag Assignment
+  app.post("/api/devices/:deviceId/tags/:tagId", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.deviceId);
+      const tagId = parseInt(req.params.tagId);
+      const assignment = await storage.assignTagToDevice(deviceId, tagId);
+      res.status(201).json(assignment);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to assign tag to device" });
+    }
+  });
+
+  app.delete("/api/devices/:deviceId/tags/:tagId", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.deviceId);
+      const tagId = parseInt(req.params.tagId);
+      const success = await storage.removeTagFromDevice(deviceId, tagId);
+      if (!success) {
+        return res.status(404).json({ error: "Device tag assignment not found" });
+      }
+      res.json({ message: "Tag removed from device successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove tag from device" });
+    }
+  });
+
+  // Enhanced Devices API with Groups and Tags
+  app.get("/api/devices/:deviceId/groups", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.deviceId);
+      const groups = await storage.getDeviceGroups(deviceId);
+      res.json(groups);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get device groups" });
+    }
+  });
+
+  app.get("/api/devices/:deviceId/tags", async (req, res) => {
+    try {
+      const deviceId = parseInt(req.params.deviceId);
+      const tags = await storage.getDeviceTags(deviceId);
+      res.json(tags);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get device tags" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
