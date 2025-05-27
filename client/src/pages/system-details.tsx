@@ -25,12 +25,12 @@ import { Link } from "wouter";
 export default function SystemDetailsPage() {
   const { data: routerStatus } = useQuery<any>({
     queryKey: ["/api/router/status"],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Real-time updates every 5 seconds
   });
 
   const { data: connectedDevices } = useQuery<any[]>({
     queryKey: ["/api/devices"],
-    refetchInterval: 30000,
+    refetchInterval: 5000, // Real-time updates every 5 seconds
   });
 
   const { data: wifiNetworks } = useQuery<any[]>({
@@ -58,17 +58,18 @@ export default function SystemDetailsPage() {
         title="System Information Details" 
         subtitle="Comprehensive router hardware and system metrics"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Back Button */}
         <Link href="/system">
-          <Button variant="outline" className="mb-4">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to System Settings
+          <Button variant="outline" className="mb-4 text-xs sm:text-sm w-fit">
+            <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Back to System Settings</span>
+            <span className="sm:hidden">Back</span>
           </Button>
         </Link>
 
         {/* Hardware Information */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
