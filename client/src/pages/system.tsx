@@ -1182,6 +1182,15 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Sync Progress Modal */}
+      <SyncProgress
+        phases={phases}
+        currentPhase={currentPhase}
+        overallProgress={overallProgress}
+        isVisible={syncProgressVisible}
+        onClose={hideProgress}
+      />
     </div>
   );
 }

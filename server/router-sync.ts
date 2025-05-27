@@ -4,6 +4,8 @@ import { storage } from "./storage";
 export class RouterSyncService {
   private syncInterval: NodeJS.Timeout | null = null;
   private isSyncing = false;
+  private lastSyncTime: { [key: string]: number } = {};
+  private cacheTimeout = 30000; // 30 seconds cache
 
   async startSync(intervalSeconds: number = 5) {
     // Stop any existing sync
@@ -36,32 +38,64 @@ export class RouterSyncService {
     this.isSyncing = true;
     
     try {
-      console.log("Starting phased router data sync...");
+      console.log("Starting optimized router data sync...");
+      const startTime = Date.now();
 
-      // Phase 1: Quick essential data (< 5 seconds)
-      await Promise.all([
-        this.syncSystemInfo(),
-        this.syncBandwidthData()
-      ]);
-      console.log("Phase 1 complete: System status and bandwidth");
+      // Only sync what's needed based on cache
+      const tasksToRun = [];
+      
+      if (this.shouldSync('systemInfo')) {
+        tasksToRun.push(this.syncSystemInfo());
+      }
+      
+      if (this.shouldSync('bandwidth')) {
+        tasksToRun.push(this.syncBandwidthData());
+      }
 
-      // Phase 2: Network data (5-10 seconds) 
-      await this.syncConnectedDevices();
-      console.log("Phase 2 complete: Connected devices");
+      // Run essential data first
+      if (tasksToRun.length > 0) {
+        await Promise.all(tasksToRun);
+        console.log(`Essential data synced in ${Date.now() - startTime}ms`);
+      }
 
-      // Phase 3: Advanced features (10-15 seconds)
-      await Promise.all([
-        this.syncWifiNetworks(),
-        this.syncRouterFeatures()
-      ]);
-      console.log("Phase 3 complete: WiFi networks and router features");
+      // Only sync devices if cache is stale
+      if (this.shouldSync('devices')) {
+        await this.syncConnectedDevices();
+        console.log(`Devices synced in ${Date.now() - startTime}ms`);
+      }
 
-      console.log("All phases completed - router data sync finished");
+      // Background sync for less critical data
+      setTimeout(() => {
+        if (this.shouldSync('wifi')) this.syncWifiNetworks();
+        if (this.shouldSync('features')) this.syncRouterFeatures();
+      }, 100);
+
+      console.log(`Optimized sync completed in ${Date.now() - startTime}ms`);
     } catch (error) {
-      console.error("Error in phased sync:", error);
+      console.error("Error in optimized sync:", error);
     } finally {
       this.isSyncing = false;
     }
+  }
+
+  private shouldSync(component: string): boolean {
+    const lastSync = this.lastSyncTime[component] || 0;
+    const now = Date.now();
+    
+    // Different cache timeouts for different components
+    const cacheTimeouts: { [key: string]: number } = {
+      systemInfo: 15000,  // 15 seconds
+      bandwidth: 5000,    // 5 seconds (most frequent)
+      devices: 30000,     // 30 seconds
+      wifi: 120000,       // 2 minutes
+      features: 300000    // 5 minutes
+    };
+    
+    return (now - lastSync) > (cacheTimeouts[component] || this.cacheTimeout);
+  }
+
+  private markSynced(component: string) {
+    this.lastSyncTime[component] = Date.now();
   }
 
   private async syncSystemInfo() {
@@ -83,6 +117,8 @@ export class RouterSyncService {
         cpuCores: systemInfo.cpuCores || null,
         cpuModel: systemInfo.cpuModel || null
       });
+      
+      this.markSynced('systemInfo');
     } catch (error) {
       console.error("Error syncing system info:", error);
     }
@@ -121,6 +157,8 @@ export class RouterSyncService {
         
         console.log(`Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(devices.length/batchSize)}`);
       }
+      
+      this.markSynced('devices');
     } catch (error) {
       console.error("Error syncing connected devices:", error);
     }
