@@ -34,7 +34,30 @@ interface NetworkTopologyProps {
   className?: string;
 }
 
-// Device icon component
+interface NetworkNode {
+  id: string;
+  name: string;
+  type: 'router' | 'device' | 'aimesh';
+  x: number;
+  y: number;
+  isOnline: boolean;
+  connectionType?: string;
+  ipAddress?: string;
+  macAddress?: string;
+  deviceType?: string;
+  downloadSpeed?: number | null;
+  uploadSpeed?: number | null;
+  signalStrength?: number;
+}
+
+interface NetworkConnection {
+  from: string;
+  to: string;
+  type: 'ethernet' | 'wifi' | 'aimesh';
+  strength: number;
+}
+
+// Device icon component with proper typing
 const DeviceIcon = ({ type, size = 20 }: { type: string; size?: number }) => {
   const iconProps = { size, className: "text-white" };
   

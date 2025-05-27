@@ -1,15 +1,15 @@
-import NetworkTopology from "@/components/network-topology";
+import InteractiveTopology from "@/components/interactive-topology";
 import TopBar from "@/components/top-bar";
 
 export default function NetworkTopologyPage() {
   return (
     <div>
       <TopBar 
-        title="Network Topology" 
-        subtitle="Visual representation of your network structure"
+        title="Interactive Network Topology" 
+        subtitle="Drag and explore your real network connections live"
       />
       <div className="p-6">
-        <NetworkTopology className="h-[600px]" />
+        <InteractiveTopology className="h-[700px]" />
       </div>
     </div>
   );
