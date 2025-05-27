@@ -298,7 +298,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ssh/config", async (req, res) => {
     try {
       console.log("Received SSH config data:", req.body);
-      const validatedData = insertSSHConfigSchema.parse(req.body);
+      
+      // Ensure syncInterval has a default value if not provided
+      const configData = {
+        ...req.body,
+        syncInterval: req.body.syncInterval || 5
+      };
+      
+      const validatedData = insertSSHConfigSchema.parse(configData);
       const savedConfig = await storage.saveSSHConfig(validatedData);
       const { password, ...safeConfig } = savedConfig;
       res.json({ ...safeConfig, password: '' });
@@ -341,6 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: validatedData.username,
         password: validatedData.password,
         enabled: validatedData.enabled || false,
+        syncInterval: validatedData.syncInterval || 5,
         lastConnected: null,
         connectionStatus: 'connecting' as string | null
       };

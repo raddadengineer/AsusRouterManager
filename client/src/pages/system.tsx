@@ -437,7 +437,13 @@ export default function SystemSettingsPage() {
   };
 
   const handleSaveSSHConfig = (data: SSHConnectionConfig) => {
-    sshSaveMutation.mutate(data);
+    // Ensure all required fields are present
+    const completeConfig = {
+      ...data,
+      syncInterval: data.syncInterval || 5,
+      enabled: data.enabled || false
+    };
+    sshSaveMutation.mutate(completeConfig);
   };
 
   const getConnectionStatusColor = () => {
