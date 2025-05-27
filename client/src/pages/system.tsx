@@ -21,6 +21,7 @@ import SyncProgress from "@/components/sync-progress";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import TopBar from "@/components/top-bar";
+import BackgroundServicesManager from "@/components/background-services-manager";
 import { formatUptime } from "@/lib/utils";
 import { Link } from "wouter";
 import {
@@ -1182,6 +1183,9 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Background Services Manager */}
+      <BackgroundServicesManager />
 
       {/* Sync Progress Modal */}
       <SyncProgress
