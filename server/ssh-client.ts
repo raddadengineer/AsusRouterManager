@@ -136,7 +136,7 @@ export class SSHClient {
 
         echo "------ DHCP Clients (All Devices) ------"
         echo "IP, MAC, Hostname"
-        cat /var/lib/misc/dnsmasq.leases | awk '{print $3", "$2", "$4}'
+        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{print $3", "$2", "$4}'
         echo
 
         echo "------ Connected Wireless Clients ------"
@@ -155,8 +155,8 @@ export class SSHClient {
           wl -i $iface assoclist 2>/dev/null | while read mac rest; do
             if [ -n "$mac" ] && [[ $mac =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}$ ]]; then
               rssi=$(wl -i $iface rssi "$mac" 2>/dev/null | grep -o '[0-9-]*' | head -1)
-              hostname=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $4}' | head -1)
-              ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $3}' | head -1)
+              hostname=$(grep -i "$mac" /etc/dnsmasq.leases 2>/dev/null || grep -i "$mac" /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{print $4}' | head -1)
+              ip=$(grep -i "$mac" /etc/dnsmasq.leases 2>/dev/null || grep -i "$mac" /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{print $3}' | head -1)
               echo "MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm | Band: $band_name | Interface: $iface"
             fi
           done
