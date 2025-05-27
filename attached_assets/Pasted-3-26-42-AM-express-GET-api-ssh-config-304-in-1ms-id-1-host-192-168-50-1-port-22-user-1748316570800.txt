@@ -1,0 +1,74 @@
+3:26:42 AM [express] GET /api/ssh/config 304 in 1ms :: {"id":1,"host":"192.168.50.1","port":22,"user…
+
+Failed to execute command for cpuCores: Error: Command failed with code 127: sh: nproc: not found
+
+    at Channel.<anonymous> (file:///app/dist/index.js:561:20)
+
+    at Channel.emit (node:events:536:35)
+
+    at Channel.doClose (/app/node_modules/ssh2/lib/utils.js:101:21)
+
+    at Object.onceWrapper (node:events:638:28)
+
+    at Channel.emit (node:events:536:35)
+
+    at endReadableNT (node:internal/streams/readable:1698:12)
+
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+Failed to execute command for cpuCores: Error: Command failed with code 127: sh: nproc: not found
+
+    at Channel.<anonymous> (file:///app/dist/index.js:561:20)
+
+    at Channel.emit (node:events:536:35)
+
+    at Channel.doClose (/app/node_modules/ssh2/lib/utils.js:101:21)
+
+    at Object.onceWrapper (node:events:638:28)
+
+    at Channel.emit (node:events:536:35)
+
+    at endReadableNT (node:internal/streams/readable:1698:12)
+
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+Failed to execute command for cpuCores: Error: Command failed with code 127: sh: nproc: not found
+
+    at Channel.<anonymous> (file:///app/dist/index.js:561:20)
+
+    at Channel.emit (node:events:536:35)
+
+    at doClose (/app/node_modules/ssh2/lib/utils.js:101:21)
+
+    at onCHANNEL_CLOSE (/app/node_modules/ssh2/lib/utils.js:108:7)
+
+    at CHANNEL_CLOSE (/app/node_modules/ssh2/lib/client.js:703:11)
+
+    at 97 (/app/node_modules/ssh2/lib/protocol/handlers.misc.js:999:16)
+
+    at Protocol.onPayload (/app/node_modules/ssh2/lib/protocol/Protocol.js:2059:10)
+
+    at GenericDecipherNative.decrypt (/app/node_modules/ssh2/lib/protocol/crypto.js:1269:26)
+
+    at Protocol.parsePacket [as _parse] (/app/node_modules/ssh2/lib/protocol/Protocol.js:2028:25)
+
+    at Protocol.parse (/app/node_modules/ssh2/lib/protocol/Protocol.js:313:16)
+
+Failed to execute command for cpuCores: Error: Command failed with code 127: sh: nproc: not found
+
+    at Channel.<anonymous> (file:///app/dist/index.js:561:20)
+
+    at Channel.emit (node:events:536:35)
+
+    at Channel.doClose (/app/node_modules/ssh2/lib/utils.js:101:21)
+
+    at Object.onceWrapper (node:events:638:28)
+
+    at Channel.emit (node:events:536:35)
+
+    at endReadableNT (node:internal/streams/readable:1698:12)
+
+    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+3:27:02 AM [express] POST /api/ssh/sync-data 200 in 20361ms :: {"success":true,"message":"Successful…
+

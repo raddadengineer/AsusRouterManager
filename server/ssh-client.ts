@@ -85,7 +85,7 @@ export class SSHClient {
       maxConnections: "cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null || echo '0'",
       // Enhanced system resource commands
       cpuModel: "cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d':' -f2 | sed 's/^ *//'",
-      cpuCores: "nproc",
+      cpuCores: "grep -c ^processor /proc/cpuinfo || echo '1'",
       // Detailed memory breakdown
       memoryDetails: "cat /proc/meminfo | awk '/MemTotal:|MemFree:|MemAvailable:|Buffers:|Cached:|SwapTotal:|SwapFree:/ {gsub(/kB/, \"\", $2); if($1==\"MemTotal:\") total=$2/1024/1024; if($1==\"MemFree:\") free=$2/1024/1024; if($1==\"MemAvailable:\") avail=$2/1024/1024; if($1==\"Buffers:\") buffers=$2/1024/1024; if($1==\"Cached:\") cached=$2/1024/1024; if($1==\"SwapTotal:\") swapTotal=$2/1024/1024; if($1==\"SwapFree:\") swapFree=$2/1024/1024} END {used=total-free; swapUsed=swapTotal-swapFree; printf \"%.3f %.3f %.3f %.3f %.3f %.3f %.3f\", used, total, avail, free, buffers, cached, swapUsed}'",
       // Storage breakdown: NVRAM, JFFS, /tmp
@@ -161,11 +161,54 @@ export class SSHClient {
 
   async getConnectedDevices(): Promise<any[]> {
     try {
-      // Get ARP table for IP/MAC mappings
-      const arpTable = await this.executeCommand("cat /proc/net/arp | grep -v 'IP address'");
-      
-      // Get DHCP leases for device names and additional info
-      const dhcpLeases = await this.executeCommand("cat /var/lib/dhcp/dhcpd.leases 2>/dev/null || cat /tmp/dhcp_clients.txt 2>/dev/null || echo ''");
+      // Get comprehensive device data from ASUS router
+      const deviceData = await this.executeCommand(`
+        echo "===DEVICE_DETECTION==="
+        
+        # Get DHCP leases with real hostnames
+        echo "DHCP_LEASES:"
+        cat /tmp/dnsmasq.leases 2>/dev/null | while read -r lease; do
+          if [ -n "$lease" ]; then
+            TIMESTAMP=$(echo "$lease" | awk '{print $1}')
+            MAC=$(echo "$lease" | awk '{print $2}')
+            IP=$(echo "$lease" | awk '{print $3}')
+            HOSTNAME=$(echo "$lease" | awk '{print $4}')
+            echo "DEVICE:$MAC:$IP:$HOSTNAME:dhcp"
+          fi
+        done
+        
+        # Get ARP table for live devices
+        echo "ARP_ACTIVE:"
+        cat /proc/net/arp | grep -v "incomplete" | grep -v "00:00:00:00:00:00" | while read -r line; do
+          IP=$(echo "$line" | awk '{print $1}')
+          MAC=$(echo "$line" | awk '{print $4}')
+          INTERFACE=$(echo "$line" | awk '{print $6}')
+          echo "ACTIVE:$MAC:$IP:$INTERFACE"
+        done
+        
+        # Get wireless clients with connection details
+        echo "WIRELESS_CLIENTS:"
+        for IF in wl0 wl1 wl2; do
+          IFNAME=$(nvram get \${IF}_ifname 2>/dev/null)
+          if [ -n "$IFNAME" ]; then
+            case "$IF" in
+              wl0) BAND="2.4GHz" ;;
+              wl1) BAND="5GHz" ;;
+              wl2) BAND="6GHz" ;;
+            esac
+            
+            wl -i "$IFNAME" assoclist 2>/dev/null | while read -r line; do
+              MAC=$(echo "$line" | awk '{print $2}')
+              if [ -n "$MAC" ]; then
+                RSSI=$(wl -i "$IFNAME" rssi "$MAC" 2>/dev/null | tr -d '\\n' || echo "N/A")
+                echo "WIRELESS:$MAC::$BAND:$RSSI"
+              fi
+            done
+          fi
+        done
+        
+        echo "===DEVICE_DETECTION_END==="
+      `);
       
       // Get wireless client info from all bands
       const wifiClients24 = await this.executeCommand("wl -i eth1 assoclist 2>/dev/null || wl -i wl0 assoclist 2>/dev/null || echo ''");
@@ -253,6 +296,62 @@ export class SSHClient {
       console.error('Failed to get connected devices:', error);
       return [];
     }
+  }
+
+  private parseDeviceData(data: string): any[] {
+    const devices: any[] = [];
+    const deviceMap = new Map();
+    const lines = data.split('\n');
+    
+    for (const line of lines) {
+      if (line.startsWith('DEVICE:')) {
+        const [, mac, ip, hostname, source] = line.split(':');
+        deviceMap.set(mac, {
+          macAddress: mac,
+          ipAddress: ip,
+          name: hostname === '*' ? `Device-${mac.slice(-5)}` : hostname,
+          source,
+          isOnline: true,
+          connectionType: 'dhcp'
+        });
+      } else if (line.startsWith('ACTIVE:')) {
+        const [, mac, ip, interface] = line.split(':');
+        const existing = deviceMap.get(mac) || {};
+        deviceMap.set(mac, {
+          ...existing,
+          macAddress: mac,
+          ipAddress: ip || existing.ipAddress,
+          networkInterface: interface,
+          isOnline: true,
+          connectionType: interface?.includes('wl') ? 'wireless' : 'wired'
+        });
+      } else if (line.startsWith('WIRELESS:')) {
+        const [, mac, , band, rssi] = line.split(':');
+        const existing = deviceMap.get(mac) || {};
+        deviceMap.set(mac, {
+          ...existing,
+          macAddress: mac,
+          connectionType: `wireless-${band}`,
+          signalStrength: rssi,
+          isOnline: true
+        });
+      }
+    }
+
+    // Convert to array and add device type detection
+    Array.from(deviceMap.entries()).forEach(([mac, device]) => {
+      devices.push({
+        ...device,
+        deviceType: this.getDeviceType(mac, device.name || ''),
+        downloadSpeed: 0,
+        uploadSpeed: 0,
+        connectedAt: new Date(),
+        lastSeen: new Date(),
+        hostname: device.name
+      });
+    });
+
+    return devices;
   }
 
   private getDeviceType(macAddress: string, deviceName: string): string {
