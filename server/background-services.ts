@@ -181,19 +181,25 @@ class BackgroundServiceManager {
 
     const devices = await storage.getConnectedDevices();
     
-    // Update detailed information for each device
+    // Update detailed information for each device with enhanced detection
     for (const device of devices.slice(0, 5)) { // Process 5 devices at a time
       try {
         const detailedInfo = await sshClient.getEnhancedDeviceInfo(device.macAddress);
         
         await storage.updateConnectedDevice(device.id, {
           connectionType: detailedInfo.connectionType,
-          isOnline: detailedInfo.isOnline
+          isOnline: detailedInfo.isOnline,
+          signalStrength: detailedInfo.signalStrength,
+          wirelessInterface: detailedInfo.wirelessInterface,
+          wirelessBand: detailedInfo.wirelessBand,
+          aimeshNode: detailedInfo.aimeshNode
         });
       } catch (error) {
         console.error(`Error updating device details for ${device.macAddress}:`, error);
       }
     }
+    
+    console.log(`Updated enhanced device details for ${Math.min(5, devices.length)} devices`);
   }
 
   private async executeBandwidthMonitoring() {
