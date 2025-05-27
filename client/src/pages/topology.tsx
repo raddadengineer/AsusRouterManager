@@ -26,6 +26,35 @@ export default function NetworkTopologyPage() {
               Back to Overview
             </Button>
           </div>
+          
+          {/* Interactive Mode Features Card */}
+          <div className="mb-6 bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <MousePointer2 className="h-6 w-6 text-green-600" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Interactive Mode Features
+              </h3>
+            </div>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                Drag and rearrange devices
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                Zoom and pan controls
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                Detailed device tooltips
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                Live connection animations
+              </li>
+            </ul>
+          </div>
+          
           <InteractiveTopology className="h-[400px] sm:h-[500px] lg:h-[700px]" />
         </div>
       </div>
@@ -57,68 +86,38 @@ export default function NetworkTopologyPage() {
           </Button>
         </div>
         
-        {/* Network Topology Visualization */}
-        <div className="mb-8 relative z-10">
-          <NetworkTopology className="h-[400px] sm:h-[500px] lg:h-[600px] w-full" />
-        </div>
-        
-        {/* Feature Information Cards */}
-        <div className="relative z-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <Grid3X3 className="h-6 w-6 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Topology Features
-                </h3>
-              </div>
-              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  Real-time device status monitoring
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  Connection type visualization
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  Signal strength indicators
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
-                  AiMesh node mapping
-                </li>
-              </ul>
+        {/* Network Topology Visualization with Features */}
+        <div className="space-y-6">
+          {/* Topology Features */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <Grid3X3 className="h-6 w-6 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Real-time Network Visualization with AiMesh Nodes
+              </h3>
             </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <MousePointer2 className="h-6 w-6 text-green-600" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Interactive Mode
-                </h3>
-              </div>
-              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                  Drag and rearrange devices
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                  Zoom and pan controls
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                  Detailed device tooltips
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
-                  Live connection animations
-                </li>
-              </ul>
-            </div>
+            <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                Real-time device status monitoring
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                Connection type visualization (WiFi, Ethernet, AiMesh)
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                Signal strength indicators and bandwidth display
+              </li>
+              <li className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                AiMesh node mapping with mesh network visualization
+              </li>
+            </ul>
           </div>
+          
+          {/* Network Topology Map */}
+          <NetworkTopology className="h-[400px] sm:h-[500px] lg:h-[600px] w-full" />
         </div>
       </div>
     </div>
