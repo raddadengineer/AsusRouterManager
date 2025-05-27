@@ -350,59 +350,35 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <Card className="bg-gray-900 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Network className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-gray-100">Interactive Network Topology</CardTitle>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">Real-time network visualization with AiMesh nodes</p>
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant={viewMode === 'topology' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('topology')}
-              >
-                <Network className="h-4 w-4 mr-2" />
-                Topology
-              </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Grid View
-              </Button>
-            </div>
+      <div className="mb-6 flex justify-between items-center">
+        <div className="flex items-center space-x-3">
+          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+            <Network className="h-6 w-6 text-white" />
           </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{connectedDevices.length}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Total Devices</div>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{wirelessDevices.length}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Wireless Clients</div>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{wiredDevices.length}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Wired Devices</div>
-            </div>
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 text-center">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{1 + aiMeshData.nodeCount}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">Network Nodes</div>
-            </div>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Interactive Network Topology</h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">Real-time network visualization with AiMesh nodes</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex space-x-2">
+          <Button
+            variant={viewMode === 'topology' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('topology')}
+          >
+            <Network className="h-4 w-4 mr-2" />
+            Topology
+          </Button>
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Grid View
+          </Button>
+        </div>
+      </div>
 
       {/* Main Topology View */}
       {viewMode === 'topology' ? (
