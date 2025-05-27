@@ -104,52 +104,55 @@ export default function DeviceTable({ className, showSearch = true }: DeviceTabl
                   <TableHead>IP Address</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Usage</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredDevices.map((device) => (
                   <TableRow key={device.id} className="hover:bg-muted/50 cursor-pointer">
-                    <Link href={`/devices/${device.id}`}>
-                      <a className="contents">
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <div className={`device-icon ${getDeviceColorClass(device.deviceType)}`}>
-                              <DeviceIcon type={device.deviceType} />
-                            </div>
-                            <div>
-                              <div className="font-medium">{device.name}</div>
-                              <div className="text-sm text-muted-foreground font-mono">
-                                {formatMacAddress(device.macAddress)}
-                              </div>
+                    <TableCell>
+                      <Link href={`/devices/${device.id}`}>
+                        <a className="flex items-center space-x-3 w-full">
+                          <div className={`device-icon ${getDeviceColorClass(device.deviceType)}`}>
+                            <DeviceIcon type={device.deviceType} />
+                          </div>
+                          <div>
+                            <div className="font-medium">{device.name}</div>
+                            <div className="text-sm text-muted-foreground font-mono">
+                              {formatMacAddress(device.macAddress)}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {device.ipAddress}
-                        </TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={device.isOnline ? "default" : "secondary"}
-                            className={device.isOnline ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
-                          >
-                            {device.isOnline ? "Online" : "Offline"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {device.isOnline ? (
-                            <div className="space-y-1">
-                              <div>↓ {device.downloadSpeed ? device.downloadSpeed.toFixed(1) : "0"} MB/s</div>
-                              <div>↑ {device.uploadSpeed ? device.uploadSpeed.toFixed(1) : "0"} MB/s</div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">0 MB/s</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
+                        </a>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {device.ipAddress}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={device.isOnline ? "default" : "secondary"}
+                        className={device.isOnline ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
+                      >
+                        {device.isOnline ? "Online" : "Offline"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {device.isOnline ? (
+                        <div className="space-y-1">
+                          <div>↓ {device.downloadSpeed ? device.downloadSpeed.toFixed(1) : "0"} MB/s</div>
+                          <div>↑ {device.uploadSpeed ? device.uploadSpeed.toFixed(1) : "0"} MB/s</div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">0 MB/s</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Link href={`/devices/${device.id}`}>
+                        <a>
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </TableCell>
-                      </a>
-                    </Link>
+                        </a>
+                      </Link>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
