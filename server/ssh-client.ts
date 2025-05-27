@@ -161,97 +161,186 @@ export class SSHClient {
 
   async getConnectedDevices(): Promise<any[]> {
     try {
-      // Get ARP table for IP/MAC mappings
-      const arpTable = await this.executeCommand("cat /proc/net/arp | grep -v 'IP address'");
+      console.log('Getting connected devices with enhanced detection...');
       
-      // Get DHCP leases for device names and additional info
-      const dhcpLeases = await this.executeCommand("cat /var/lib/dhcp/dhcpd.leases 2>/dev/null || cat /tmp/dhcp_clients.txt 2>/dev/null || echo ''");
-      
-      // Get wireless client info from all bands
-      const wifiClients24 = await this.executeCommand("wl -i eth1 assoclist 2>/dev/null || wl -i wl0 assoclist 2>/dev/null || echo ''");
-      const wifiClients5 = await this.executeCommand("wl -i eth2 assoclist 2>/dev/null || wl -i wl1 assoclist 2>/dev/null || echo ''");
-      const wifiClients6 = await this.executeCommand("wl -i eth3 assoclist 2>/dev/null || wl -i wl2 assoclist 2>/dev/null || echo ''");
-      
-      // Get client bandwidth usage
-      const bandwidthStats = await this.executeCommand("cat /proc/net/dev");
-      
-      // Get custom client names from Merlin
-      const customNames = await this.executeCommand("nvram get custom_clientlist");
-      
+      // Get DHCP leases first to get all known devices
+      const dhcpLeases = await this.executeCommand("cat /var/lib/misc/dnsmasq.leases");
       const devices: any[] = [];
-      const arpEntries = arpTable.split('\n').filter(line => line.trim());
       
-      // Parse custom client names
-      const clientNames: { [mac: string]: string } = {};
-      if (customNames) {
-        const nameEntries = customNames.split('<');
-        nameEntries.forEach(entry => {
-          const parts = entry.split('>');
-          if (parts.length >= 2) {
-            const [name, mac] = parts;
-            if (mac) clientNames[mac.toLowerCase()] = name;
-          }
-        });
-      }
+      // Parse DHCP leases
+      const leaseLines = dhcpLeases.split('\n').filter(line => line.trim());
       
-      // Parse ARP table entries
-      for (const arpEntry of arpEntries) {
-        const parts = arpEntry.split(/\s+/);
-        if (parts.length >= 6) {
-          const [ipAddress, , , macAddress, , interface_name] = parts;
+      for (const lease of leaseLines) {
+        const parts = lease.trim().split(/\s+/);
+        if (parts.length >= 4) {
+          const [timestamp, macAddress, ipAddress, hostname] = parts;
           
-          if (macAddress && macAddress !== '00:00:00:00:00:00' && ipAddress !== '0.0.0.0') {
-            // Determine connection type
-            const isWifi24 = wifiClients24.includes(macAddress);
-            const isWifi5 = wifiClients5.includes(macAddress);
-            const connectionType = isWifi24 ? '2.4GHz WiFi' : isWifi5 ? '5GHz WiFi' : 'Ethernet';
-            
-            // Get device name from custom names or try to resolve
-            let deviceName = clientNames[macAddress.toLowerCase()] || `Device-${macAddress.slice(-5)}`;
-            
-            // Try to get hostname from DHCP leases
-            if (dhcpLeases) {
-              const leaseMatch = dhcpLeases.match(new RegExp(`${macAddress}[\\s\\S]*?client-hostname "([^"]+)"`, 'i'));
-              if (leaseMatch && leaseMatch[1]) {
-                deviceName = leaseMatch[1];
-              }
-            }
-            
-            // Determine device type based on MAC vendor and name patterns
-            const deviceType = this.getDeviceType(macAddress, deviceName);
-            
-            // Get signal strength for WiFi devices
-            let signalStrength = null;
-            if (isWifi24 || isWifi5) {
-              try {
-                const wlInterface = isWifi24 ? 'eth1' : 'eth2';
-                const rssi = await this.executeCommand(`wl -i ${wlInterface} rssi ${macAddress} 2>/dev/null || echo '0'`);
-                signalStrength = parseInt(rssi.trim()) || null;
-              } catch (error) {
-                // Signal strength not available
-              }
-            }
+          if (macAddress && macAddress !== '00:00:00:00:00:00') {
+            // Use your enhanced script logic for each device
+            const deviceInfo = await this.getEnhancedDeviceInfo(macAddress);
             
             devices.push({
               macAddress: macAddress.toUpperCase(),
-              name: deviceName,
-              ipAddress,
-              isOnline: true,
-              deviceType,
-              connectionType,
-              signalStrength,
-              interface: interface_name,
-              downloadSpeed: Math.random() * 10, // Would need traffic monitoring
-              uploadSpeed: Math.random() * 5,
+              name: deviceInfo.hostname || hostname || `Device-${macAddress.slice(-5)}`,
+              ipAddress: deviceInfo.ipAddress || ipAddress,
+              isOnline: deviceInfo.isOnline,
+              deviceType: this.getDeviceType(macAddress, deviceInfo.hostname || hostname),
+              connectionType: deviceInfo.connectionType,
+              signalStrength: deviceInfo.signalStrength,
+              wirelessInterface: deviceInfo.wirelessInterface,
+              aimeshNode: deviceInfo.aimeshNode,
+              hostname: deviceInfo.hostname || hostname,
+              downloadSpeed: deviceInfo.downloadSpeed,
+              uploadSpeed: deviceInfo.uploadSpeed
             });
           }
         }
       }
       
+      console.log(`Found ${devices.length} devices with enhanced detection`);
       return devices;
     } catch (error) {
       console.error('Failed to get connected devices:', error);
       return [];
+    }
+  }
+
+  // Enhanced device detection using your exact script logic
+  async getEnhancedDeviceInfo(macAddress: string): Promise<any> {
+    try {
+      const deviceInfo = {
+        hostname: '',
+        ipAddress: '',
+        isOnline: false,
+        connectionType: 'ethernet', // Default to ethernet
+        signalStrength: null,
+        wirelessInterface: null,
+        aimeshNode: null,
+        downloadSpeed: null,
+        uploadSpeed: null
+      };
+
+      // Get DHCP lease info for this specific MAC (from your script)
+      const leaseCommand = `grep -i "${macAddress}" /var/lib/misc/dnsmasq.leases`;
+      try {
+        const leaseInfo = await this.executeCommand(leaseCommand);
+        if (leaseInfo.trim()) {
+          const parts = leaseInfo.trim().split(/\s+/);
+          if (parts.length >= 4) {
+            deviceInfo.ipAddress = parts[2];
+            deviceInfo.hostname = parts[3];
+          }
+        }
+      } catch (error) {
+        // Device not in DHCP leases
+      }
+
+      // Check wireless interfaces (wl0, wl1, wl2) exactly like your script
+      const wirelessInterfaces = ['wl0', 'wl1', 'wl2'];
+      let foundWireless = false;
+
+      for (const iface of wirelessInterfaces) {
+        try {
+          // Check if device is associated with this wireless interface
+          const assocCheck = await this.executeCommand(`wl -i ${iface} assoclist | grep -iq "${macAddress}" && echo "found" || echo ""`);
+          
+          if (assocCheck.trim() === 'found') {
+            // Device is connected wirelessly on this interface
+            foundWireless = true;
+            deviceInfo.connectionType = 'wifi';
+            deviceInfo.wirelessInterface = iface;
+            deviceInfo.isOnline = true;
+
+            // Get RSSI (signal strength) exactly like your script
+            try {
+              const rssiOutput = await this.executeCommand(`wl -i ${iface} rssi "${macAddress}"`);
+              const rssi = parseInt(rssiOutput.trim());
+              if (!isNaN(rssi)) {
+                deviceInfo.signalStrength = rssi;
+              }
+            } catch (rssiError) {
+              console.log(`Could not get RSSI for ${macAddress} on ${iface}`);
+            }
+            
+            // Determine band based on interface
+            if (iface === 'wl0') {
+              deviceInfo.connectionType = '2.4GHz WiFi';
+            } else if (iface === 'wl1') {
+              deviceInfo.connectionType = '5GHz WiFi';
+            } else if (iface === 'wl2') {
+              deviceInfo.connectionType = '6GHz WiFi';
+            }
+            
+            break; // Found on wireless, no need to check other interfaces
+          }
+        } catch (ifaceError) {
+          // Interface might not exist or command failed, continue
+          continue;
+        }
+      }
+
+      // If not found on wireless, check if it's wired (from your script)
+      if (!foundWireless) {
+        try {
+          const neighCheck = await this.executeCommand(`ip neigh | grep -i "${macAddress}" | grep -q "br" && echo "wired" || echo ""`);
+          if (neighCheck.trim() === 'wired') {
+            deviceInfo.connectionType = 'ethernet';
+            deviceInfo.isOnline = true;
+          }
+        } catch (error) {
+          // Device might be offline or command failed
+        }
+      }
+
+      // Check AiMesh information (from your script)
+      try {
+        let aimeshInfo = '';
+        
+        // Try mesh_status first
+        try {
+          aimeshInfo = await this.executeCommand(`grep -i "${macAddress}" /tmp/sysinfo/mesh_status 2>/dev/null || echo ""`);
+        } catch (error) {
+          // mesh_status not available
+        }
+        
+        // Try mesh_topology.json if mesh_status didn't work
+        if (!aimeshInfo.trim()) {
+          try {
+            aimeshInfo = await this.executeCommand(`grep -i "${macAddress}" /tmp/sysinfo/mesh_topology.json 2>/dev/null || echo ""`);
+          } catch (error) {
+            // mesh_topology.json not available
+          }
+        }
+        
+        if (aimeshInfo.trim()) {
+          deviceInfo.aimeshNode = aimeshInfo.trim();
+          // If found in AiMesh data, it might be connected through an AiMesh node
+          if (!foundWireless && deviceInfo.connectionType === 'ethernet') {
+            deviceInfo.connectionType = 'aimesh';
+          }
+        }
+      } catch (error) {
+        // AiMesh info not available
+      }
+
+      // Set bandwidth to null for authentic data (would need additional monitoring)
+      deviceInfo.downloadSpeed = null;
+      deviceInfo.uploadSpeed = null;
+
+      return deviceInfo;
+    } catch (error) {
+      console.error(`Error getting enhanced info for ${macAddress}:`, error);
+      return {
+        hostname: '',
+        ipAddress: '',
+        isOnline: false,
+        connectionType: 'unknown',
+        signalStrength: null,
+        wirelessInterface: null,
+        aimeshNode: null,
+        downloadSpeed: null,
+        uploadSpeed: null
+      };
     }
   }
 
