@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { sshClient } from "./ssh-client";
 import { routerSync } from "./router-sync";
+import { backgroundServiceManager } from "./background-services";
 import { 
   insertRouterStatusSchema,
   insertConnectedDeviceSchema,
@@ -518,6 +519,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         message: `Failed to get Merlin features: ${(error as Error).message}` 
       });
+    }
+  });
+
+  // Background Services API Routes
+  app.get("/api/background-services", async (req, res) => {
+    try {
+      const jobs = backgroundServiceManager.getJobs();
+      res.json(jobs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get background services" });
+    }
+  });
+
+  app.get("/api/background-services/:jobId", async (req, res) => {
+    try {
+      const job = backgroundServiceManager.getJob(req.params.jobId);
+      if (!job) {
+        return res.status(404).json({ error: "Background service not found" });
+      }
+      res.json(job);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get background service" });
+    }
+  });
+
+  app.post("/api/background-services/:jobId/start", async (req, res) => {
+    try {
+      const success = backgroundServiceManager.startJob(req.params.jobId);
+      if (success) {
+        res.json({ message: "Background service started successfully" });
+      } else {
+        res.status(400).json({ error: "Failed to start background service" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to start background service" });
+    }
+  });
+
+  app.post("/api/background-services/:jobId/stop", async (req, res) => {
+    try {
+      const success = backgroundServiceManager.stopJob(req.params.jobId);
+      if (success) {
+        res.json({ message: "Background service stopped successfully" });
+      } else {
+        res.status(400).json({ error: "Failed to stop background service" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to stop background service" });
+    }
+  });
+
+  app.put("/api/background-services/:jobId/schedule", async (req, res) => {
+    try {
+      const { cronExpression } = req.body;
+      if (!cronExpression) {
+        return res.status(400).json({ error: "Cron expression is required" });
+      }
+
+      const success = backgroundServiceManager.updateJobSchedule(req.params.jobId, cronExpression);
+      if (success) {
+        res.json({ message: "Background service schedule updated successfully" });
+      } else {
+        res.status(400).json({ error: "Failed to update background service schedule" });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update background service schedule" });
     }
   });
 
