@@ -192,12 +192,20 @@ export default function Dashboard() {
           <NetworkTopology />
         </div>
 
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* Sync Status & Quick Actions */}
+        <div className="space-y-6">
+          <SyncStatus 
+            isConnected={!!routerStatus}
+            isActiveSync={isActiveSync}
+            syncStats={syncStats}
+            onManualSync={triggerSync}
+          />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
             <Button
               variant="outline"
               className="w-full justify-between h-auto p-4"
@@ -285,15 +293,15 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </div>
-
-          {/* Tables Section */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <DeviceTable showSearch={false} />
-            <BandwidthChart />
-          </div>
         </div>
       </div>
+
+      {/* Tables Section */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <DeviceTable showSearch={false} />
+        <BandwidthChart />
+      </div>
+        </div>
     </div>
   );
 }
