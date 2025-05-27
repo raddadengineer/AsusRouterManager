@@ -161,8 +161,8 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <span className="text-2xl font-bold">{(routerStatus?.memoryUsage * 1024).toFixed(0)}</span>
-                    <span className="text-sm text-muted-foreground">/ {(routerStatus?.memoryTotal * 1024).toFixed(0)} MB</span>
+                    <span className="text-2xl font-bold">{((routerStatus?.memoryUsage || 0) * 1024).toFixed(0)}</span>
+                    <span className="text-sm text-muted-foreground">/ {((routerStatus?.memoryTotal || 0) * 1024).toFixed(0)} MB</span>
                   </>
                 )}
               </div>
