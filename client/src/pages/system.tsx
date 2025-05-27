@@ -898,7 +898,7 @@ export default function SystemSettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs"
+                        className="text-xs bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
                       >
                         <Settings className="h-3 w-3 mr-1" />
                         View Details
