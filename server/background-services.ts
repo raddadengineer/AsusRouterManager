@@ -375,19 +375,7 @@ class BackgroundServiceManager {
     console.log('All background jobs stopped');
   }
 
-  private normalizeMacAddress(mac: string): string {
-    // Remove all non-hex characters and convert to uppercase
-    const cleanMac = mac.toUpperCase().replace(/[^A-F0-9]/g, '');
-    
-    // Ensure we have exactly 12 hex characters
-    if (cleanMac.length !== 12) {
-      console.warn(`Invalid MAC address length: ${mac} -> ${cleanMac}`);
-      return mac; // Return original if invalid
-    }
-    
-    // Split into pairs and join with colons
-    return cleanMac.match(/.{2}/g)?.join(':') || mac;
-  }
+
 }
 
 export const backgroundServiceManager = new BackgroundServiceManager();
