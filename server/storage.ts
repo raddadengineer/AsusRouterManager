@@ -413,6 +413,9 @@ export class MemStorage implements IStorage {
   }
 
   async saveSSHConfig(config: InsertSSHConfig): Promise<SSHConfig> {
+    const existingStatus = this.sshConfiguration?.connectionStatus || 'disconnected';
+    const existingLastConnected = this.sshConfiguration?.lastConnected || null;
+    
     const newConfig: SSHConfig = {
       id: 1,
       host: config.host,
@@ -421,8 +424,8 @@ export class MemStorage implements IStorage {
       password: config.password,
       enabled: config.enabled || false,
       syncInterval: config.syncInterval || 5,
-      lastConnected: null,
-      connectionStatus: 'disconnected',
+      lastConnected: existingLastConnected,
+      connectionStatus: existingStatus,
     };
     this.sshConfiguration = newConfig;
     this.saveSSHConfigToFile();
@@ -643,9 +646,16 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getSSHConfig();
     
     if (existing) {
+      // Preserve existing connection status and last connected time
+      const updateData = {
+        ...config,
+        connectionStatus: existing.connectionStatus,
+        lastConnected: existing.lastConnected,
+      };
+      
       const [updated] = await db
         .update(sshConfig)
-        .set(config)
+        .set(updateData)
         .where(eq(sshConfig.id, existing.id))
         .returning();
       return updated;
