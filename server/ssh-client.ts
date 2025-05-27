@@ -449,10 +449,63 @@ export class SSHClient {
       const wanIp = await this.executeCommand("nvram get wan0_ipaddr || nvram get wan_ipaddr");
       const wanGateway = await this.executeCommand("nvram get wan0_gateway || nvram get wan_gateway");
       
-      // Get wireless client counts from all bands
-      const wifiClients24 = await this.executeCommand("wl -i wl0 assoclist 2>/dev/null | wc -l || echo '0'");
-      const wifiClients5 = await this.executeCommand("wl -i wl1 assoclist 2>/dev/null | wc -l || echo '0'");
-      const wifiClients6 = await this.executeCommand("wl -i wl2 assoclist 2>/dev/null | wc -l || echo '0'");
+      // Get wireless client counts using multiple detection methods
+      const wifiClients24 = await this.executeCommand(`
+        # Try multiple methods to get 2.4GHz clients
+        COUNT=$(wl -i eth1 assoclist 2>/dev/null | wc -l)
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(wl -i wl0 assoclist 2>/dev/null | wc -l)
+        fi
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(cat /tmp/wireless_clients.txt 2>/dev/null | grep -c "2.4GHz" || echo 0)
+        fi
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(nvram get wl0_assoc_list 2>/dev/null | wc -w)
+        fi
+        echo $COUNT
+      `);
+      
+      const wifiClients5 = await this.executeCommand(`
+        # Try multiple methods to get 5GHz clients
+        COUNT=$(wl -i eth2 assoclist 2>/dev/null | wc -l)
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(wl -i wl1 assoclist 2>/dev/null | wc -l)
+        fi
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(cat /tmp/wireless_clients.txt 2>/dev/null | grep -c "5GHz" || echo 0)
+        fi
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(nvram get wl1_assoc_list 2>/dev/null | wc -w)
+        fi
+        echo $COUNT
+      `);
+      
+      const wifiClients6 = await this.executeCommand(`
+        # Try multiple methods to get 6GHz clients
+        COUNT=$(wl -i eth3 assoclist 2>/dev/null | wc -l)
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(wl -i wl2 assoclist 2>/dev/null | wc -l)
+        fi
+        if [ "$COUNT" = "0" ]; then
+          COUNT=$(cat /tmp/wireless_clients.txt 2>/dev/null | grep -c "6GHz" || echo 0)
+        fi
+        echo $COUNT
+      `);
+
+      // Alternative method: Get wireless clients from DHCP/ARP if wl commands fail
+      const totalWifiCheck = await this.executeCommand(`
+        # Count wireless devices from DHCP leases and ARP table
+        TOTAL=0
+        # Check if any of the band counts are 0, then use alternative method
+        if [ "${parseInt(wifiClients24.trim()) || 0}" = "0" ] && [ "${parseInt(wifiClients5.trim()) || 0}" = "0" ] && [ "${parseInt(wifiClients6.trim()) || 0}" = "0" ]; then
+          # Count devices connected via wireless interfaces
+          TOTAL=$(cat /proc/net/arp | grep -E "(wl0|wl1|wl2|eth1|eth2|eth3)" | wc -l)
+          if [ "$TOTAL" = "0" ]; then
+            TOTAL=$(cat /tmp/dhcp_clients.txt 2>/dev/null | grep -c "wireless" || echo 0)
+          fi
+        fi
+        echo $TOTAL
+      `);
       
       // Get wireless features
       const beamforming = await this.executeCommand("nvram get wl0_txbf");
