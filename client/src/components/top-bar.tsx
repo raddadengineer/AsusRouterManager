@@ -7,13 +7,27 @@ import { Badge } from "@/components/ui/badge";
 interface TopBarProps {
   title?: string;
   subtitle?: string;
+  onSearch?: (query: string) => void;
+  searchQuery?: string;
 }
 
 export default function TopBar({ 
   title = "Dashboard", 
-  subtitle = "Router management and monitoring" 
+  subtitle = "Router management and monitoring",
+  onSearch,
+  searchQuery: externalSearchQuery
 }: TopBarProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    if (onSearch) {
+      onSearch(query);
+    } else {
+      setLocalSearchQuery(query);
+    }
+  };
 
   return (
     <header className="bg-card px-6 py-4 border-b border-border">
@@ -31,7 +45,7 @@ export default function TopBar({
               type="text"
               placeholder="Search devices..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={handleSearchChange}
               className="pl-10 w-64 bg-background border-border focus:ring-primary"
             />
           </div>
