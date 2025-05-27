@@ -535,13 +535,10 @@ export class SSHClient {
       const totalWifiCheck = await this.executeCommand(`
         # Count wireless devices from DHCP leases and ARP table
         TOTAL=0
-        # Check if any of the band counts are 0, then use alternative method
-        if [ "${parseInt(wifiClients24.trim()) || 0}" = "0" ] && [ "${parseInt(wifiClients5.trim()) || 0}" = "0" ] && [ "${parseInt(wifiClients6.trim()) || 0}" = "0" ]; then
-          # Count devices connected via wireless interfaces
-          TOTAL=$(cat /proc/net/arp | grep -E "(wl0|wl1|wl2|eth1|eth2|eth3)" | wc -l)
-          if [ "$TOTAL" = "0" ]; then
-            TOTAL=$(cat /tmp/dhcp_clients.txt 2>/dev/null | grep -c "wireless" || echo 0)
-          fi
+        # Count devices connected via wireless interfaces
+        TOTAL=$(cat /proc/net/arp | grep -E "(wl0|wl1|wl2|eth1|eth2|eth3)" | wc -l)
+        if [ "$TOTAL" = "0" ]; then
+          TOTAL=$(cat /tmp/dhcp_clients.txt 2>/dev/null | grep -c "wireless" || echo 0)
         fi
         echo $TOTAL
       `);

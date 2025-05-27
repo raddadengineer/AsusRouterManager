@@ -31,6 +31,8 @@ export const connectedDevices = pgTable("connected_devices", {
   uploadSpeed: real("upload_speed").default(0), // MB/s
   connectedAt: timestamp("connected_at").defaultNow(),
   lastSeen: timestamp("last_seen").defaultNow(),
+  connectionType: text("connection_type").default("wired"), // wired, wireless, mesh
+  hostname: text("hostname"),
 });
 
 export const wifiNetworks = pgTable("wifi_networks", {
