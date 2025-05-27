@@ -11,6 +11,7 @@ import PortForwarding from "@/pages/port-forwarding";
 import BandwidthMonitor from "@/pages/bandwidth";
 import SystemSettings from "@/pages/system";
 import SystemDetailsPage from "@/pages/system-details";
+import DeviceDetailsPage from "@/pages/device-details";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/top-bar";
@@ -47,6 +48,7 @@ function Router() {
               <Route path="/" component={Dashboard} />
               <Route path="/topology" component={NetworkTopology} />
               <Route path="/devices" component={ConnectedDevices} />
+              <Route path="/devices/:id" component={DeviceDetailsPage} />
               <Route path="/wifi" component={WiFiSettings} />
               <Route path="/port-forwarding" component={PortForwarding} />
               <Route path="/bandwidth" component={BandwidthMonitor} />

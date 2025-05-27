@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Search, Laptop, Smartphone, Monitor, Tv } from "lucide-react";
+import { RefreshCw, Search, Laptop, Smartphone, Monitor, Tv, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeviceIcon, getDeviceColorClass, formatMacAddress } from "@/lib/utils";
+import { Link } from "wouter";
 
 interface DeviceTableProps {
   className?: string;
@@ -107,41 +108,48 @@ export default function DeviceTable({ className, showSearch = true }: DeviceTabl
               </TableHeader>
               <TableBody>
                 {filteredDevices.map((device) => (
-                  <TableRow key={device.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <div className={`device-icon ${getDeviceColorClass(device.deviceType)}`}>
-                          <DeviceIcon type={device.deviceType} />
-                        </div>
-                        <div>
-                          <div className="font-medium">{device.name}</div>
-                          <div className="text-sm text-muted-foreground font-mono">
-                            {formatMacAddress(device.macAddress)}
+                  <TableRow key={device.id} className="hover:bg-muted/50 cursor-pointer">
+                    <Link href={`/devices/${device.id}`}>
+                      <a className="contents">
+                        <TableCell>
+                          <div className="flex items-center space-x-3">
+                            <div className={`device-icon ${getDeviceColorClass(device.deviceType)}`}>
+                              <DeviceIcon type={device.deviceType} />
+                            </div>
+                            <div>
+                              <div className="font-medium">{device.name}</div>
+                              <div className="text-sm text-muted-foreground font-mono">
+                                {formatMacAddress(device.macAddress)}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {device.ipAddress}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={device.isOnline ? "default" : "secondary"}
-                        className={device.isOnline ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
-                      >
-                        {device.isOnline ? "Online" : "Offline"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {device.isOnline ? (
-                        <div className="space-y-1">
-                          <div>↓ {device.downloadSpeed.toFixed(1)} MB/s</div>
-                          <div>↑ {device.uploadSpeed.toFixed(1)} MB/s</div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">0 MB/s</span>
-                      )}
-                    </TableCell>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {device.ipAddress}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={device.isOnline ? "default" : "secondary"}
+                            className={device.isOnline ? "bg-green-500 hover:bg-green-600" : "bg-red-500 hover:bg-red-600"}
+                          >
+                            {device.isOnline ? "Online" : "Offline"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {device.isOnline ? (
+                            <div className="space-y-1">
+                              <div>↓ {device.downloadSpeed ? device.downloadSpeed.toFixed(1) : "0"} MB/s</div>
+                              <div>↑ {device.uploadSpeed ? device.uploadSpeed.toFixed(1) : "0"} MB/s</div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">0 MB/s</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                      </a>
+                    </Link>
                   </TableRow>
                 ))}
               </TableBody>
