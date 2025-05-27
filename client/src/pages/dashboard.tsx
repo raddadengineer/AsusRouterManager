@@ -200,17 +200,17 @@ export default function Dashboard() {
                   </div>
                   <div className="text-sm text-muted-foreground">Connected Devices</div>
                 </div>
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {(connectedDevices?.length || 0) + (wifiNetworks?.length || 0)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Total Devices</div>
-                </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                     {wifiNetworks?.length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">WiFi Networks</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {(connectedDevices?.length || 0) + (wifiNetworks?.length || 0)}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Total Devices</div>
                 </div>
               </div>
               <div className="flex justify-between items-center">
