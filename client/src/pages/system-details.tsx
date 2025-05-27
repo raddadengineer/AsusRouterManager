@@ -195,7 +195,7 @@ export default function SystemDetailsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Memory className="h-5 w-5" />
+                <MemoryStick className="h-5 w-5" />
                 <span>Memory Details</span>
               </CardTitle>
             </CardHeader>

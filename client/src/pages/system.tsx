@@ -20,6 +20,7 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import TopBar from "@/components/top-bar";
 import { formatUptime } from "@/lib/utils";
+import { Link } from "wouter";
 import {
   Settings,
   Power,
@@ -39,7 +40,6 @@ import {
   RotateCcw,
   Trash2,
   Terminal,
-  Link,
   Eye,
   EyeOff,
 } from "lucide-react";
