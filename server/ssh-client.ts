@@ -182,8 +182,8 @@ export class SSHClient {
         cat /proc/net/arp | grep -v "incomplete" | grep -v "00:00:00:00:00:00" | while read -r line; do
           IP=$(echo "$line" | awk '{print $1}')
           MAC=$(echo "$line" | awk '{print $4}')
-          INTERFACE=$(echo "$line" | awk '{print $6}')
-          echo "ACTIVE:$MAC:$IP:$INTERFACE"
+          IFACE=$(echo "$line" | awk '{print $6}')
+          echo "ACTIVE:$MAC:$IP:$IFACE"
         done
         
         # Get wireless clients with connection details
@@ -315,15 +315,15 @@ export class SSHClient {
           connectionType: 'dhcp'
         });
       } else if (line.startsWith('ACTIVE:')) {
-        const [, mac, ip, interface] = line.split(':');
+        const [, mac, ip, iface] = line.split(':');
         const existing = deviceMap.get(mac) || {};
         deviceMap.set(mac, {
           ...existing,
           macAddress: mac,
           ipAddress: ip || existing.ipAddress,
-          networkInterface: interface,
+          networkInterface: iface,
           isOnline: true,
-          connectionType: interface?.includes('wl') ? 'wireless' : 'wired'
+          connectionType: iface?.includes('wl') ? 'wireless' : 'wired'
         });
       } else if (line.startsWith('WIRELESS:')) {
         const [, mac, , band, rssi] = line.split(':');
