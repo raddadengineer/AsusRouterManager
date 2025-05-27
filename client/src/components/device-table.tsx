@@ -37,7 +37,8 @@ export default function DeviceTable({ className, showSearch = true }: DeviceTabl
 
   const { data: devices, isLoading, refetch } = useQuery<ConnectedDevice[]>({
     queryKey: ["/api/devices"],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 60000, // Refresh every 60 seconds to reduce load
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   const filteredDevices = devices?.filter(device =>
