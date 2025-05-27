@@ -306,14 +306,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const validatedData = insertSSHConfigSchema.parse(configData);
+      
+      // Test connection first before saving
+      const testConfig = {
+        id: 1,
+        host: validatedData.host,
+        port: validatedData.port || 22,
+        username: validatedData.username,
+        password: validatedData.password,
+        enabled: validatedData.enabled || false,
+        syncInterval: validatedData.syncInterval || 5,
+        lastConnected: null,
+        connectionStatus: 'connecting' as string | null
+      };
+
+      await sshClient.connect(testConfig);
+      
+      // If connection successful, save the configuration
       const savedConfig = await storage.saveSSHConfig(validatedData);
+      await storage.updateSSHConnectionStatus('connected');
+      
       const { password, ...safeConfig } = savedConfig;
-      res.json({ ...safeConfig, password: '' });
+      res.json({ ...safeConfig, password: '', connectionTested: true });
     } catch (error: any) {
-      console.error("SSH config validation error:", error);
+      console.error("SSH config save error:", error);
+      await storage.updateSSHConnectionStatus('error');
       res.status(400).json({ 
-        message: "Invalid SSH configuration data",
-        details: error?.issues || error?.message || "Unknown validation error"
+        message: error?.message || "Failed to save SSH configuration",
+        details: error?.issues || "Connection test failed"
       });
     }
   });

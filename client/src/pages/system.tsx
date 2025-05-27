@@ -178,28 +178,17 @@ export default function SystemSettingsPage() {
 
   const sshSaveMutation = useMutation({
     mutationFn: async (config: SSHConnectionConfig) => {
-      // Step 1: Test connection first
       setConnectionStatus('connecting');
       setIsConnecting(true);
       
       toast({
-        title: "Testing Connection",
-        description: "Verifying SSH connection to your router...",
+        title: "Saving Settings",
+        description: "Testing connection and saving configuration...",
       });
       
-      try {
-        // Test the connection
-        await apiRequest("POST", "/api/ssh/test", config);
-        
-        // Step 2: If test successful, save the configuration
-        const saveResponse = await apiRequest("POST", "/api/ssh/config", config);
-        
-        return { success: true, config, saveResponse };
-      } catch (error) {
-        setConnectionStatus('error');
-        setIsConnecting(false);
-        throw error;
-      }
+      // Single API call that tests and saves in one step
+      const saveResponse = await apiRequest("POST", "/api/ssh/config", config);
+      return { success: true, config, saveResponse };
     },
     onSuccess: async (result) => {
       const { config } = result;
