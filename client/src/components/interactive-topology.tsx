@@ -369,7 +369,9 @@ export default function InteractiveTopology({ className }: InteractiveTopologyPr
                   <TooltipTrigger asChild>
                     <div
                       className={cn(
-                        "absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200 hover:scale-110 cursor-grab select-none",
+                        "absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-200 cursor-grab select-none",
+                        "hover:scale-110 active:scale-105 touch-manipulation",
+                        "min-w-[60px] min-h-[60px] sm:min-w-[80px] sm:min-h-[80px]",
                         draggedNode === node.id && "cursor-grabbing scale-110 z-50",
                         selectedNode === node.id && "scale-125 z-40"
                       )}
@@ -378,23 +380,37 @@ export default function InteractiveTopology({ className }: InteractiveTopologyPr
                         top: node.y
                       }}
                       onMouseDown={(e) => handleMouseDown(e, node.id)}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        const mouseEvent = new MouseEvent('mousedown', {
+                          clientX: touch.clientX,
+                          clientY: touch.clientY,
+                          bubbles: true
+                        });
+                        handleMouseDown(mouseEvent as any, node.id);
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedNode(selectedNode === node.id ? null : node.id);
                       }}
                     >
                       <div className={cn(
-                        "relative p-3 rounded-xl border-2 shadow-lg backdrop-blur-sm",
+                        "relative p-2 sm:p-3 rounded-xl border-2 shadow-lg backdrop-blur-sm",
+                        "flex flex-col items-center justify-center",
+                        "min-w-[50px] min-h-[50px] sm:min-w-[70px] sm:min-h-[70px]",
                         getNodeStyling(node)
                       )}>
                         {/* Device icon */}
                         <div className="flex items-center justify-center mb-1">
-                          {getDeviceIcon(node)}
+                          <div className="scale-75 sm:scale-100">
+                            {getDeviceIcon(node)}
+                          </div>
                         </div>
 
                         {/* Device name */}
                         <div className="text-center">
-                          <div className="text-xs font-medium truncate max-w-[80px]">
+                          <div className="text-xs font-medium truncate max-w-[60px] sm:max-w-[80px]">
                             {node.name}
                           </div>
                         </div>
@@ -463,54 +479,58 @@ export default function InteractiveTopology({ className }: InteractiveTopologyPr
                 </Tooltip>
               ))}
 
-              {/* Connection legend */}
-              <div className="absolute bottom-4 left-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg shadow-lg border">
-                <div className="text-sm font-semibold mb-3">Connection Types</div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-0.5 bg-blue-500"></div>
-                    <span>Ethernet</span>
+              {/* Mobile-responsive Connection legend */}
+              <div className="absolute bottom-2 left-2 lg:bottom-4 lg:left-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm p-2 lg:p-4 rounded-lg shadow-lg border max-w-[150px] lg:max-w-none">
+                <div className="text-xs lg:text-sm font-semibold mb-2 lg:mb-3">Connection Types</div>
+                <div className="space-y-1 lg:space-y-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-0.5 bg-blue-500"></div>
+                    <span className="text-xs">Ethernet</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <svg width="20" height="2">
-                      <line x1="0" y1="1" x2="20" y2="1" stroke="#10b981" strokeWidth="2" strokeDasharray="4,2" />
+                  <div className="flex items-center gap-2">
+                    <svg width="16" height="2" className="lg:w-5">
+                      <line x1="0" y1="1" x2="16" y2="1" stroke="#10b981" strokeWidth="2" strokeDasharray="3,1" />
                     </svg>
-                    <span>WiFi</span>
+                    <span className="text-xs">WiFi</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-0.5 bg-purple-500"></div>
-                    <span>AiMesh</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-0.5 bg-purple-500"></div>
+                    <span className="text-xs">AiMesh</span>
                   </div>
                 </div>
-                <div className="mt-3 pt-2 border-t text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                <div className="mt-2 pt-2 border-t text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1 lg:flex hidden">
                   <Move className="h-3 w-3" />
-                  <span>Drag nodes to reorganize</span>
+                  <span>Drag nodes</span>
+                </div>
+                <div className="mt-2 pt-2 border-t text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1 lg:hidden">
+                  <Move className="h-3 w-3" />
+                  <span>Touch & drag</span>
                 </div>
               </div>
 
-              {/* Network statistics */}
-              <div className="absolute top-4 right-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm p-4 rounded-lg shadow-lg border">
-                <div className="text-sm font-semibold mb-3">Live Network Stats</div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between gap-6">
-                    <span>Total Devices:</span>
-                    <span className="font-mono font-semibold">{devices.length}</span>
+              {/* Mobile-responsive Network statistics */}
+              <div className="absolute top-2 right-2 lg:top-4 lg:right-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm p-2 lg:p-4 rounded-lg shadow-lg border max-w-[140px] lg:max-w-none">
+                <div className="text-xs lg:text-sm font-semibold mb-2 lg:mb-3">Network Stats</div>
+                <div className="space-y-1 lg:space-y-2 text-xs">
+                  <div className="flex justify-between gap-2 lg:gap-6">
+                    <span className="text-xs">Devices:</span>
+                    <span className="font-mono font-semibold text-xs">{devices.length}</span>
                   </div>
-                  <div className="flex justify-between gap-6">
-                    <span>Online:</span>
-                    <span className="font-mono font-semibold text-green-600">{devices.filter(d => d.isOnline).length}</span>
+                  <div className="flex justify-between gap-2 lg:gap-6">
+                    <span className="text-xs">Online:</span>
+                    <span className="font-mono font-semibold text-green-600 text-xs">{devices.filter(d => d.isOnline).length}</span>
                   </div>
-                  <div className="flex justify-between gap-6">
-                    <span>WiFi Networks:</span>
-                    <span className="font-mono font-semibold">{wifiNetworks.length}</span>
+                  <div className="flex justify-between gap-2 lg:gap-6">
+                    <span className="text-xs">WiFi:</span>
+                    <span className="font-mono font-semibold text-xs">{wifiNetworks.length}</span>
                   </div>
                   {routerFeatures?.aimeshIsMaster && (
-                    <div className="flex justify-between gap-6">
-                      <span>AiMesh:</span>
-                      <span className="font-mono font-semibold text-purple-600">Active</span>
+                    <div className="flex justify-between gap-2 lg:gap-6">
+                      <span className="text-xs">AiMesh:</span>
+                      <span className="font-mono font-semibold text-purple-600 text-xs">Yes</span>
                     </div>
                   )}
-                  <div className="flex justify-between gap-6">
+                  <div className="flex justify-between gap-2 lg:gap-6 hidden lg:flex">
                     <span>Router:</span>
                     <span className="font-mono font-semibold">{routerStatus?.model || 'Unknown'}</span>
                   </div>

@@ -15,7 +15,7 @@ export default function NetworkTopologyPage() {
           title="Interactive Network Topology" 
           subtitle="Drag and explore your real network connections live"
         />
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           <div className="mb-4">
             <Button
               onClick={() => setShowInteractive(false)}
@@ -26,7 +26,7 @@ export default function NetworkTopologyPage() {
               Back to Overview
             </Button>
           </div>
-          <InteractiveTopology className="h-[700px]" />
+          <InteractiveTopology className="h-[400px] sm:h-[500px] lg:h-[700px]" />
         </div>
       </div>
     );
@@ -38,8 +38,8 @@ export default function NetworkTopologyPage() {
         title="Network Topology" 
         subtitle="Overview of your network layout and connections"
       />
-      <div className="p-6">
-        <div className="mb-4 flex justify-between items-center">
+      <div className="p-3 sm:p-6">
+        <div className="mb-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Network Overview
@@ -50,14 +50,14 @@ export default function NetworkTopologyPage() {
           </div>
           <Button
             onClick={() => setShowInteractive(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
           >
             <MousePointer2 className="h-4 w-4" />
-            View Interactive Topology
+            <span className="sm:inline">View Interactive Topology</span>
           </Button>
         </div>
         
-        <NetworkTopology className="h-[600px]" />
+        <NetworkTopology className="h-[400px] sm:h-[500px] lg:h-[600px]" />
         
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
