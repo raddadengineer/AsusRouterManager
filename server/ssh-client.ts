@@ -209,88 +209,9 @@ export class SSHClient {
         
         echo "===DEVICE_DETECTION_END==="
       `);
-      
-      // Get wireless client info from all bands
-      const wifiClients24 = await this.executeCommand("wl -i eth1 assoclist 2>/dev/null || wl -i wl0 assoclist 2>/dev/null || echo ''");
-      const wifiClients5 = await this.executeCommand("wl -i eth2 assoclist 2>/dev/null || wl -i wl1 assoclist 2>/dev/null || echo ''");
-      const wifiClients6 = await this.executeCommand("wl -i eth3 assoclist 2>/dev/null || wl -i wl2 assoclist 2>/dev/null || echo ''");
-      
-      // Get client bandwidth usage
-      const bandwidthStats = await this.executeCommand("cat /proc/net/dev");
-      
-      // Get custom client names from Merlin
-      const customNames = await this.executeCommand("nvram get custom_clientlist");
-      
-      const devices: any[] = [];
-      const arpEntries = arpTable.split('\n').filter(line => line.trim());
-      
-      // Parse custom client names
-      const clientNames: { [mac: string]: string } = {};
-      if (customNames) {
-        const nameEntries = customNames.split('<');
-        nameEntries.forEach(entry => {
-          const parts = entry.split('>');
-          if (parts.length >= 2) {
-            const [name, mac] = parts;
-            if (mac) clientNames[mac.toLowerCase()] = name;
-          }
-        });
-      }
-      
-      // Parse ARP table entries
-      for (const arpEntry of arpEntries) {
-        const parts = arpEntry.split(/\s+/);
-        if (parts.length >= 6) {
-          const [ipAddress, , , macAddress, , interface_name] = parts;
-          
-          if (macAddress && macAddress !== '00:00:00:00:00:00' && ipAddress !== '0.0.0.0') {
-            // Determine connection type
-            const isWifi24 = wifiClients24.includes(macAddress);
-            const isWifi5 = wifiClients5.includes(macAddress);
-            const connectionType = isWifi24 ? '2.4GHz WiFi' : isWifi5 ? '5GHz WiFi' : 'Ethernet';
-            
-            // Get device name from custom names or try to resolve
-            let deviceName = clientNames[macAddress.toLowerCase()] || `Device-${macAddress.slice(-5)}`;
-            
-            // Try to get hostname from DHCP leases
-            if (dhcpLeases) {
-              const leaseMatch = dhcpLeases.match(new RegExp(`${macAddress}[\\s\\S]*?client-hostname "([^"]+)"`, 'i'));
-              if (leaseMatch && leaseMatch[1]) {
-                deviceName = leaseMatch[1];
-              }
-            }
-            
-            // Determine device type based on MAC vendor and name patterns
-            const deviceType = this.getDeviceType(macAddress, deviceName);
-            
-            // Get signal strength for WiFi devices
-            let signalStrength = null;
-            if (isWifi24 || isWifi5) {
-              try {
-                const wlInterface = isWifi24 ? 'eth1' : 'eth2';
-                const rssi = await this.executeCommand(`wl -i ${wlInterface} rssi ${macAddress} 2>/dev/null || echo '0'`);
-                signalStrength = parseInt(rssi.trim()) || null;
-              } catch (error) {
-                // Signal strength not available
-              }
-            }
-            
-            devices.push({
-              macAddress: macAddress.toUpperCase(),
-              name: deviceName,
-              ipAddress,
-              isOnline: true,
-              deviceType,
-              connectionType,
-              signalStrength,
-              interface: interface_name,
-              downloadSpeed: Math.random() * 10, // Would need traffic monitoring
-              uploadSpeed: Math.random() * 5,
-            });
-          }
-        }
-      }
-      
+
+      // Parse the comprehensive device data
+      const devices = this.parseDeviceData(deviceData);
       return devices;
     } catch (error) {
       console.error('Failed to get connected devices:', error);
