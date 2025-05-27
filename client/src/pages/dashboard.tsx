@@ -179,7 +179,27 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Network Topology */}
         <div className="lg:col-span-2">
-          <NetworkTopology />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Network className="h-5 w-5 text-blue-600" />
+                <span>Network Overview</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-muted/30 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <Network className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Performance-optimized topology</p>
+                  <Link href="/topology">
+                    <Button variant="outline" size="sm" className="mt-2">
+                      View Full Network Map
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions */}
@@ -299,12 +319,12 @@ export default function Dashboard() {
                 </Link>
               </CardHeader>
               <CardContent>
-                <div className="h-64 mb-4">
-                  <OptimizedNetworkTopology 
-                    className="h-full" 
-                    maxDevices={10}
-                    performanceMode="high"
-                  />
+                <div className="h-64 mb-4 bg-muted/30 rounded-lg flex items-center justify-center">
+                  <div className="text-center">
+                    <Network className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Network topology preview</p>
+                    <p className="text-xs text-muted-foreground">Click "View Details" for full visualization</p>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
