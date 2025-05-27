@@ -8,10 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import BandwidthChart from "@/components/bandwidth-chart";
 import NetworkTopology from "@/components/network-topology";
 import DeviceTable from "@/components/device-table";
-import SyncStatus from "@/components/sync-status";
 import TopBar from "@/components/top-bar";
 import { useToast } from "@/hooks/use-toast";
-import { useIntelligentSync } from "@/hooks/use-intelligent-sync";
 import { formatUptime } from "@/lib/utils";
 import {
   Tablet,
@@ -27,18 +25,6 @@ import {
 
 export default function Dashboard() {
   const { toast } = useToast();
-
-  // Intelligent sync configuration
-  const {
-    syncStats,
-    isActiveSync,
-    triggerSync
-  } = useIntelligentSync({
-    enabled: true,
-    interval: 15, // 15 seconds for active sync
-    priorityData: ['essential', 'devices'],
-    backgroundInterval: 60 // 1 minute for background sync
-  });
 
   const { data: routerStatus, isLoading: statusLoading } = useQuery<RouterStatus>({
     queryKey: ["/api/router/status"],
@@ -192,20 +178,12 @@ export default function Dashboard() {
           <NetworkTopology />
         </div>
 
-        {/* Sync Status & Quick Actions */}
-        <div className="space-y-6">
-          <SyncStatus 
-            isConnected={!!routerStatus}
-            isActiveSync={isActiveSync}
-            syncStats={syncStats}
-            onManualSync={triggerSync}
-          />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <Button
               variant="outline"
               className="w-full justify-between h-auto p-4"
@@ -293,7 +271,6 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-        </div>
       </div>
 
           {/* Tables Section */}
