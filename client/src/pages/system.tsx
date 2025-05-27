@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useSyncProgress } from "@/hooks/use-sync-progress";
 import SyncProgress from "@/components/sync-progress";
@@ -22,6 +23,7 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import TopBar from "@/components/top-bar";
 import BackgroundServicesManager from "@/components/background-services-manager";
+import SystemLogs from "@/components/system-logs";
 import { formatUptime } from "@/lib/utils";
 import { Link } from "wouter";
 import {
@@ -1153,33 +1155,38 @@ export default function SystemSettingsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h4 className="font-medium">Recent System Events</h4>
-                  <p className="text-sm text-muted-foreground">Monitor system activity and errors</p>
-                </div>
+            <Tabs defaultValue="app" className="w-full">
+              <div className="flex items-center justify-between mb-4">
+                <TabsList className="grid w-auto grid-cols-2">
+                  <TabsTrigger value="app">App Logs</TabsTrigger>
+                  <TabsTrigger value="router">Router Logs</TabsTrigger>
+                </TabsList>
                 <div className="flex space-x-2">
                   <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
-                    Export Logs
+                    Export
                   </Button>
                   <Button variant="outline" size="sm">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Clear Logs
+                    Clear
                   </Button>
                 </div>
               </div>
-
-              <div className="bg-muted rounded-lg p-4 h-32 overflow-y-auto font-mono text-xs">
-                <div className="space-y-1 text-muted-foreground">
-                  <div>[{new Date().toISOString()}] System startup completed</div>
-                  <div>[{new Date(Date.now() - 3600000).toISOString()}] WiFi client connected: MacBook Pro</div>
-                  <div>[{new Date(Date.now() - 7200000).toISOString()}] Firmware check completed - no updates available</div>
-                  <div>[{new Date(Date.now() - 10800000).toISOString()}] DHCP lease renewed for 192.168.1.101</div>
+              
+              <TabsContent value="app" className="mt-0">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Application events and background service activity</p>
+                  <SystemLogs logType="app" />
                 </div>
-              </div>
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="router" className="mt-0">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Router system logs and network events</p>
+                  <SystemLogs logType="router" />
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>
