@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,9 @@ import type { ConnectedDevice, RouterStatus, RouterFeatures } from '@shared/sche
 
 interface NetworkTopologyProps {
   className?: string;
+  maxDevices?: number;
+  enableVirtualization?: boolean;
+  performanceMode?: 'high' | 'balanced' | 'quality';
 }
 
 interface NetworkNode {
@@ -48,6 +51,15 @@ interface NetworkNode {
   downloadSpeed?: number | null;
   uploadSpeed?: number | null;
   signalStrength?: number;
+  priority?: number; // For performance optimization
+  lastUpdated?: number;
+}
+
+interface PerformanceSettings {
+  maxVisibleNodes: number;
+  animationEnabled: boolean;
+  detailLevel: 'minimal' | 'standard' | 'detailed';
+  refreshRate: number;
 }
 
 interface NetworkConnection {

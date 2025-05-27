@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import BandwidthChart from "@/components/bandwidth-chart";
-import NetworkTopology from "@/components/network-topology";
+import OptimizedNetworkTopology from "@/components/optimized-network-topology";
 import DeviceTable from "@/components/device-table";
 import TopBar from "@/components/top-bar";
 import { useToast } from "@/hooks/use-toast";
@@ -300,7 +300,11 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="h-64 mb-4">
-                  <NetworkTopology className="h-full" />
+                  <OptimizedNetworkTopology 
+                    className="h-full" 
+                    maxDevices={10}
+                    performanceMode="high"
+                  />
                 </div>
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
