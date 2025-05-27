@@ -108,25 +108,38 @@ export default function SystemSettingsPage() {
     let interval: NodeJS.Timeout;
     
     if (sshConfig?.enabled && connectionStatus === 'connected') {
-      // Sync data immediately, then every 15 seconds for real-time updates
+      console.log('Starting real-time data sync every 10 seconds');
+      
+      // Sync data immediately, then every 10 seconds for real-time updates
       const syncData = async () => {
         try {
-          await fetch('/api/ssh/sync-data', { method: 'POST' });
-          queryClient.invalidateQueries();
-          console.log('Real-time data sync completed');
+          const response = await fetch('/api/ssh/sync-data', { method: 'POST' });
+          if (response.ok) {
+            queryClient.invalidateQueries();
+            console.log('✓ Real-time data sync completed successfully');
+          } else {
+            throw new Error('Sync response not ok');
+          }
         } catch (error) {
           console.log('Auto-sync failed:', error);
-          // If sync fails repeatedly, show connection error
+          // If sync fails, try to reconnect
           setConnectionStatus('error');
         }
       };
       
-      syncData(); // Initial sync
-      interval = setInterval(syncData, 15000); // Every 15 seconds for real-time feel
+      // Start syncing immediately and then every 10 seconds
+      syncData();
+      interval = setInterval(syncData, 10000); // Every 10 seconds for true real-time
+    } else if (interval) {
+      console.log('Stopping real-time data sync');
+      clearInterval(interval);
     }
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (interval) {
+        clearInterval(interval);
+        console.log('Cleanup: Stopped real-time data sync');
+      }
     };
   }, [sshConfig?.enabled, connectionStatus, queryClient]);
 
@@ -165,47 +178,64 @@ export default function SystemSettingsPage() {
 
   const sshSaveMutation = useMutation({
     mutationFn: async (config: SSHConnectionConfig) => {
-      return await apiRequest("POST", "/api/ssh/config", config);
-    },
-    onSuccess: async (response, config) => {
+      // Step 1: Test connection first
+      setConnectionStatus('connecting');
+      setIsConnecting(true);
+      
       toast({
-        title: "SSH Configuration Saved",
-        description: "Router connection settings have been saved",
+        title: "Testing Connection",
+        description: "Verifying SSH connection to your router...",
       });
+      
+      try {
+        // Test the connection
+        await apiRequest("POST", "/api/ssh/test", config);
+        
+        // Step 2: If test successful, save the configuration
+        const saveResponse = await apiRequest("POST", "/api/ssh/config", config);
+        
+        return { success: true, config, saveResponse };
+      } catch (error) {
+        setConnectionStatus('error');
+        setIsConnecting(false);
+        throw error;
+      }
+    },
+    onSuccess: async (result) => {
+      const { config } = result;
+      
+      setConnectionStatus('connected');
+      toast({
+        title: "Connection Successful & Settings Saved",
+        description: "SSH connection verified and configuration saved",
+      });
+      
       queryClient.invalidateQueries({ queryKey: ["/api/ssh/config"] });
       
-      // If real-time is enabled, automatically test connection and start syncing
+      // Step 3: If real-time is enabled, start continuous data syncing
       if (config.enabled) {
-        setConnectionStatus('connecting');
-        setIsConnecting(true);
         try {
-          await apiRequest("POST", "/api/ssh/test", config);
-          setConnectionStatus('connected');
-          
-          // Start immediate data sync
+          // Initial data sync
           await fetch('/api/ssh/sync-data', { method: 'POST' });
           queryClient.invalidateQueries();
           
           toast({
-            title: "Real-time Connection Active",
-            description: "Connected to router and syncing data every 30 seconds",
+            title: "Real-time Data Active",
+            description: "Connected and pulling live data every 15 seconds",
           });
         } catch (error) {
-          setConnectionStatus('error');
-          toast({
-            title: "Connection Failed",
-            description: "Saved settings but couldn't connect to router. Check your credentials.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsConnecting(false);
+          console.log('Initial sync failed:', error);
         }
       }
+      
+      setIsConnecting(false);
     },
-    onError: () => {
+    onError: (error: any) => {
+      setConnectionStatus('error');
+      setIsConnecting(false);
       toast({
-        title: "Error",
-        description: "Failed to save SSH configuration",
+        title: "Connection Failed",
+        description: error?.message || "Could not connect to router. Please check your credentials and network.",
         variant: "destructive",
       });
     },
