@@ -47,6 +47,20 @@ export default function Dashboard() {
 
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
+  
+  // Calculate wired and wireless device counts
+  const wiredDevices = connectedDevices?.filter(device => 
+    device.connectionType?.includes('ethernet') || 
+    device.connectionType?.includes('wired') ||
+    (!device.connectionType?.includes('wireless') && device.deviceType !== 'smartphone' && device.deviceType !== 'tablet' && device.deviceType !== 'mobile')
+  ) || [];
+  
+  const wirelessDevices = connectedDevices?.filter(device => 
+    device.connectionType?.includes('wireless') || 
+    device.deviceType === 'smartphone' || 
+    device.deviceType === 'tablet' || 
+    device.deviceType === 'mobile'
+  ) || [];
   const totalNetworkUsage = devices?.reduce((total, device) => 
     device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
   ) || 0;
@@ -193,12 +207,18 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-4 gap-4 mb-4">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {connectedDevices?.length || 0}
+                    {wiredDevices?.length || 0}
                   </div>
-                  <div className="text-sm text-muted-foreground">Connected Devices</div>
+                  <div className="text-sm text-muted-foreground">Wired Devices</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                    {wirelessDevices?.length || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">Wireless Devices</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -208,7 +228,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {(connectedDevices?.length || 0) + (wifiNetworks?.length || 0)}
+                    {connectedDevices?.length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Devices</div>
                 </div>
