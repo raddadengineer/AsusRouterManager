@@ -388,15 +388,21 @@ export default function SystemDetailsPage() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Flow Cache:</span>
-                    <span className="text-green-500">Enabled</span>
+                    <span className={routerFeatures?.hardwareAcceleration?.flowCache ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.hardwareAcceleration?.flowCache ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Runner:</span>
-                    <span className="text-green-500">Active</span>
+                    <span className={routerFeatures?.hardwareAcceleration?.runner ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.hardwareAcceleration?.runner ? "Active" : "Inactive"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cut Through:</span>
-                    <span className="text-green-500">Enabled</span>
+                    <span className={routerFeatures?.hardwareAcceleration?.ctf ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.hardwareAcceleration?.ctf ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -406,15 +412,21 @@ export default function SystemDetailsPage() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">AiProtection:</span>
-                    <span className="text-green-500">Active</span>
+                    <span className={routerFeatures?.aiProtection?.enabled ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.aiProtection?.enabled ? "Active" : "Inactive"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Firewall:</span>
-                    <span className="text-green-500">Enabled</span>
+                    <span className="text-muted-foreground">Malware Protection:</span>
+                    <span className={routerFeatures?.aiProtection?.malwareBlocking ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.aiProtection?.malwareBlocking ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">DoS Protection:</span>
-                    <span className="text-green-500">Enabled</span>
+                    <span className="text-muted-foreground">Vulnerability Protection:</span>
+                    <span className={routerFeatures?.aiProtection?.vulnerabilityProtection ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.aiProtection?.vulnerabilityProtection ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -424,15 +436,21 @@ export default function SystemDetailsPage() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Adaptive QoS:</span>
-                    <span className="text-green-500">Enabled</span>
+                    <span className={routerFeatures?.adaptiveQos?.enabled ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.adaptiveQos?.enabled ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Traffic Control:</span>
-                    <span className="text-green-500">Active</span>
+                    <span className="text-muted-foreground">QoS Mode:</span>
+                    <span className="text-blue-500">
+                      {routerFeatures?.adaptiveQos?.mode || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Bandwidth Monitor:</span>
-                    <span className="text-green-500">Running</span>
+                    <span className="text-muted-foreground">USB Services:</span>
+                    <span className={routerFeatures?.usbServices?.enabled ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.usbServices?.enabled ? "Active" : "Inactive"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -442,15 +460,21 @@ export default function SystemDetailsPage() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">AiMesh:</span>
-                    <span className="text-blue-500">Ready</span>
+                    <span className={routerFeatures?.aiMesh?.isMaster ? "text-green-500" : "text-blue-500"}>
+                      {routerFeatures?.aiMesh?.isMaster ? "Master" : "Ready"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Smart Connect:</span>
-                    <span className="text-green-500">Enabled</span>
+                    <span className="text-muted-foreground">Beamforming:</span>
+                    <span className={routerFeatures?.wirelessFeatures?.beamforming ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.wirelessFeatures?.beamforming ? "Enabled" : "Disabled"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Guest Network:</span>
-                    <span className="text-orange-500">Available</span>
+                    <span className={routerFeatures?.guestNetwork?.enabled24 || routerFeatures?.guestNetwork?.enabled5 ? "text-green-500" : "text-red-500"}>
+                      {routerFeatures?.guestNetwork?.enabled24 || routerFeatures?.guestNetwork?.enabled5 ? "Active" : "Disabled"}
+                    </span>
                   </div>
                 </div>
               </div>
