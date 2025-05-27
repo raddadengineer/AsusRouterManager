@@ -73,6 +73,7 @@ export class MemStorage implements IStorage {
   private portForwardingRules: Map<number, PortForwardingRule>;
   private bandwidthData: BandwidthData[];
   private sshConfiguration: SSHConfig | undefined;
+  private routerFeatures: RouterFeatures | undefined;
   private currentDeviceId: number;
   private currentWifiId: number;
   private currentRuleId: number;
@@ -481,10 +482,25 @@ export class MemStorage implements IStorage {
     this.wifiNetworks.clear();
     this.portForwardingRules.clear();
     this.bandwidthData = [];
+    this.routerFeatures = undefined;
     this.currentDeviceId = 1;
     this.currentWifiId = 1;
     this.currentRuleId = 1;
     this.currentBandwidthId = 1;
+  }
+
+  async getRouterFeatures(): Promise<RouterFeatures | undefined> {
+    return this.routerFeatures;
+  }
+
+  async updateRouterFeatures(features: InsertRouterFeatures): Promise<RouterFeatures> {
+    const newFeatures: RouterFeatures = {
+      id: 1,
+      ...features,
+      lastUpdated: new Date(),
+    };
+    this.routerFeatures = newFeatures;
+    return newFeatures;
   }
 }
 
