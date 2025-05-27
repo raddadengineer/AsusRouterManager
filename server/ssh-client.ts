@@ -137,22 +137,21 @@ export class SSHClient {
         echo
 
         echo "------ Connected Wireless Clients ------"
-        for iface in wl0 wl1 wl2; do
-          echo
-          echo "Interface: $iface"
-          wl -i $iface assoclist 2>/dev/null | while read mac; do
+        # Use your improved wireless detection method
+        for i in wl0 wl1 wl2; do
+          wl -i $i assoclist 2>/dev/null | while read mac; do
             if [ -n "$mac" ]; then
-              rssi=$(wl -i $iface rssi "$mac" 2>/dev/null || echo "N/A")
+              rssi=$(wl -i $i rssi "$mac" 2>/dev/null || echo "N/A")
               hostname=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $4}' | head -1)
               ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk '{print $3}' | head -1)
-              band="Unknown"
-              if [ "$iface" = "wl0" ]; then band="2.4GHz"; fi
-              if [ "$iface" = "wl1" ]; then band="5GHz"; fi
-              if [ "$iface" = "wl2" ]; then band="6GHz"; fi
-              echo "MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm | Band: $band"
+              echo "$i (Wireless) | MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm"
             fi
           done
         done
+        
+        echo "------ Wired Device Check ------"
+        # Use your improved wired detection method
+        ip neigh | grep -E "REACHABLE|STALE"
 
         echo
         echo "------ Wired Clients (via ARP Table) ------"
