@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -82,10 +82,50 @@ export default function SystemSettingsPage() {
   });
 
   // SSH connection queries
-  const { data: sshConfig } = useQuery<SSHConnectionConfig>({
+  const { data: sshConfig } = useQuery<any>({
     queryKey: ["/api/ssh/config"],
     retry: false,
   });
+
+  // Load saved SSH config into form when data is available
+  useEffect(() => {
+    if (sshConfig) {
+      sshForm.reset({
+        host: sshConfig.host || "192.168.1.1",
+        port: sshConfig.port || 22,
+        username: sshConfig.username || "admin",
+        password: sshConfig.password || "",
+        enabled: sshConfig.enabled || false,
+      });
+      if (sshConfig.connectionStatus) {
+        setConnectionStatus(sshConfig.connectionStatus === 'connected' ? 'connected' : 'disconnected');
+      }
+    }
+  }, [sshConfig, sshForm]);
+
+  // Auto-sync data when real-time is enabled and connected
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (sshConfig?.enabled && connectionStatus === 'connected') {
+      // Sync data immediately, then every 30 seconds
+      const syncData = async () => {
+        try {
+          await fetch('/api/ssh/sync-data', { method: 'POST' });
+          queryClient.invalidateQueries();
+        } catch (error) {
+          console.log('Auto-sync failed:', error);
+        }
+      };
+      
+      syncData(); // Initial sync
+      interval = setInterval(syncData, 30000); // Every 30 seconds
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [sshConfig?.enabled, connectionStatus, queryClient]);
 
   const sshTestMutation = useMutation({
     mutationFn: async (config: SSHConnectionConfig) => {
@@ -539,7 +579,7 @@ export default function SystemSettingsPage() {
                     variant="outline"
                     onClick={() => clearSettingsMutation.mutate()}
                     disabled={clearSettingsMutation.isPending}
-                    className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50"
+                    className="flex-1 border-orange-200 text-orange-700 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-300 dark:hover:bg-orange-950"
                   >
                     {clearSettingsMutation.isPending ? (
                       <>
@@ -559,7 +599,7 @@ export default function SystemSettingsPage() {
                     variant="outline"
                     onClick={() => clearDataMutation.mutate()}
                     disabled={clearDataMutation.isPending}
-                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50"
+                    className="flex-1 border-red-200 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
                   >
                     {clearDataMutation.isPending ? (
                       <>
