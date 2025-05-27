@@ -83,6 +83,9 @@ export class SSHClient {
       const temperature = await this.executeCommand("cat /proc/dmu/temperature 2>/dev/null | head -1 || echo 'N/A'");
       const memInfo = await this.executeCommand("cat /proc/meminfo | grep -E 'MemTotal|MemFree'");
       const cpuInfo = await this.executeCommand("cat /proc/cpuinfo | grep -E 'model name|cpu cores' | head -2");
+      const lanIp = await this.executeCommand("nvram get lan_ipaddr");
+      const wanIp = await this.executeCommand("nvram get wan0_ipaddr");
+      const cpuUsage = await this.executeCommand("top -bn1 | grep 'CPU:' | awk '{print $2}' | sed 's/%us//' || echo '0'");
 
       // Parse memory info
       const memLines = memInfo.split('\n');

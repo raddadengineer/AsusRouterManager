@@ -83,8 +83,8 @@ export default function Dashboard() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Connected Tablet</h3>
-              <Tablet className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-medium text-muted-foreground">Connected Devices</h3>
+              <Users className="h-4 w-4 text-primary" />
             </div>
             <div className="flex items-end space-x-2">
               {devicesLoading ? (
@@ -161,8 +161,8 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-20" />
                 ) : (
                   <>
-                    <span className="text-2xl font-bold">{routerStatus?.memoryUsage.toFixed(1)}</span>
-                    <span className="text-sm text-muted-foreground">/ {routerStatus?.memoryTotal.toFixed(0)} GB</span>
+                    <span className="text-2xl font-bold">{(routerStatus?.memoryUsage * 1024).toFixed(0)}</span>
+                    <span className="text-sm text-muted-foreground">/ {(routerStatus?.memoryTotal * 1024).toFixed(0)} MB</span>
                   </>
                 )}
               </div>
