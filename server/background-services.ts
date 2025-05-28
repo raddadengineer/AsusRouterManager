@@ -260,11 +260,62 @@ class BackgroundServiceManager {
     try {
       const wifiNetworks = await sshClient.getWiFiNetworks();
       
-      // Update WiFi network information
+      // Store WiFi network information
       for (const network of wifiNetworks) {
-        // This would need to be implemented based on your WiFi network storage structure
-        console.log('WiFi network scan:', network);
+        try {
+          const existingNetworks = await storage.getWifiNetworks();
+          const existingNetwork = existingNetworks.find(n => 
+            n.ssid === network.ssid && n.band === network.band
+          );
+
+          if (existingNetwork) {
+            // Update existing network
+            await storage.updateWifiNetwork(existingNetwork.id, {
+              isEnabled: network.isEnabled,
+              isVisible: network.isVisible,
+              channel: network.channel,
+              signalStrength: network.signalStrength || null,
+              connectedClients: network.connectedClients || 0,
+              lastSeen: new Date()
+            });
+          } else {
+            // Create new network
+            const newNetwork: InsertWifiNetwork = {
+              ssid: network.ssid,
+              band: network.band,
+              isEnabled: network.isEnabled,
+              isVisible: network.isVisible,
+              channel: network.channel,
+              signalStrength: network.signalStrength || null,
+              connectedClients: network.connectedClients || 0,
+              isGuest: network.isGuest || false
+            };
+            await storage.createWifiNetwork(newNetwork);
+          }
+        } catch (error) {
+          console.error(`Error storing WiFi network ${network.ssid}:`, error);
+        }
       }
+
+      // Update router features with accurate counts
+      const wifiNetworkCount = await sshClient.getWiFiNetworkCount();
+      const activeGuestNetworks = await sshClient.getActiveGuestNetworkCount();
+      const merlinFeatures = await sshClient.getMerlinFeatures();
+
+      const routerFeatures: InsertRouterFeatures = {
+        wifiNetworkCount: wifiNetworkCount,
+        activeGuestNetworks: activeGuestNetworks,
+        adaptiveQosEnabled: merlinFeatures.adaptiveQosEnabled || false,
+        aiProtectionEnabled: merlinFeatures.aiProtectionEnabled || false,
+        aimeshEnabled: merlinFeatures.aimeshEnabled || false,
+        vpnServerEnabled: merlinFeatures.vpnServerEnabled || false,
+        guestNetworkEnabled: activeGuestNetworks > 0,
+        bandwidthMonitorEnabled: merlinFeatures.bandwidthMonitorEnabled || false,
+        accessControlEnabled: merlinFeatures.accessControlEnabled || false,
+        wirelessClientsTotal: merlinFeatures.wirelessClientsTotal || 0
+      };
+
+      await storage.updateRouterFeatures(routerFeatures);
     } catch (error) {
       console.error('Error scanning WiFi networks:', error);
     }
