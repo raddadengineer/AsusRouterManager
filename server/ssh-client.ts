@@ -125,106 +125,41 @@ export class SSHClient {
     try {
       console.log('Generating comprehensive network topology report...');
       
+      // Use your enhanced normalized tab-separated topology analysis command
       const command = `
-        echo "=== ASUS Network Topology Report ==="
-        echo "Date: $(date)"
-        echo
+        LEASE_FILE="/var/lib/misc/dnsmasq.leases"
+        echo -e "Interface\\tNode\\t\\t\\tMAC Address\\t\\tIP Address\\t\\tHostname"
 
-        echo "NODE NAME: $(nvram get productid)"
-        echo "ROUTER IP: $(nvram get lan_ipaddr)"
-        echo
+        for iface in $(nvram get sta_ifnames); do
+          # Get radio MAC address for the interface
+          node_mac=$(wl -i "$iface" cur_etheraddr 2>/dev/null)
+          # Find node hostname from lease file
+          node_host=$(awk -v m="$node_mac" 'tolower($2)==tolower(m) { print ($3=="*" ? "" : $3) }' "$LEASE_FILE")
 
-        echo "------ DHCP Clients (All Devices) ------"
-        echo "IP, MAC, Hostname"
-        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{print $3", "$2", "$4}'
-        echo
-
-        echo "------ Connected Wireless Clients ------"
-        # Get wireless interfaces using ASUS-specific command
-        sta_ifnames=$(nvram get sta_ifnames 2>/dev/null || echo "eth6 eth7 eth8")
-        
-        for iface in $sta_ifnames; do
-          band_name=""
-          case $iface in
-            eth6) band_name="2.4GHz" ;;
-            eth7) band_name="5GHz" ;;
-            eth8) band_name="6GHz" ;;
-            *) band_name="Unknown" ;;
-          esac
-          
-          wl -i $iface assoclist 2>/dev/null | while read mac rest; do
-            if [ -n "$mac" ] && [[ $mac =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}$ ]]; then
-              rssi=$(wl -i $iface rssi "$mac" 2>/dev/null | grep -o '[0-9-]*' | head -1)
-              hostname=$(grep -i "$mac" /etc/dnsmasq.leases 2>/dev/null || grep -i "$mac" /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{print $4}' | head -1)
-              ip=$(grep -i "$mac" /etc/dnsmasq.leases 2>/dev/null || grep -i "$mac" /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{print $3}' | head -1)
-              echo "MAC: $mac | IP: $ip | Hostname: $hostname | RSSI: $rssi dBm | Band: $band_name | Interface: $iface"
-            fi
+          # Get list of clients on that interface
+          wl -i "$iface" assoclist 2>/dev/null | grep -Eoi '([0-9a-f]{2}:){5}[0-9a-f]{2}' | while read client_mac; do
+            # Match client MAC to IP and hostname
+            lease=$(awk -v m="$client_mac" 'tolower($2)==tolower(m) { print $4 "\\t" ($3=="*" ? "" : $3) }' "$LEASE_FILE")
+            ip=$(echo "$lease" | awk '{print $1}')
+            name=$(echo "$lease" | awk '{print $2}')
+            printf "%-8s\\t%-20s\\t%-17s\\t%-15s\\t%s\\n" "$iface" "\${node_host:-$node_mac}" "$client_mac" "\${ip:-}" "\${name:-}"
           done
         done
         
-        echo "------ Wired Device Check ------"
-        # Use your improved wired detection method
-        ip neigh | grep -E "REACHABLE|STALE"
-
         echo
-        echo "------ Wired Clients (via ARP Table) ------"
-        echo "IP, MAC, Interface"
-        ip neigh | grep -i "lladdr" | awk '{print $1", "$5", "$3}'
-
+        echo "=== DHCP Lease Information ==="
+        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | awk '{printf "%-15s\\t%-17s\\t%s\\n", $3, $2, $4}'
+        
         echo
-        echo "------ AiMesh Node Detection ------"
-        echo "=== AiMesh Node List ==="
-        if nvram get cfg_master >/dev/null 2>&1; then
-          echo "MAIN_NODE: $(nvram get lan_ipaddr) | MAC: $(nvram get lan_hwaddr) | Name: $(nvram get productid)"
-        fi
+        echo "=== AiMesh Node Detection ==="
+        { [ -f /etc/dnsmasq.leases ] && cat /etc/dnsmasq.leases || cat /var/lib/misc/dnsmasq.leases; } 2>/dev/null | grep -Ei "aimesh|rt-|rp-|asus" | awk '{ printf "%s\\t%s\\t%s\\n", $2, $4, ($3 == "*" ? "" : $3) }'
         
-        # Get AiMesh nodes from DHCP leases using your specific command
-        echo "=== AiMesh Connected Nodes from DHCP ==="
-        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "aimesh\|rp-\|asus" | while read timestamp mac ip hostname; do
-          if [ -n "$mac" ] && [ -n "$ip" ]; then
-            echo "AIMESH_NODE: $ip | MAC: $mac | Hostname: $hostname"
-          fi
-        done
-        
-        # Also get from nvram for additional node info
-        echo "=== AiMesh Connected Nodes from nvram ==="
-        cfg_clientlist=$(nvram get cfg_clientlist 2>/dev/null || echo "")
-        if [ -n "$cfg_clientlist" ]; then
-          echo "$cfg_clientlist" | sed 's/</\n/g' | while read node; do
-            if [ -n "$node" ]; then
-              echo "AIMESH_NODE: $node"
-            fi
-          done
-        fi
-        
-        echo "=== Per-Node Device Detection ==="
-        # Check each AiMesh node for connected devices
-        for node_ip in $(echo "$cfg_clientlist" | sed 's/</\n/g' | awk -F'>' '{print $1}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'); do
-          if [ -n "$node_ip" ]; then
-            echo "--- Checking node: $node_ip ---"
-            # Try to get wireless clients from this specific node
-            ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no admin@$node_ip "
-              for iface in wl0 wl1 wl2; do
-                echo \"Interface $iface on node $node_ip:\"
-                wl -i \$iface assoclist 2>/dev/null | while read mac; do
-                  if [ -n \"\$mac\" ]; then
-                    rssi=\$(wl -i \$iface rssi \"\$mac\" 2>/dev/null || echo \"N/A\")
-                    hostname=\$(grep -i \"\$mac\" /var/lib/misc/dnsmasq.leases | awk '{print \$4}' | head -1)
-                    ip=\$(grep -i \"\$mac\" /var/lib/misc/dnsmasq.leases | awk '{print \$3}' | head -1)
-                    band=\"Unknown\"
-                    if [ \"\$iface\" = \"wl0\" ]; then band=\"2.4GHz\"; fi
-                    if [ \"\$iface\" = \"wl1\" ]; then band=\"5GHz\"; fi
-                    if [ \"\$iface\" = \"wl2\" ]; then band=\"6GHz\"; fi
-                    echo \"NODE_DEVICE: \$mac | IP: \$ip | Hostname: \$hostname | RSSI: \$rssi dBm | Band: \$band | Node: $node_ip\"
-                  fi
-                done
-              done
-            " 2>/dev/null || echo "Could not connect to node $node_ip"
-          fi
-        done
-
         echo
-        echo "------ Finished ------"
+        echo "=== Router Information ==="
+        echo "Model: $(nvram get productid)"
+        echo "LAN IP: $(nvram get lan_ipaddr)"
+        echo "LAN MAC: $(nvram get lan_hwaddr)"
+        echo "WAN IP: $(nvram get wan0_ipaddr)"
       `;
       
       const result = await this.executeCommand(command);
