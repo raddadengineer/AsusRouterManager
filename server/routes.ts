@@ -607,56 +607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Return server instance
   return server;
-} 
-        host: validatedData.host,
-        port: validatedData.port,
-        username: validatedData.username,
-        password: '',
-        enabled: validatedData.enabled,
-        syncInterval: validatedData.syncInterval,
-        connectionTested: true 
-      });
-    } catch (error: any) {
-      console.error("SSH config save error:", error);
-      await storage.updateSSHConnectionStatus('error');
-      res.status(400).json({ 
-        message: error?.message || "Failed to save SSH configuration",
-        details: error?.issues || "Connection test failed"
-      });
-    }
-  });
-
-  app.delete("/api/ssh/config", async (req, res) => {
-    try {
-      await storage.clearSSHConfig();
-      res.json({ success: true, message: "SSH configuration cleared" });
-    } catch (error: any) {
-      res.status(500).json({ message: "Failed to clear SSH configuration" });
-    }
-  });
-
-  app.delete("/api/data/clear", async (req, res) => {
-    try {
-      await storage.clearAllData();
-      res.json({ success: true, message: "All router data cleared" });
-    } catch (error: any) {
-      res.status(500).json({ message: "Failed to clear router data" });
-    }
-  });
-
-  app.post("/api/ssh/test", async (req, res) => {
-    try {
-      const validatedData = insertSSHConfigSchema.parse(req.body);
-      
-      // Test SSH connection to ASUS router
-      const testConfig = {
-        id: 1,
-        host: validatedData.host,
-        port: validatedData.port || 22,
-        username: validatedData.username,
-        password: validatedData.password,
-        enabled: validatedData.enabled || false,
-        syncInterval: validatedData.syncInterval || 5,
+}
         lastConnected: null,
         connectionStatus: 'connecting' as string | null
       };
