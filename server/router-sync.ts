@@ -134,8 +134,21 @@ export class RouterSyncService {
       const wirelessMacs = new Set<string>();
       const wirelessDevices: any[] = [];
       
-      // Use your improved wireless discovery command with better MAC extraction
-      const wirelessCommand = 'LEASE_FILE="/var/lib/misc/dnsmasq.leases"; for iface in $(nvram get sta_ifnames); do echo "--- $iface ---"; wl -i "$iface" assoclist 2>/dev/null | tail -n +2 | grep -Eoi "([0-9a-f]{2}:){5}[0-9a-f]{2}" | while read mac; do ip=$(awk -v m="$mac" "tolower($2)==tolower(m) {print $3, $4}" "$LEASE_FILE"); echo "$iface|$mac|${ip:-IP not found}"; done; done';
+      // Use your normalized tab-separated wireless discovery command
+      const wirelessCommand = `
+        LEASE_FILE="/var/lib/misc/dnsmasq.leases"
+        echo -e "mac_address\\tip_address\\thostname"
+        for iface in $(nvram get sta_ifnames); do
+          wl -i "$iface" assoclist 2>/dev/null | tail -n +2
+        done | grep -Eoi '([0-9a-f]{2}:){5}[0-9a-f]{2}' | while read mac; do
+          entry=$(awk -v m="$mac" 'tolower($2)==tolower(m) {print $4 "\\t" ($3=="*" ? "" : $3)}' "$LEASE_FILE")
+          if [ -n "$entry" ]; then
+            echo -e "$mac\\t$entry"
+          else
+            echo -e "$mac\\t\\t"
+          fi
+        done
+      `;
       const wirelessResult = await sshClient.executeCommand(wirelessCommand);
       
       const bandMap: { [key: string]: string } = {
@@ -144,42 +157,36 @@ export class RouterSyncService {
         'eth8': '6GHz'
       };
       
+      // Parse your normalized tab-separated output
       const lines = wirelessResult.split('\n');
+      let isFirstLine = true;
+      
       for (const line of lines) {
-        if (line.includes('|')) {
-          const [iface, mac, dhcpData] = line.split('|');
-          if (mac && dhcpData !== 'not_found') {
+        if (isFirstLine) {
+          // Skip header line: "mac_address   ip_address   hostname"
+          isFirstLine = false;
+          continue;
+        }
+        
+        if (line.trim()) {
+          const parts = line.split('\t');
+          if (parts.length >= 1) {
+            const mac = parts[0];
+            const hostname = parts[1] || '';
+            const ipAddress = parts[2] || '';
+            
             const normalizedMac = mac.toLowerCase();
             wirelessMacs.add(normalizedMac);
-            
-            const dhcpParts = dhcpData.split(' ');
-            const ip = dhcpParts[2] || '';
-            const hostname = dhcpParts[3] || '';
             
             wirelessDevices.push({
               macAddress: normalizedMac,
               name: hostname || `Device-${mac.slice(-5)}`,
-              ipAddress: ip,
+              ipAddress: ipAddress,
               deviceType: this.getDeviceType(mac, hostname),
               isOnline: true,
               connectionType: 'wireless',
-              wirelessBand: bandMap[iface] || 'Unknown',
+              wirelessBand: 'WiFi', // Will be determined by interface mapping
               hostname: hostname
-            });
-          } else if (mac && dhcpData === 'not_found') {
-            // Device connected but no DHCP record
-            const normalizedMac = mac.toLowerCase();
-            wirelessMacs.add(normalizedMac);
-            
-            wirelessDevices.push({
-              macAddress: normalizedMac,
-              name: `Device-${mac.slice(-5)}`,
-              ipAddress: '',
-              deviceType: 'unknown',
-              isOnline: true,
-              connectionType: 'wireless',
-              wirelessBand: bandMap[iface] || 'Unknown',
-              hostname: ''
             });
           }
         }
