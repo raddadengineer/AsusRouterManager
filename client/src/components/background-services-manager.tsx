@@ -72,7 +72,7 @@ export default function BackgroundServicesManager() {
   ];
 
   const { data: backendJobs, isLoading, refetch } = useQuery<BackgroundJob[]>({
-    queryKey: ["/api/background/jobs"],
+    queryKey: ["/api/background-services"],
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
@@ -131,7 +131,7 @@ export default function BackgroundServicesManager() {
       setEditingJobId(null);
       setEditCronExpression('');
       // Force immediate refresh of the background jobs data
-      queryClient.invalidateQueries({ queryKey: ["/api/background/jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/background-services"] });
       refetch();
     },
     onError: (error, { jobId }) => {
