@@ -91,6 +91,111 @@ export default function Dashboard() {
       <div className="p-6">
         <div className="space-y-6">
 
+      {/* Device Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Cpu className="h-5 w-5 text-orange-600" />
+            <span>Device Overview</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* CPU Usage */}
+            <div className="text-center p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+              <div className="flex items-center justify-center mb-3">
+                <Cpu className="h-8 w-8 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
+                {statusLoading ? (
+                  <Skeleton className="h-8 w-12 mx-auto" />
+                ) : (
+                  `${routerStatus?.cpuUsage?.toFixed(1) || '0.0'}%`
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground mb-2">CPU Usage</div>
+              {!statusLoading && (
+                <Progress 
+                  value={routerStatus?.cpuUsage || 0} 
+                  className="h-2"
+                />
+              )}
+            </div>
+
+            {/* Memory Usage */}
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <div className="flex items-center justify-center mb-3">
+                <HardDrive className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                {statusLoading ? (
+                  <Skeleton className="h-8 w-16 mx-auto" />
+                ) : (
+                  `${routerStatus ? ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100).toFixed(1) : '0.0'}%`
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground mb-2">Memory Usage</div>
+              {!statusLoading && (
+                <>
+                  <div className="text-xs text-muted-foreground mb-2">
+                    {((routerStatus?.memoryUsage || 0) * 1024).toFixed(0)}MB / {((routerStatus?.memoryTotal || 0) * 1024).toFixed(0)}MB
+                  </div>
+                  <Progress 
+                    value={routerStatus ? (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100 : 0} 
+                    className="h-2"
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Network Usage */}
+            <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+              <div className="flex items-center justify-center mb-3">
+                <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
+                {devicesLoading ? (
+                  <Skeleton className="h-8 w-16 mx-auto" />
+                ) : (
+                  `${totalNetworkUsage.toFixed(1)}`
+                )}
+              </div>
+              <div className="text-sm text-muted-foreground mb-2">Network Usage</div>
+              <div className="text-xs text-muted-foreground mb-2">MB/s</div>
+              {!devicesLoading && (
+                <Progress 
+                  value={Math.min((totalNetworkUsage / 100) * 100, 100)} 
+                  className="h-2"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Device Status Bar */}
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Device Performance</span>
+              <span className="text-xs text-muted-foreground">
+                Temperature: {routerStatus?.temperature ? `${routerStatus.temperature.toFixed(1)}°C` : 'N/A'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${(routerStatus?.cpuUsage || 0) < 80 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span>CPU Normal</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${routerStatus ? ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 90 ? 'bg-green-500' : 'bg-red-500' : 'bg-gray-400'}`}></div>
+                <span>Memory OK</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${totalNetworkUsage < 50 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                <span>Network Active</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Network Overview */}
       <Card className="mb-6">
