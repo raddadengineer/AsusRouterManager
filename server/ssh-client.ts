@@ -609,6 +609,7 @@ export class SSHClient {
     try {
       const networks: any[] = [];
       
+      // Get main networks
       const wlInterfaces = await this.executeCommand("nvram show | grep '^wl[0-9]_ssid=' | cut -d'=' -f1 | sed 's/_ssid//'");
       const interfaces = wlInterfaces.split('\n').filter(iface => iface.trim());
       
@@ -624,11 +625,46 @@ export class SSHClient {
             ssid: ssid.trim(),
             band,
             enabled: enabled.trim() === '1',
-            interface: iface.trim()
+            interface: iface.trim(),
+            isGuest: false
           });
         } catch (error) {
           console.error(`Error getting WiFi info for ${iface}:`, error);
         }
+      }
+
+      // Get guest networks using improved detection
+      try {
+        const guestEnabled = await this.executeCommand("nvram show | grep -iE 'wl[0-2]\\.[1-3]_bss_enabled'");
+        const guestSSIDs = await this.executeCommand("nvram show | grep -i 'ssid=' | grep -i guest");
+        
+        const guestLines = guestEnabled.split('\n').filter(line => line.includes('=1'));
+        
+        for (const line of guestLines) {
+          const match = line.match(/wl([0-2])\.([1-3])_bss_enabled=1/);
+          if (match) {
+            const radio = match[1];
+            const guestIndex = match[2];
+            const guestInterface = `wl${radio}.${guestIndex}`;
+            
+            try {
+              const guestSSID = await this.executeCommand(`nvram get ${guestInterface}_ssid`);
+              const band = radio === '0' ? '2.4GHz' : radio === '1' ? '5GHz' : '6GHz';
+              
+              networks.push({
+                ssid: guestSSID.trim(),
+                band,
+                enabled: true,
+                interface: guestInterface,
+                isGuest: true
+              });
+            } catch (error) {
+              console.error(`Error getting guest network info for ${guestInterface}:`, error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error getting guest networks:', error);
       }
       
       return networks;
