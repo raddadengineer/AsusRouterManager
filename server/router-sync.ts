@@ -182,7 +182,7 @@ export class RouterSyncService {
           ssid: network.ssid || "Unknown Network",
           band: network.band || "2.4GHz",
           channel: network.channel || 0,
-          enabled: network.enabled ?? true,
+          isEnabled: network.enabled ?? true,
           securityMode: network.security || "WPA2",
           connectedDevices: network.connectedClients || 0
         });

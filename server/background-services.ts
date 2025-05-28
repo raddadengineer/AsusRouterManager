@@ -283,7 +283,7 @@ class BackgroundServiceManager {
             const newNetwork = {
               ssid: network.ssid || "Unknown Network",
               band: network.band || "2.4GHz",
-              enabled: network.enabled ?? true,
+              isEnabled: network.enabled ?? true,
               channel: network.channel || 0,
               securityMode: network.security || "WPA2",
               connectedDevices: network.connectedClients || 0,
