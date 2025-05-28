@@ -6,7 +6,12 @@ export const routerStatus = pgTable("router_status", {
   id: serial("id").primaryKey(),
   model: text("model").notNull(),
   firmware: text("firmware").notNull(),
+  serialNumber: text("serial_number"),
+  hostname: text("hostname"),
   ipAddress: text("ip_address").notNull(),
+  externalIpAddress: text("external_ip_address"),
+  lanMacAddress: text("lan_mac_address"),
+  wanMacAddress: text("wan_mac_address"),
   uptime: integer("uptime").notNull(), // in seconds
   cpuUsage: real("cpu_usage").notNull(),
   memoryUsage: real("memory_usage").notNull(),
@@ -17,6 +22,13 @@ export const routerStatus = pgTable("router_status", {
   loadAverage: text("load_average"), // 1min, 5min, 15min averages
   cpuCores: integer("cpu_cores"), // number of CPU cores
   cpuModel: text("cpu_model"), // CPU model name
+  ssid24: text("ssid_24"), // 2.4GHz SSID
+  ssid5: text("ssid_5"), // 5GHz SSID
+  ssid6: text("ssid_6"), // 6GHz SSID
+  aimeshMode: text("aimesh_mode"),
+  associatedInterfaces: text("associated_interfaces"),
+  usbDevices: text("usb_devices"),
+  connectedClientsCount: integer("connected_clients_count"),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
@@ -99,52 +111,46 @@ export const routerFeatures = pgTable("router_features", {
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
-// Dedicated AiMesh Nodes table for authentic node data
 export const aimeshNodes = pgTable("aimesh_nodes", {
   id: serial("id").primaryKey(),
   macAddress: text("mac_address").notNull().unique(),
-  hostname: text("hostname").notNull(),
   ipAddress: text("ip_address").notNull(),
-  nodeType: text("node_type").notNull(), // "master" or "satellite"
-  isOnline: boolean("is_online").notNull().default(true),
-  signalStrength: integer("signal_strength"), // RSSI for satellite nodes
-  connectionInfo: text("connection_info"), // backhaul type (wired/wireless)
-  model: text("model"), // device model
-  firmware: text("firmware"), // firmware version
-  uptime: integer("uptime"), // seconds since boot
+  hostname: text("hostname"),
+  model: text("model"),
+  firmware: text("firmware"),
+  status: text("status").default("online"), // online, offline, connecting
+  connectionType: text("connection_type"), // ethernet, wireless, powerline
+  signalStrength: integer("signal_strength"), // for wireless connections
+  uptime: integer("uptime"), // seconds
+  clientCount: integer("client_count").default(0),
   lastSeen: timestamp("last_seen").defaultNow(),
-  discoveredAt: timestamp("discovered_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const clientAssociations = pgTable("client_associations", {
+  id: serial("id").primaryKey(),
+  deviceMac: text("device_mac").notNull(),
+  interface: text("interface").notNull(), // eth6, eth7, etc.
+  signalStrength: integer("signal_strength"), // RSSI in dBm
+  timestamp: timestamp("timestamp").defaultNow(),
 });
 
 export const deviceGroups = pgTable("device_groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  color: text("color").default("#3B82F6"), // Hex color
-  icon: text("icon").default("devices"),
+  color: text("color"),
+  icon: text("icon"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const deviceTags = pgTable("device_tags", {
+export const deviceGroupAssignments = pgTable("device_group_assignments", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  color: text("color").default("#6B7280"), // Hex color
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const deviceGroupMemberships = pgTable("device_group_memberships", {
-  id: serial("id").primaryKey(),
-  deviceId: integer("device_id").references(() => connectedDevices.id, { onDelete: "cascade" }),
-  groupId: integer("group_id").references(() => deviceGroups.id, { onDelete: "cascade" }),
+  deviceId: integer("device_id"),
+  groupId: integer("group_id"),
   addedAt: timestamp("added_at").defaultNow(),
-});
-
-export const deviceTagAssignments = pgTable("device_tag_assignments", {
-  id: serial("id").primaryKey(),
-  deviceId: integer("device_id").references(() => connectedDevices.id, { onDelete: "cascade" }),
-  tagId: integer("tag_id").references(() => deviceTags.id, { onDelete: "cascade" }),
-  assignedAt: timestamp("assigned_at").defaultNow(),
 });
 
 // Insert schemas
