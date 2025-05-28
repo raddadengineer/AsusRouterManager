@@ -202,13 +202,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {connectedDevices?.filter(device => 
-                      device.connectionType?.includes('wifi') || 
-                      device.connectionType?.includes('WiFi') ||
-                      device.connectionType?.includes('2.4GHz') ||
-                      device.connectionType?.includes('5GHz') ||
-                      device.connectionType?.includes('6GHz')
-                    ).length || 0}
+                    {connectedDevices?.filter(device => device.connectionType?.includes('wifi') || device.connectionType?.includes('WiFi')).length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Wireless Devices</div>
                 </div>
