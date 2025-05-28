@@ -702,9 +702,9 @@ export class SSHClient {
       let vpnConnectedClients = 0;
       
       try {
-        // Check all VPN server instances
-        const vpnServers = await this.executeCommand("nvram show | grep -i 'vpn_server[0-9]_enable'");
-        vpnServerEnabled = vpnServers.includes('=1');
+        // Check all VPN server instances (use more targeted command to avoid buffer overflow)
+        const vpnServers = await this.executeCommand("nvram get vpn_server1_enable; nvram get vpn_server2_enable 2>/dev/null || echo '0'");
+        vpnServerEnabled = vpnServers.includes('1');
         
         // Check VPN daemon status
         const vpnDaemons = await this.executeCommand("ps | grep -E 'openvpn|pptpd' | grep -v grep");

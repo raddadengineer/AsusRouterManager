@@ -134,16 +134,22 @@ export class MemStorage implements IStorage {
 
   private loadSSHConfigFromFile() {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const configPath = path.join(process.cwd(), 'ssh-config.json');
-      
-      if (fs.existsSync(configPath)) {
-        const configData = fs.readFileSync(configPath, 'utf8');
-        const encryptedConfig = JSON.parse(configData);
-        // Decrypt the SSH configuration on load
-        this.sshConfiguration = decryptSSHConfig(encryptedConfig);
-      }
+      import('fs').then(async fs => {
+        import('path').then(async path => {
+          const configPath = path.join(process.cwd(), 'ssh-config.json');
+          
+          if (fs.existsSync(configPath)) {
+            const configData = fs.readFileSync(configPath, 'utf8');
+            const encryptedConfig = JSON.parse(configData);
+            // Decrypt the SSH configuration on load
+            this.sshConfiguration = decryptSSHConfig(encryptedConfig);
+          }
+        }).catch(() => {
+          // Path module not available
+        });
+      }).catch(() => {
+        // FS module not available, skip file operations
+      });
     } catch (error) {
       console.error('Failed to load SSH config:', error);
       // Clear corrupted config and start fresh
@@ -153,15 +159,21 @@ export class MemStorage implements IStorage {
 
   private saveSSHConfigToFile() {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const configPath = path.join(process.cwd(), 'ssh-config.json');
-      
-      if (this.sshConfiguration) {
-        // Encrypt SSH configuration before saving to disk
-        const encryptedConfig = encryptSSHConfig(this.sshConfiguration);
-        fs.writeFileSync(configPath, JSON.stringify(encryptedConfig, null, 2));
-      }
+      import('fs').then(async fs => {
+        import('path').then(async path => {
+          const configPath = path.join(process.cwd(), 'ssh-config.json');
+          
+          if (this.sshConfiguration) {
+            // Encrypt SSH configuration before saving to disk
+            const encryptedConfig = encryptSSHConfig(this.sshConfiguration);
+            fs.writeFileSync(configPath, JSON.stringify(encryptedConfig, null, 2));
+          }
+        }).catch(() => {
+          // Path module not available
+        });
+      }).catch(() => {
+        // FS module not available, skip file operations
+      });
     } catch (error) {
       console.error('Failed to save SSH config:', error);
     }
