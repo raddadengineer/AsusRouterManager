@@ -328,7 +328,7 @@ export default function BackgroundServicesManager() {
                           <div className="space-y-2">
                             {getJobDetails(job.id).scripts.map((script, index) => (
                               <div key={index} className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg font-mono text-sm">
-                                <code>{script}</code>
+                                <code className="text-gray-800 dark:text-gray-200">{script}</code>
                               </div>
                             ))}
                           </div>
