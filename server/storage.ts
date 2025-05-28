@@ -13,6 +13,8 @@ import {
   InsertSSHConfig,
   RouterFeatures,
   InsertRouterFeatures,
+  AiMeshNode,
+  InsertAiMeshNode,
   DeviceGroup,
   InsertDeviceGroup,
   DeviceTag,
@@ -28,6 +30,7 @@ import {
   bandwidthData,
   sshConfig,
   routerFeatures,
+  aimeshNodes,
   deviceGroups,
   deviceTags,
   deviceGroupMemberships,
@@ -76,6 +79,14 @@ export interface IStorage {
   // Router Features
   getRouterFeatures(): Promise<RouterFeatures | undefined>;
   updateRouterFeatures(features: InsertRouterFeatures): Promise<RouterFeatures>;
+
+  // AiMesh Nodes
+  getAiMeshNodes(): Promise<AiMeshNode[]>;
+  getAiMeshNode(id: number): Promise<AiMeshNode | undefined>;
+  getAiMeshNodeByMac(macAddress: string): Promise<AiMeshNode | undefined>;
+  createAiMeshNode(node: InsertAiMeshNode): Promise<AiMeshNode>;
+  updateAiMeshNode(id: number, node: Partial<InsertAiMeshNode>): Promise<AiMeshNode | undefined>;
+  deleteAiMeshNode(id: number): Promise<boolean>;
 
   // Device Groups
   getDeviceGroups(): Promise<DeviceGroup[]>;
@@ -748,6 +759,56 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  // AiMesh Nodes Implementation
+  async getAiMeshNodes(): Promise<AiMeshNode[]> {
+    return await db.select().from(aimeshNodes).orderBy(aimeshNodes.nodeType, aimeshNodes.hostname);
+  }
+
+  async getAiMeshNode(id: number): Promise<AiMeshNode | undefined> {
+    const [node] = await db.select().from(aimeshNodes).where(eq(aimeshNodes.id, id));
+    return node || undefined;
+  }
+
+  async getAiMeshNodeByMac(macAddress: string): Promise<AiMeshNode | undefined> {
+    const [node] = await db.select().from(aimeshNodes).where(eq(aimeshNodes.macAddress, macAddress.toLowerCase()));
+    return node || undefined;
+  }
+
+  async createAiMeshNode(node: InsertAiMeshNode): Promise<AiMeshNode> {
+    const [created] = await db
+      .insert(aimeshNodes)
+      .values({
+        ...node,
+        macAddress: node.macAddress.toLowerCase(),
+        lastSeen: new Date(),
+        discoveredAt: new Date(),
+      })
+      .returning();
+    return created;
+  }
+
+  async updateAiMeshNode(id: number, node: Partial<InsertAiMeshNode>): Promise<AiMeshNode | undefined> {
+    const updateData = { ...node };
+    if (updateData.macAddress) {
+      updateData.macAddress = updateData.macAddress.toLowerCase();
+    }
+    
+    const [updated] = await db
+      .update(aimeshNodes)
+      .set({
+        ...updateData,
+        lastSeen: new Date(),
+      })
+      .where(eq(aimeshNodes.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteAiMeshNode(id: number): Promise<boolean> {
+    const result = await db.delete(aimeshNodes).where(eq(aimeshNodes.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Device Groups Implementation

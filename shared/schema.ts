@@ -99,6 +99,23 @@ export const routerFeatures = pgTable("router_features", {
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 
+// Dedicated AiMesh Nodes table for authentic node data
+export const aimeshNodes = pgTable("aimesh_nodes", {
+  id: serial("id").primaryKey(),
+  macAddress: text("mac_address").notNull().unique(),
+  hostname: text("hostname").notNull(),
+  ipAddress: text("ip_address").notNull(),
+  nodeType: text("node_type").notNull(), // "master" or "satellite"
+  isOnline: boolean("is_online").notNull().default(true),
+  signalStrength: integer("signal_strength"), // RSSI for satellite nodes
+  connectionInfo: text("connection_info"), // backhaul type (wired/wireless)
+  model: text("model"), // device model
+  firmware: text("firmware"), // firmware version
+  uptime: integer("uptime"), // seconds since boot
+  lastSeen: timestamp("last_seen").defaultNow(),
+  discoveredAt: timestamp("discovered_at").defaultNow(),
+});
+
 export const deviceGroups = pgTable("device_groups", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -166,6 +183,12 @@ export const insertRouterFeaturesSchema = createInsertSchema(routerFeatures).omi
   lastUpdated: true,
 });
 
+export const insertAiMeshNodeSchema = createInsertSchema(aimeshNodes).omit({
+  id: true,
+  lastSeen: true,
+  discoveredAt: true,
+});
+
 export const insertDeviceGroupSchema = createInsertSchema(deviceGroups).omit({
   id: true,
   createdAt: true,
@@ -208,6 +231,9 @@ export type InsertSSHConfig = z.infer<typeof insertSSHConfigSchema>;
 
 export type RouterFeatures = typeof routerFeatures.$inferSelect;
 export type InsertRouterFeatures = z.infer<typeof insertRouterFeaturesSchema>;
+
+export type AiMeshNode = typeof aimeshNodes.$inferSelect;
+export type InsertAiMeshNode = z.infer<typeof insertAiMeshNodeSchema>;
 
 export type DeviceGroup = typeof deviceGroups.$inferSelect;
 export type InsertDeviceGroup = z.infer<typeof insertDeviceGroupSchema>;
