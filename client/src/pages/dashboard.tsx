@@ -25,6 +25,7 @@ import {
   ArrowRight,
   Network,
   Users,
+  Router,
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -275,7 +276,7 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Router className="h-5 w-5 text-blue-600" />
+              <Network className="h-5 w-5 text-blue-600" />
               <span>Router Information</span>
             </CardTitle>
           </CardHeader>
