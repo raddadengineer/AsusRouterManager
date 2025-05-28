@@ -134,22 +134,9 @@ export class RouterSyncService {
       const wirelessMacs = new Set<string>();
       const wirelessDevices: any[] = [];
       
-      // Use your enhanced one-liner for wireless device discovery
-      const wirelessResult = await sshClient.executeCommand(`
-        for iface in $(nvram get sta_ifnames); do
-          echo "--- \$iface ---"
-          for mac in \$(wl -i \$iface assoclist 2>/dev/null); do
-            if [ -n "\$mac" ] && [[ \$mac =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\$ ]]; then
-              dhcp_info=\$(cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "\$mac")
-              if [ -n "\$dhcp_info" ]; then
-                echo "\$iface|\$mac|\$dhcp_info"
-              else
-                echo "\$iface|\$mac|not_found"
-              fi
-            fi
-          done
-        done
-      `);
+      // Use your improved wireless discovery command with better MAC extraction
+      const wirelessCommand = 'LEASE_FILE="/var/lib/misc/dnsmasq.leases"; for iface in $(nvram get sta_ifnames); do echo "--- $iface ---"; wl -i "$iface" assoclist 2>/dev/null | tail -n +2 | grep -Eoi "([0-9a-f]{2}:){5}[0-9a-f]{2}" | while read mac; do ip=$(awk -v m="$mac" "tolower($2)==tolower(m) {print $3, $4}" "$LEASE_FILE"); echo "$iface|$mac|${ip:-IP not found}"; done; done';
+      const wirelessResult = await sshClient.executeCommand(wirelessCommand);
       
       const bandMap: { [key: string]: string } = {
         'eth6': '2.4GHz',
@@ -228,7 +215,12 @@ export class RouterSyncService {
         }
       }
       
-      console.log(`Found ${wirelessDevices.length} wireless and ${allDevices.length - wirelessDevices.length} wired devices`);
+      // Calculate device counts using your math: wired = total - wireless
+      const totalDeviceCount = allDevices.length;
+      const wirelessDeviceCount = wirelessDevices.length;
+      const wiredDeviceCount = totalDeviceCount - wirelessDeviceCount;
+      
+      console.log(`Device count summary: ${totalDeviceCount} total, ${wirelessDeviceCount} wireless, ${wiredDeviceCount} wired`);
       
       // Get existing devices to avoid duplicates
       const existingDevices = await storage.getConnectedDevices();

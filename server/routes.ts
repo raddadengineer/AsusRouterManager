@@ -98,6 +98,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Device count summary using your math: wired = total - wireless
+  app.get("/api/devices/counts", async (req, res) => {
+    try {
+      const allDevices = await storage.getConnectedDevices();
+      const wirelessDevices = allDevices.filter(device => 
+        device.connectionType === 'wireless' || 
+        device.connectionType === '2.4GHz WiFi' || 
+        device.connectionType === '5GHz WiFi' || 
+        device.connectionType === '6GHz WiFi'
+      );
+      
+      const totalCount = allDevices.length;
+      const wirelessCount = wirelessDevices.length;
+      const wiredCount = totalCount - wirelessCount;  // Your exact math formula
+      
+      res.json({
+        total: totalCount,
+        wireless: wirelessCount,
+        wired: wiredCount,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching device counts:", error);
+      res.status(500).json({ message: "Failed to fetch device counts" });
+    }
+  });
+
   app.get("/api/devices/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -475,7 +502,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meshCommands = [
         `{ [ -f /etc/dnsmasq.leases ] && cat /etc/dnsmasq.leases || cat /var/lib/misc/dnsmasq.leases; } 2>/dev/null | grep -Ei "aimesh|rt-|rp-|asus"`, // Your improved AiMesh discovery
         `echo "Model: $(nvram get productid)"; echo "Firmware: $(nvram get firmware_version)"; echo "LAN IP: $(nvram get lan_ipaddr)"; echo "LAN MAC: $(nvram get lan_hwaddr)"; echo "WAN IP: $(nvram get wan0_ipaddr)"; echo "SSID 2.4GHz: $(nvram get wl0_ssid)"; echo "SSID 5GHz: $(nvram get wl1_ssid)"; echo "SSID 6GHz: $(nvram get wl2_ssid)"`, // Comprehensive router info
-        `LEASE_FILE="/var/lib/misc/dnsmasq.leases"; for iface in $(nvram get sta_ifnames); do wl -i $iface assoclist 2>/dev/null | tail -n +2; done | sed 's/^.*\\(..:..:..:..:..:..\).*$/\\1/' | while read mac; do ip=$(awk -v mac="$mac" 'tolower($2) == tolower(mac) { print $3, $4 }' "$LEASE_FILE"); if [ -n "$ip" ]; then echo "$mac → $ip"; else echo "$mac → IP not found"; fi; done` // Your reliable wireless device discovery with MAC-to-IP mapping
+        `LEASE_FILE="/var/lib/misc/dnsmasq.leases"; for iface in $(nvram get sta_ifnames); do wl -i "$iface" assoclist 2>/dev/null | tail -n +2; done | grep -Eoi "([0-9a-f]{2}:){5}[0-9a-f]{2}" | while read mac; do ip=$(awk -v m="$mac" "tolower(\\$2)==tolower(m) {print \\$3, \\$4}" "$LEASE_FILE"); echo "$mac → \${ip:-IP not found}"; done` // Your improved wireless discovery with better MAC extraction
       ];
       
       const meshResults = await Promise.all(
