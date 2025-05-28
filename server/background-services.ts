@@ -382,14 +382,14 @@ class BackgroundServiceManager {
       if (associations) {
         const lines = associations.split('\n').filter(line => line.trim());
         for (const line of lines) {
-          const [mac, interface, signal, timestamp] = line.split('\t');
-          if (mac && interface) {
+          const [mac, wirelessInterface, signal, timestamp] = line.split('\t');
+          if (mac && wirelessInterface) {
             // Update device with current association info
             const devices = await storage.getConnectedDevices();
             const device = devices.find(d => d.macAddress === mac);
             if (device) {
               await storage.updateConnectedDevice(device.id, {
-                wirelessInterface: interface,
+                wirelessInterface: wirelessInterface,
                 signalStrength: signal ? parseInt(signal) : null,
                 lastSeen: new Date(parseInt(timestamp) * 1000)
               });
