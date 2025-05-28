@@ -598,18 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const liveNodes = await sshClient.getAiMeshNodes();
-        `LEASE_FILE="/var/lib/misc/dnsmasq.leases"; echo -e "mac_address\\tip_address\\thostname"; for iface in $(nvram get sta_ifnames); do wl -i "$iface" assoclist 2>/dev/null | tail -n +2; done | grep -Eoi "([0-9a-f]{2}:){5}[0-9a-f]{2}" | while read mac; do entry=$(awk -v m="$mac" 'tolower($2)==tolower(m) {print $4 "\\t" ($3=="*" ? "" : $3)}' "$LEASE_FILE"); if [ -n "$entry" ]; then echo -e "$mac\\t$entry"; else echo -e "$mac\\t\\t"; fi; done` // Your normalized tab-separated wireless discovery
-      ];
-      
-      const meshResults = await Promise.all(
-        meshCommands.map(cmd => sshClient.executeCommand(cmd).catch(err => `Error: ${err.message}`))
-      );
-      
-      const [aimeshDhcpNodes, comprehensiveRouterInfo, nvramClientList, wirelessDevices] = meshResults;
-      
-      // Parse comprehensive router information from your enhanced command
-      const routerInfo: any = {};
-      if (comprehensiveRouterInfo && !comprehensiveRouterInfo.includes('Error:')) {
+      res.json(liveNodes);
         const infoLines = comprehensiveRouterInfo.split('\n');
         infoLines.forEach(line => {
           if (line.includes('Model:')) routerInfo.model = line.split('Model:')[1]?.trim();
