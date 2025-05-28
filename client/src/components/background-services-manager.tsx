@@ -235,7 +235,7 @@ export default function BackgroundServicesManager() {
               <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="font-medium">{getJobDisplayName(job.id)}</h3>
+                    <h3 className="font-medium text-foreground">{getJobDisplayName(job.id)}</h3>
                     {getStatusBadge(job)}
                   </div>
                   <p className="text-sm text-muted-foreground">
