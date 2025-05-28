@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlayCircle, Clock, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PlayCircle, Clock, CheckCircle, AlertCircle, RefreshCw, Info, Code, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -117,6 +118,103 @@ export default function BackgroundServicesManager() {
     }
   };
 
+  const getJobDetails = (jobId: string) => {
+    const details = {
+      'device-discovery': {
+        purpose: 'Scans your network to discover and track connected devices',
+        scripts: [
+          'cat /proc/net/arp | grep -v "00:00:00:00:00:00" | wc -l',
+          'arp -a | grep -E "([0-9a-f]{2}:){5}[0-9a-f]{2}"',
+          'brctl showmacs br0 | tail -n +2'
+        ],
+        dataCollected: [
+          'Device MAC addresses and IP assignments',
+          'Device hostnames and connection types',
+          'Online/offline status for each device',
+          'Connection timestamps and last seen data'
+        ],
+        databaseTables: ['connected_devices'],
+        frequency: 'Every 2 minutes'
+      },
+      'device-detail-sync': {
+        purpose: 'Enriches device information with detailed connection data',
+        scripts: [
+          'wl -i wl0 assoclist | head -20',
+          'wl -i wl1 assoclist | head -20', 
+          'cat /tmp/dhcp.leases',
+          'ifconfig wl0 | grep "inet addr"'
+        ],
+        dataCollected: [
+          'Wireless signal strength (RSSI)',
+          'Connection bandwidth and speeds',
+          'Device manufacturer identification',
+          'Wireless band assignments (2.4GHz/5GHz/6GHz)'
+        ],
+        databaseTables: ['connected_devices'],
+        frequency: 'Every 3 minutes'
+      },
+      'bandwidth-monitoring': {
+        purpose: 'Tracks network traffic and bandwidth usage in real-time',
+        scripts: [
+          'cat /proc/net/dev | grep br0',
+          'iftop -n -t -s 10 2>/dev/null | head -20',
+          'cat /tmp/bwdpi/bwdpi.app.db'
+        ],
+        dataCollected: [
+          'Download and upload speeds',
+          'Total data transferred',
+          'Per-device bandwidth usage',
+          'Network throughput statistics'
+        ],
+        databaseTables: ['bandwidth_data'],
+        frequency: 'Every 30 seconds'
+      },
+      'router-health-check': {
+        purpose: 'Monitors router system status and WiFi network configuration',
+        scripts: [
+          'for i in $(nvram get wl_ifnames); do if ifconfig "$i" 2>/dev/null | grep -q "UP"; then echo "$i"; fi; done | wc -l',
+          'ifconfig | cut -d \' \' -f1 | grep -E \'^wl[0-9]+\\.[1-3]$\' | xargs -n1 -I{} sh -c \'if ifconfig {} | grep -q "UP"; then echo {}; fi\' | wc -l',
+          'cat /proc/cpuinfo | grep "cpu MHz"',
+          'free -m | grep Mem',
+          'uptime | awk \'{print $3$4}\''
+        ],
+        dataCollected: [
+          'Active WiFi network count (your optimized script)',
+          'Active guest network count (your improved script)', 
+          'Router CPU and memory usage',
+          'System uptime and temperature',
+          'Router feature status (VPN, QoS, AI Protection)'
+        ],
+        databaseTables: ['router_status', 'router_features'],
+        frequency: 'Every 5 minutes'
+      },
+      'wifi-network-scan': {
+        purpose: 'Discovers and analyzes WiFi networks and their configurations',
+        scripts: [
+          'nvram show | grep ssid',
+          'wl scanresults | head -50',
+          'iwlist scan | grep ESSID'
+        ],
+        dataCollected: [
+          'Available WiFi networks and signal strength',
+          'Network security configurations',
+          'Channel assignments and interference',
+          'Guest network configurations'
+        ],
+        databaseTables: ['wifi_networks'],
+        frequency: 'Every 10 minutes'
+      }
+    };
+    
+    return details[jobId as keyof typeof details] || {
+      purpose: 'Background service details not available',
+      scripts: [],
+      dataCollected: [],
+      databaseTables: [],
+      frequency: 'Unknown'
+    };
+  };
+
   const getJobDisplayName = (jobId: string) => {
     const jobNames: { [key: string]: string } = {
       'device-discovery': 'Device Discovery',
@@ -194,16 +292,114 @@ export default function BackgroundServicesManager() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => runJobMutation.mutate(job.id)}
-                  disabled={runJobMutation.isPending}
-                  className="ml-4"
-                >
-                  <PlayCircle className={`h-4 w-4 mr-2 ${runJobMutation.isPending ? 'animate-spin' : ''}`} />
-                  {runJobMutation.isPending ? 'Running...' : 'Run Now'}
-                </Button>
+                <div className="flex space-x-2 ml-4">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Info className="h-4 w-4 mr-2" />
+                        Details
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center space-x-2">
+                          <Code className="h-5 w-5" />
+                          <span>{getJobDisplayName(job.id)} - Technical Details</span>
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-6">
+                        {/* Purpose */}
+                        <div>
+                          <h3 className="font-semibold mb-2 flex items-center">
+                            <Info className="h-4 w-4 mr-2 text-blue-500" />
+                            Purpose
+                          </h3>
+                          <p className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
+                            {getJobDetails(job.id).purpose}
+                          </p>
+                        </div>
+
+                        {/* Scripts Being Executed */}
+                        <div>
+                          <h3 className="font-semibold mb-2 flex items-center">
+                            <Code className="h-4 w-4 mr-2 text-green-500" />
+                            Scripts & Commands
+                          </h3>
+                          <div className="space-y-2">
+                            {getJobDetails(job.id).scripts.map((script, index) => (
+                              <div key={index} className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg font-mono text-sm">
+                                <code>{script}</code>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Data Collected */}
+                        <div>
+                          <h3 className="font-semibold mb-2 flex items-center">
+                            <Database className="h-4 w-4 mr-2 text-purple-500" />
+                            Data Collected & Stored
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Information Gathered:</h4>
+                              <ul className="space-y-1 text-sm text-muted-foreground">
+                                {getJobDetails(job.id).dataCollected.map((data, index) => (
+                                  <li key={index} className="flex items-start">
+                                    <span className="w-2 h-2 bg-purple-500 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                    {data}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-medium mb-2">Database Tables:</h4>
+                              <div className="space-y-1">
+                                {getJobDetails(job.id).databaseTables.map((table, index) => (
+                                  <Badge key={index} variant="outline" className="mr-2 mb-1">
+                                    {table}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Execution Info */}
+                        <div className="bg-muted/50 p-4 rounded-lg">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Frequency:</span>
+                              <span className="ml-2 text-muted-foreground">{getJobDetails(job.id).frequency}</span>
+                            </div>
+                            <div>
+                              <span className="font-medium">Status:</span>
+                              <span className="ml-2">{getStatusBadge(job)}</span>
+                            </div>
+                            {job.lastRun && (
+                              <div className="col-span-2">
+                                <span className="font-medium">Last Execution:</span>
+                                <span className="ml-2 text-muted-foreground">
+                                  {new Date(job.lastRun).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => runJobMutation.mutate(job.id)}
+                    disabled={runJobMutation.isPending}
+                  >
+                    <PlayCircle className={`h-4 w-4 mr-2 ${runJobMutation.isPending ? 'animate-spin' : ''}`} />
+                    {runJobMutation.isPending ? 'Running...' : 'Run Now'}
+                  </Button>
+                </div>
               </div>
             ))
           ) : (
