@@ -80,7 +80,7 @@ export class SSHClient {
       const model = await this.executeCommand("nvram get productid");
       const firmware = await this.executeCommand("nvram get firmver");
       const uptime = await this.executeCommand("cat /proc/uptime | awk '{print $1}'");
-      const temperature = await this.executeCommand("cat /proc/dmu/temperature 2>/dev/null | head -1 || echo 'N/A'");
+      const temperature = await this.executeCommand("cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 'N/A'");
       const memInfo = await this.executeCommand("cat /proc/meminfo | grep -E 'MemTotal|MemFree'");
       const cpuInfo = await this.executeCommand("cat /proc/cpuinfo | grep -E 'model name|cpu cores' | head -2");
       const lanIp = await this.executeCommand("nvram get lan_ipaddr");
@@ -102,7 +102,7 @@ export class SSHClient {
         model: model.trim(),
         firmware: firmware.trim(),
         uptime: parseInt(uptime.trim()),
-        temperature: temperature.trim() === 'N/A' ? null : parseFloat(temperature.trim()),
+        temperature: temperature.trim() === 'N/A' ? null : parseFloat(temperature.trim()) / 1000, // Convert millidegrees to degrees
         memoryTotal: memTotal,
         memoryUsage: memUsed,
         cpuUsage: parseFloat(cpuUsage.trim()) || Math.random() * 25 + 10, // Real CPU usage from router
