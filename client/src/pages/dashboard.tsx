@@ -41,12 +41,12 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: wifiNetworks } = useQuery({
+  const { data: wifiNetworks } = useQuery<any[]>({
     queryKey: ["/api/wifi"],
     refetchInterval: 30000,
   });
 
-  const { data: routerFeatures } = useQuery({
+  const { data: routerFeatures } = useQuery<any>({
     queryKey: ["/api/router/features"],
     refetchInterval: 30000,
   });
