@@ -45,6 +45,11 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const { data: routerFeatures } = useQuery({
+    queryKey: ["/api/router/features"],
+    refetchInterval: 30000,
+  });
+
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
   const totalNetworkUsage = devices?.reduce((total, device) => 
@@ -202,7 +207,7 @@ export default function Dashboard() {
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {connectedDevices?.filter(device => device.connectionType?.includes('wifi') || device.connectionType?.includes('WiFi')).length || 0}
+                    {routerFeatures?.wirelessClientsTotal || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Wireless Devices</div>
                 </div>
@@ -220,7 +225,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
                     <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
-                      {connectedDevices?.filter(device => device.wirelessBand === '2.4GHz').length || 0}
+                      {routerFeatures?.wirelessClients24ghz || 0}
                     </div>
                     <div className="text-xs text-muted-foreground">2.4GHz</div>
                     <div className="flex justify-center mt-1">
@@ -240,7 +245,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
                     <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                      {connectedDevices?.filter(device => device.wirelessBand === '5GHz').length || 0}
+                      {routerFeatures?.wirelessClients5ghz || 0}
                     </div>
                     <div className="text-xs text-muted-foreground">5GHz</div>
                     <div className="flex justify-center mt-1">
@@ -260,7 +265,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-center p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-lg">
                     <div className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
-                      {connectedDevices?.filter(device => device.wirelessBand === '6GHz').length || 0}
+                      {routerFeatures?.wirelessClients6ghz || 0}
                     </div>
                     <div className="text-xs text-muted-foreground">6GHz</div>
                     <div className="flex justify-center mt-1">
