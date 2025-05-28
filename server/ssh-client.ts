@@ -549,14 +549,24 @@ export class SSHClient {
 
       if (!foundWireless) {
         try {
-          const neighCheck = await this.executeCommand(`ip neigh | grep -i "${macAddress}" | grep -q "br" && echo "wired" || echo ""`);
-          if (neighCheck.trim() === 'wired') {
+          const neighCheck = await this.executeCommand(`ip neigh show | grep -i "${macAddress}" || cat /proc/net/arp | grep -i "${macAddress}"`);
+          if (neighCheck.trim()) {
             deviceInfo.connectionType = 'ethernet';
             deviceInfo.isOnline = true;
           }
         } catch (error) {
           // Device might be offline
         }
+      }
+
+      // Check for AiMesh nodes
+      try {
+        const aimeshCheck = await this.executeCommand(`cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -Ei "RT-|RP-|AiMesh"`);
+        if (aimeshCheck.includes(macAddress)) {
+          deviceInfo.aimeshNode = 'AiMesh Node';
+        }
+      } catch (error) {
+        // Not an AiMesh node
       }
 
       return deviceInfo;
