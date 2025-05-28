@@ -504,12 +504,14 @@ export class SSHClient {
         // Device not in DHCP leases
       }
 
-      const wirelessInterfaces = ['wl0', 'wl1', 'wl2'];
+      // Get dynamic wireless interfaces from router
+      const ifaceListCommand = await this.executeCommand(`nvram get wl_ifnames`);
+      const wirelessInterfaces = ifaceListCommand.trim().split(/\s+/).filter(iface => iface);
       let foundWireless = false;
 
       for (const iface of wirelessInterfaces) {
         try {
-          const assocCheck = await this.executeCommand(`wl -i ${iface} assoclist | grep -iq "${macAddress}" && echo "found" || echo ""`);
+          const assocCheck = await this.executeCommand(`wl -i ${iface} assoclist 2>/dev/null | grep -iq "${macAddress}" && echo "found" || echo ""`);
           
           if (assocCheck.trim() === 'found') {
             foundWireless = true;

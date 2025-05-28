@@ -99,9 +99,12 @@ export class ImprovedSSHClient {
         # DHCP lease information
         grep -i "$MAC" /var/lib/misc/dnsmasq.leases
         
-        # Check wireless connection and band with your accurate method
-        for i in wl0 wl1 wl2; do 
-          wl -i $i assoclist | grep -iq "$MAC" && echo "$i (Wireless) | RSSI: $(wl -i $i rssi $MAC) dBm"
+        # Check wireless connection and band with improved dynamic method
+        for iface in \$(nvram get wl_ifnames); do
+          if wl -i \$iface assoclist 2>/dev/null | grep -iq "\$MAC"; then
+            RSSI=\$(wl -i \$iface rssi \$MAC 2>/dev/null)
+            echo "\$iface (Wireless) | RSSI: \${RSSI:-N/A} dBm"
+          fi
         done
         
         # Check if wired with your method
