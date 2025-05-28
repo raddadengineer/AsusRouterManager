@@ -271,97 +271,48 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
 
-        {/* Quick Actions */}
+        {/* Router Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <Router className="h-5 w-5 text-blue-600" />
+              <span>Router Information</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Button
-              variant="outline"
-              className="w-full justify-between h-auto p-4"
-              onClick={() => handleQuickAction('reboot')}
-            >
-              <div className="flex items-center space-x-3">
-                <Power className="h-4 w-4 text-red-500" />
-                <span>Reboot Router</span>
+          <CardContent>
+            {statusLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full justify-between h-auto p-4"
-              onClick={() => handleQuickAction('speed-test')}
-            >
-              <div className="flex items-center space-x-3">
-                <TestTube className="h-4 w-4 text-primary" />
-                <span>Run Speed Test</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full justify-between h-auto p-4"
-              onClick={() => handleQuickAction('firmware-update')}
-            >
-              <div className="flex items-center space-x-3">
-                <Download className="h-4 w-4 text-green-500" />
-                <span>Update Firmware</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full justify-between h-auto p-4"
-              onClick={() => handleQuickAction('backup')}
-            >
-              <div className="flex items-center space-x-3">
-                <Save className="h-4 w-4 text-yellow-500" />
-                <span>Backup Settings</span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </Button>
-
-            {/* Router Information */}
-            <div className="mt-8 p-4 bg-muted rounded-lg">
-              <h4 className="font-medium mb-3">Router Information</h4>
-              {statusLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-full" />
+            ) : (
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-muted-foreground font-medium">Model:</span>
+                  <span className="font-medium">{routerStatus?.model}</span>
                 </div>
-              ) : (
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Model:</span>
-                    <span>{routerStatus?.model}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Firmware:</span>
-                    <span>{routerStatus?.firmware}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">IP Address:</span>
-                    <span className="font-mono">{routerStatus?.ipAddress}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Uptime:</span>
-                    <span>{routerStatus ? formatUptime(routerStatus.uptime) : "N/A"}</span>
-                  </div>
-                  {routerStatus?.temperature && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Temperature:</span>
-                      <span>{routerStatus.temperature.toFixed(1)}°C</span>
-                    </div>
-                  )}
+                <div className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-muted-foreground font-medium">Firmware:</span>
+                  <span className="font-medium">{routerStatus?.firmware}</span>
                 </div>
-              )}
-            </div>
+                <div className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-muted-foreground font-medium">IP Address:</span>
+                  <span className="font-mono font-medium">{routerStatus?.ipAddress}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-border/50">
+                  <span className="text-muted-foreground font-medium">Uptime:</span>
+                  <span className="font-medium">{routerStatus ? formatUptime(routerStatus.uptime) : "N/A"}</span>
+                </div>
+                {routerStatus?.temperature && (
+                  <div className="flex justify-between py-2">
+                    <span className="text-muted-foreground font-medium">Temperature:</span>
+                    <span className="font-medium text-orange-600">{routerStatus.temperature.toFixed(1)}°C</span>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

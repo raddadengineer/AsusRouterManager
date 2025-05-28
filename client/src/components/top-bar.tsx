@@ -1,8 +1,17 @@
 import { useState } from "react";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, Settings, Power, TestTube, Download, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 interface TopBarProps {
   title?: string;
@@ -19,6 +28,7 @@ export default function TopBar({
 }: TopBarProps) {
   const [localSearchQuery, setLocalSearchQuery] = useState("");
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
+  const { toast } = useToast();
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -26,6 +36,35 @@ export default function TopBar({
       onSearch(query);
     } else {
       setLocalSearchQuery(query);
+    }
+  };
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'reboot':
+        toast({
+          title: "Router Reboot",
+          description: "Reboot command sent to router",
+        });
+        break;
+      case 'speed-test':
+        toast({
+          title: "Speed Test",
+          description: "Running network speed test...",
+        });
+        break;
+      case 'firmware-update':
+        toast({
+          title: "Firmware Update",
+          description: "Checking for firmware updates...",
+        });
+        break;
+      case 'backup':
+        toast({
+          title: "Backup Settings",
+          description: "Creating router configuration backup...",
+        });
+        break;
     }
   };
 
@@ -50,6 +89,36 @@ export default function TopBar({
             />
           </div>
           
+          {/* Quick Actions Gear Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleQuickAction('speed-test')}>
+                <TestTube className="mr-2 h-4 w-4 text-primary" />
+                Run Speed Test
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleQuickAction('firmware-update')}>
+                <Download className="mr-2 h-4 w-4 text-green-500" />
+                Update Firmware
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleQuickAction('backup')}>
+                <Save className="mr-2 h-4 w-4 text-yellow-500" />
+                Backup Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleQuickAction('reboot')} className="text-red-600">
+                <Power className="mr-2 h-4 w-4" />
+                Reboot Router
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {/* Notification Bell */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
