@@ -92,27 +92,7 @@ export default function Dashboard() {
         <div className="space-y-6">
           {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Connected Devices</h3>
-              <Users className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex items-end space-x-2">
-              {devicesLoading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <>
-                  <span className="text-2xl font-bold">{connectedDevicesCount}</span>
-                  <span className="text-green-500 text-sm flex items-center">
-                    <span className="mr-1">↑</span>
-                    {Math.max(0, connectedDevicesCount - 20)}
-                  </span>
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
 
         <Card>
           <CardContent className="p-6">
