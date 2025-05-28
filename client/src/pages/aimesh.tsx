@@ -425,7 +425,7 @@ export default function AiMeshPage() {
                       <Network className="h-5 w-5 text-blue-500" />
                       <div>
                         <p className="text-sm font-medium">DHCP Leases</p>
-                        <p className="text-xs text-muted-foreground">cat /tmp/dnsmasq.leases</p>
+                        <p className="text-xs text-muted-foreground">cat /var/lib/misc/dnsmasq.leases</p>
                       </div>
                     </div>
                   </Card>

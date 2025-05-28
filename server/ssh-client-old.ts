@@ -829,7 +829,7 @@ export class SSHClient {
       // Get DHCP leases and wired clients using your script approach
       const dhcpLeases = await this.executeCommand(`
         echo "===DHCP_LEASES_START==="
-        cat /tmp/dnsmasq.leases 2>/dev/null | while read -r lease; do
+        cat /var/lib/misc/dnsmasq.leases 2>/dev/null | while read -r lease; do
           MAC=$(echo "$lease" | awk '{print $2}')
           HOST=$(echo "$lease" | awk '{print $3}')
           IP=$(echo "$lease" | awk '{print $4}')
