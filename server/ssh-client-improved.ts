@@ -110,8 +110,8 @@ export class ImprovedSSHClient {
         # Check if wired with improved method
         ip neigh show | grep -i "$MAC" || cat /proc/net/arp | grep -i "$MAC"
         
-        # Check AiMesh Node with your instant lookup method
-        grep -i "$MAC" /tmp/sysinfo/mesh_status 2>/dev/null || grep -i "$MAC" /tmp/sysinfo/mesh_topology.json 2>/dev/null
+        # Check AiMesh Node with improved detection
+        cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -Ei "RT-|RP-|AiMesh"
       `;
 
       const result = await this.executeCommand(command);
