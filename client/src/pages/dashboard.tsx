@@ -148,7 +148,7 @@ export default function Dashboard() {
                   <Skeleton className="h-8 w-16" />
                 ) : (
                   <>
-                    <span className="text-2xl font-bold">{routerStatus?.cpuUsage.toFixed(0)}</span>
+                    <span className="text-2xl font-bold">{routerStatus?.cpuUsage?.toFixed(0) || '0'}</span>
                     <span className="text-sm text-muted-foreground">%</span>
                   </>
                 )}
