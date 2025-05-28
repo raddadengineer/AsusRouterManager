@@ -211,8 +211,8 @@ class BackgroundServiceManager {
     if (!sshClient.isConnectionActive()) return;
 
     try {
-      // Use your efficient one-liner for network interface statistics
-      const bandwidthCommand = `cat /proc/net/dev | grep -E "(eth|wl)" | awk '{rx=$2/1024/1024; tx=$10/1024/1024; gsub(":", "", $1); printf "%-8s RX: %.2f MB  TX: %.2f MB\\n", $1, rx, tx}'`;
+      // Use your comprehensive real-time traffic analysis command
+      const bandwidthCommand = `cat /proc/net/dev | grep -E "(eth|wl|br)" | awk '{gsub(":", "", $1); printf "%-8s RX: %.2f MB  TX: %.2f MB\\n", $1, $2/1024/1024, $10/1024/1024}'`;
       const bandwidthResult = await sshClient.executeCommand(bandwidthCommand);
       
       if (bandwidthResult) {
