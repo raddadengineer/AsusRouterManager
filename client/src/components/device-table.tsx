@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ConnectedDevice } from "@shared/schema";
+import { useSearch } from "@/hooks/use-search";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ const DeviceIcon = ({ type }: { type: string }) => {
 };
 
 export default function DeviceTable({ className, showSearch = true }: DeviceTableProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchQuery, setSearchQuery } = useSearch();
 
   const { data: devices, isLoading, refetch } = useQuery<ConnectedDevice[]>({
     queryKey: ["/api/devices"],

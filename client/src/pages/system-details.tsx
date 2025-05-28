@@ -53,22 +53,11 @@ export default function SystemDetailsPage() {
   const storageUsagePercent = routerStatus?.storageUsage && routerStatus?.storageTotal 
     ? (routerStatus.storageUsage / routerStatus.storageTotal) * 100 : 0;
 
-  // Calculate wireless clients from discovered devices and router features
-  const wirelessDevices = connectedDevices?.filter(device => 
-    device.connectionType?.includes('wireless') || 
-    device.deviceType === 'smartphone' || 
-    device.deviceType === 'tablet' || 
-    device.deviceType === 'mobile'
-  ) || [];
-
-  // Use router features data if available, otherwise calculate from discovered devices
-  const wifiClients24 = routerFeatures?.wirelessClients24ghz || 
-    wirelessDevices.filter(device => device.wirelessBand === '2.4GHz').length;
-  const wifiClients5 = routerFeatures?.wirelessClients5ghz || 
-    wirelessDevices.filter(device => device.wirelessBand === '5GHz').length;
-  const wifiClients6 = routerFeatures?.wirelessClients6ghz || 
-    wirelessDevices.filter(device => device.wirelessBand === '6GHz').length;
-  const totalWifiClients = wifiClients24 + wifiClients5 + wifiClients6;
+  // Use real wireless client data from router features
+  const wifiClients24 = routerFeatures?.wirelessClients?.band24ghz || 0;
+  const wifiClients5 = routerFeatures?.wirelessClients?.band5ghz || 0;
+  const wifiClients6 = routerFeatures?.wirelessClients?.band6ghz || 0;
+  const totalWifiClients = routerFeatures?.wirelessClients?.total || 0;
 
   return (
     <div>
