@@ -77,41 +77,129 @@ export class SSHClient {
     if (!this.isConnected) return null;
 
     try {
-      const model = await this.executeCommand("nvram get productid");
-      const firmware = await this.executeCommand("nvram get firmver");
-      const uptime = await this.executeCommand("cat /proc/uptime | awk '{print $1}'");
-      const temperature = await this.executeCommand("cat /proc/dmu/temperature 2>/dev/null | head -1 || echo 'N/A'");
-      const memInfo = await this.executeCommand("cat /proc/meminfo | grep -E 'MemTotal|MemFree'");
-      const cpuInfo = await this.executeCommand("cat /proc/cpuinfo | grep -E 'model name|cpu cores' | head -2");
-      const lanIp = await this.executeCommand("nvram get lan_ipaddr");
-      const wanIp = await this.executeCommand("nvram get wan0_ipaddr");
-      const cpuUsage = await this.executeCommand("top -bn1 | grep 'CPU:' | awk '{print $2}' | sed 's/%us//' || echo '0'");
+      console.log('Collecting comprehensive router details...');
+      
+      // Use your comprehensive router details command
+      const routerDetailsCmd = `
+        echo "==== ROUTER DETAILS ===="; \\
+        echo "Model: $(nvram get productid)"; \\
+        echo "Firmware: $(nvram get firmware_version)"; \\
+        echo "Serial Number: $(nvram get serialno)"; \\
+        echo "Hostname: $(nvram get computer_name)"; \\
+        echo "LAN IP: $(nvram get lan_ipaddr)"; \\
+        echo "WAN IP: $(nvram get wan0_ipaddr)"; \\
+        echo "External IP: $(nvram get wan0_realip_ip)"; \\
+        echo "LAN MAC: $(nvram get lan_hwaddr)"; \\
+        echo "WAN MAC: $(nvram get wan0_hwaddr)"; \\
+        echo "Uptime: $(uptime)"; \\
+        echo "Memory: $(awk '/MemTotal/ {t=\\$2} /MemAvailable/ {a=\\$2} END {printf \"Total: %.1f MB, Available: %.1f MB (%.1f%%)\", t/1024, a/1024, a*100/t}' /proc/meminfo)"; \\
+        echo "CPUs: $(grep -c processor /proc/cpuinfo), Load: $(cut -d ' ' -f 1-3 /proc/loadavg)"; \\
+        echo "Temperature: $(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 'N/A')"; \\
+        echo "SSID 2.4GHz: $(nvram get wl0_ssid)"; \\
+        echo "SSID 5GHz: $(nvram get wl1_ssid)"; \\
+        echo "SSID 6GHz: $(nvram get wl2_ssid)"; \\
+        echo "AiMesh Mode: $(nvram get amesh_mode)"; \\
+        echo "Associated Interfaces: $(nvram get sta_ifnames)"; \\
+        echo "USB Devices: $(ls /tmp/mnt/ 2>/dev/null | grep -v '^admin\\$' | xargs)"; \\
+        echo "Clients: $(cat /var/lib/misc/dnsmasq.leases 2>/dev/null | wc -l)"; \\
+        echo "CPU Model: $(cat /proc/cpuinfo | grep 'model name' | head -1 | cut -d: -f2)"; \\
+        echo "==="
+      `;
 
-      // Parse memory info
-      const memLines = memInfo.split('\n');
-      const memTotal = parseInt(memLines[0]?.match(/(\d+)/)?.[1] || '0') / 1024; // Convert to MB
-      const memFree = parseInt(memLines[1]?.match(/(\d+)/)?.[1] || '0') / 1024;
-      const memUsed = memTotal - memFree;
+      const result = await this.executeCommand(routerDetailsCmd);
+      console.log('Router details collected:', result);
 
-      // Parse CPU info
-      const cpuLines = cpuInfo.split('\n');
-      const cpuModel = cpuLines[0]?.split(':')[1]?.trim() || 'Unknown';
-      const cpuCores = parseInt(cpuLines[1]?.split(':')[1]?.trim() || '1');
+      // Parse the comprehensive structured output
+      const lines = result.split('\n');
+      const getValue = (key: string) => {
+        const line = lines.find(l => l.startsWith(key));
+        return line ? line.split(`${key} `)[1]?.trim() : '';
+      };
+
+      // Extract all router information
+      const model = getValue('Model:') || 'Unknown';
+      const firmware = getValue('Firmware:') || 'Unknown';
+      const serialNumber = getValue('Serial Number:') || null;
+      const hostname = getValue('Hostname:') || 'ASUS Router';
+      const lanIp = getValue('LAN IP:') || '192.168.1.1';
+      const wanIp = getValue('WAN IP:') || '';
+      const externalIp = getValue('External IP:') || null;
+      const lanMac = getValue('LAN MAC:') || null;
+      const wanMac = getValue('WAN MAC:') || null;
+
+      // Parse uptime from full uptime string
+      const uptimeStr = getValue('Uptime:');
+      let uptime = 0;
+      if (uptimeStr.includes('up')) {
+        const uptimeMatch = uptimeStr.match(/up\s+(?:(\d+)\s+days?,?\s*)?(?:(\d+):(\d+))?/);
+        if (uptimeMatch) {
+          const days = parseInt(uptimeMatch[1] || '0');
+          const hours = parseInt(uptimeMatch[2] || '0');
+          const minutes = parseInt(uptimeMatch[3] || '0');
+          uptime = days * 86400 + hours * 3600 + minutes * 60;
+        }
+      }
+
+      // Parse memory information with your improved format
+      const memoryStr = getValue('Memory:');
+      let memoryTotal = 0, memoryUsage = 0;
+      if (memoryStr.includes('Total:')) {
+        const memMatch = memoryStr.match(/Total:\s*([\d.]+)\s*MB.*Available:\s*([\d.]+)\s*MB/);
+        if (memMatch) {
+          memoryTotal = parseFloat(memMatch[1]);
+          const memAvailable = parseFloat(memMatch[2]);
+          memoryUsage = memoryTotal - memAvailable;
+        }
+      }
+
+      // Parse CPU and load information
+      const cpuStr = getValue('CPUs:');
+      const cpuCores = cpuStr ? parseInt(cpuStr.split(',')[0]) : 1;
+      const loadStr = cpuStr.includes('Load:') ? cpuStr.split('Load: ')[1] : '0.0';
+      const cpuUsage = loadStr ? Math.min((parseFloat(loadStr.split(' ')[0]) * 100 / cpuCores), 100) : 0;
+      const cpuModel = getValue('CPU Model:').trim() || 'ARM Processor';
+
+      // Parse temperature (convert from millidegrees to celsius)
+      const tempStr = getValue('Temperature:');
+      const temperature = tempStr === 'N/A' ? null : Math.round(parseInt(tempStr) / 1000);
+
+      // Parse WiFi SSIDs
+      const ssid24 = getValue('SSID 2.4GHz:') || null;
+      const ssid5 = getValue('SSID 5GHz:') || null;
+      const ssid6 = getValue('SSID 6GHz:') || null;
+
+      // Parse additional router information
+      const aimeshMode = getValue('AiMesh Mode:') || '0';
+      const associatedInterfaces = getValue('Associated Interfaces:') || '';
+      const usbDevices = getValue('USB Devices:') || '';
+      const connectedClients = parseInt(getValue('Clients:')) || 0;
 
       return {
-        model: model.trim(),
-        firmware: firmware.trim(),
-        uptime: parseInt(uptime.trim()),
-        temperature: temperature.trim() === 'N/A' ? null : parseFloat(temperature.trim()),
-        memoryTotal: memTotal,
-        memoryUsage: memUsed,
-        cpuUsage: parseFloat(cpuUsage.trim()) || Math.random() * 25 + 10, // Real CPU usage from router
-        cpuModel,
-        cpuCores,
-        ipAddress: lanIp.trim() || wanIp.trim() || '192.168.1.1',
+        model: model,
+        firmware: firmware,
+        serialNumber: serialNumber,
+        hostname: hostname,
+        ipAddress: lanIp,
+        externalIpAddress: externalIp,
+        lanMacAddress: lanMac,
+        wanMacAddress: wanMac,
+        uptime: uptime,
+        temperature: temperature,
+        memoryTotal: Math.round(memoryTotal),
+        memoryUsage: Math.round(memoryUsage),
+        cpuUsage: Math.round(cpuUsage),
+        cpuModel: cpuModel,
+        cpuCores: cpuCores,
+        loadAverage: loadStr,
+        ssid24: ssid24,
+        ssid5: ssid5,
+        ssid6: ssid6,
+        aimeshMode: aimeshMode,
+        associatedInterfaces: associatedInterfaces,
+        usbDevices: usbDevices,
+        connectedClientsCount: connectedClients,
         storageUsage: null,
-        storageTotal: null,
-        loadAverage: null
+        storageTotal: null
       };
     } catch (error) {
       console.error('Error getting system info:', error);
