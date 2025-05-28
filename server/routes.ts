@@ -444,27 +444,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for AiMesh data" });
       }
       
-      // Execute authentic AiMesh detection commands as provided by user
+      // Use your authentic ASUS-specific command for AiMesh discovery
       const meshCommands = [
-        `nvram get sta_info`, // Show AiMesh nodes via SSH (Merlin or Stock)
-        `cat /tmp/dnsmasq.leases`, // Check DHCP leases for mesh IPs
-        `arp -a`, // List all active IPs and hostnames
-        `cat /tmp/syslog.log | grep 'backhaul' | tail -10`, // Check system log for mesh node entries
-        `for iface in wl0 wl1 wl2; do echo "==== $iface ===="; wl -i $iface assoclist; done` // Query all interfaces for mesh devices
+        `cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "aimesh\\|rp-\\|asus"`, // Your specific AiMesh discovery command
+        `nvram get lan_ipaddr && nvram get lan_hwaddr && nvram get productid`, // Main router info
+        `nvram get cfg_clientlist`, // AiMesh client list from nvram
+        `for iface in $(nvram get sta_ifnames); do echo "--- $iface ---"; wl -i $iface assoclist 2>/dev/null; done` // Your enhanced wireless discovery
       ];
       
       const meshResults = await Promise.all(
         meshCommands.map(cmd => sshClient.executeCommand(cmd).catch(err => `Error: ${err.message}`))
       );
       
-      const [staInfo, dhcpLeases, arpTable, syslogBackhaul, wirelessAssoc] = meshResults;
+      const [aimeshDhcpNodes, mainRouterInfo, nvramClientList, wirelessDevices] = meshResults;
       
-      // Parse authentic router data to detect AiMesh nodes
+      // Parse authentic AiMesh nodes using your specific command
       const nodes = [];
       const meshNodeMacs = new Set();
       
-      // Parse DHCP leases for AiMesh nodes (looking for hostnames like RT-AX88U, AiMesh-Node, etc.)
-      const dhcpLines = dhcpLeases.split('\n').filter(line => line.trim());
+      // Parse your specific AiMesh DHCP command results
+      const dhcpLines = aimeshDhcpNodes.split('\n').filter(line => line.trim() && !line.includes('Error:'));
       dhcpLines.forEach(line => {
         const parts = line.split(' ');
         if (parts.length >= 4) {
