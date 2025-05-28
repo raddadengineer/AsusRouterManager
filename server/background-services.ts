@@ -62,7 +62,7 @@ class BackgroundServiceManager {
         name: 'WiFi Network Scan',
         description: 'Updates WiFi network information and client associations',
         cronExpression: '*/10 * * * *', // Every 10 minutes
-        isEnabled: false,
+        isEnabled: true,
         status: 'stopped'
       }
     ];
