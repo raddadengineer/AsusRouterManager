@@ -134,48 +134,67 @@ export class RouterSyncService {
       const wirelessMacs = new Set<string>();
       const wirelessDevices: any[] = [];
       
-      // Get wireless interfaces and devices
-      const interfaces = ['eth6', 'eth7', 'eth8'];
+      // Use your enhanced one-liner for wireless device discovery
+      const wirelessResult = await sshClient.executeCommand(`
+        for iface in $(nvram get sta_ifnames); do
+          echo "--- \$iface ---"
+          for mac in \$(wl -i \$iface assoclist 2>/dev/null); do
+            if [ -n "\$mac" ] && [[ \$mac =~ ^[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\$ ]]; then
+              dhcp_info=\$(cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "\$mac")
+              if [ -n "\$dhcp_info" ]; then
+                echo "\$iface|\$mac|\$dhcp_info"
+              else
+                echo "\$iface|\$mac|not_found"
+              fi
+            fi
+          done
+        done
+      `);
+      
       const bandMap: { [key: string]: string } = {
         'eth6': '2.4GHz',
         'eth7': '5GHz', 
         'eth8': '6GHz'
       };
       
-      for (const iface of interfaces) {
-        try {
-          const result = await sshClient.executeCommand(`wl -i ${iface} assoclist`);
-          const lines = result.split('\n').filter(line => line.trim().length > 0);
-          
-          for (const line of lines) {
-            const macMatch = line.match(/([a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2})/);
-            if (macMatch) {
-              const mac = macMatch[1].toLowerCase();
-              wirelessMacs.add(mac);
-              
-              // Get device info from DHCP leases
-              const dhcpResult = await sshClient.executeCommand(`
-                cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "${mac}"
-              `);
-              
-              const dhcpInfo = dhcpResult.split('\n')[0]?.split(' ');
-              const ip = dhcpInfo?.[2] || '';
-              const hostname = dhcpInfo?.[3] || '';
-              
-              wirelessDevices.push({
-                macAddress: mac,
-                name: hostname || `Device-${mac.slice(-5)}`,
-                ipAddress: ip,
-                deviceType: this.getDeviceType(mac, hostname),
-                isOnline: true,
-                connectionType: 'wireless',
-                wirelessBand: bandMap[iface],
-                hostname: hostname
-              });
-            }
+      const lines = wirelessResult.split('\n');
+      for (const line of lines) {
+        if (line.includes('|')) {
+          const [iface, mac, dhcpData] = line.split('|');
+          if (mac && dhcpData !== 'not_found') {
+            const normalizedMac = mac.toLowerCase();
+            wirelessMacs.add(normalizedMac);
+            
+            const dhcpParts = dhcpData.split(' ');
+            const ip = dhcpParts[2] || '';
+            const hostname = dhcpParts[3] || '';
+            
+            wirelessDevices.push({
+              macAddress: normalizedMac,
+              name: hostname || `Device-${mac.slice(-5)}`,
+              ipAddress: ip,
+              deviceType: this.getDeviceType(mac, hostname),
+              isOnline: true,
+              connectionType: 'wireless',
+              wirelessBand: bandMap[iface] || 'Unknown',
+              hostname: hostname
+            });
+          } else if (mac && dhcpData === 'not_found') {
+            // Device connected but no DHCP record
+            const normalizedMac = mac.toLowerCase();
+            wirelessMacs.add(normalizedMac);
+            
+            wirelessDevices.push({
+              macAddress: normalizedMac,
+              name: `Device-${mac.slice(-5)}`,
+              ipAddress: '',
+              deviceType: 'unknown',
+              isOnline: true,
+              connectionType: 'wireless',
+              wirelessBand: bandMap[iface] || 'Unknown',
+              hostname: ''
+            });
           }
-        } catch (error) {
-          console.log(`Could not get wireless devices for interface ${iface}`);
         }
       }
       
