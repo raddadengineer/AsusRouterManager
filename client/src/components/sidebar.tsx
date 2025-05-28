@@ -135,10 +135,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             return (
               <li key={item.href}>
                 <Link href={item.href}>
-                  <div
+                  <a
                     onClick={handleNavClick}
                     className={cn(
-                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors cursor-pointer",
+                      "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
                       isActive
                         ? "bg-primary/20 text-primary border-l-2 border-primary"
                         : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -146,7 +146,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
                   >
                     <Icon className="h-4 w-4" />
                     <span className="text-sm font-medium">{item.label}</span>
-                  </div>
+                  </a>
                 </Link>
               </li>
             );

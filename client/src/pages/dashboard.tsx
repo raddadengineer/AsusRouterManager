@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { RouterStatus, ConnectedDevice } from "@shared/schema";
+import type { RouterStatus, ConnectedDevice, BandwidthData, WifiNetwork } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -41,21 +41,33 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: wifiNetworks } = useQuery<any[]>({
+  const { data: wifiNetworks } = useQuery<WifiNetwork[]>({
     queryKey: ["/api/wifi"],
     refetchInterval: 30000,
   });
 
-  const { data: routerFeatures } = useQuery<any>({
+  const { data: routerFeatures } = useQuery({
     queryKey: ["/api/router/features"],
     refetchInterval: 30000,
   });
 
+  const { data: bandwidthData } = useQuery<BandwidthData[]>({
+    queryKey: ["/api/bandwidth"],
+    refetchInterval: 15000,
+  });
+
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
-  const totalNetworkUsage = devices?.reduce((total, device) => 
-    device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
-  ) || 0;
+  
+  // Use real bandwidth data from router if available
+  const latestBandwidth = bandwidthData && Array.isArray(bandwidthData) && bandwidthData.length > 0 
+    ? bandwidthData[bandwidthData.length - 1] 
+    : null;
+  const totalNetworkUsage = latestBandwidth 
+    ? ((latestBandwidth.downloadSpeed || 0) + (latestBandwidth.uploadSpeed || 0)) / 1024 / 1024 // Convert to MB/s
+    : devices?.reduce((total, device) => 
+        device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
+      ) || 0;
 
   const handleQuickAction = async (action: string) => {
     try {
@@ -111,16 +123,30 @@ export default function Dashboard() {
               <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {devicesLoading ? (
                   <Skeleton className="h-8 w-16 mx-auto" />
-                ) : routerStatus ? (
-                  `${totalNetworkUsage.toFixed(0)}`
+                ) : latestBandwidth ? (
+                  <>
+                    <div className="text-lg">↓ {(latestBandwidth.downloadSpeed / 1024 / 1024).toFixed(1)}</div>
+                    <div className="text-lg">↑ {(latestBandwidth.uploadSpeed / 1024 / 1024).toFixed(1)}</div>
+                  </>
                 ) : (
-                  "--"
+                  `${totalNetworkUsage.toFixed(1)}`
                 )}
               </div>
-              <div className="text-sm text-muted-foreground">Network Usage (MB/s)</div>
-              {!devicesLoading && routerStatus && (
-                <div className="mt-2">
-                  <Progress value={Math.min((totalNetworkUsage / 100) * 100, 100)} className="h-2" />
+              <div className="text-sm text-muted-foreground">
+                {latestBandwidth ? 'Current Usage (MB/s)' : 'Network Usage (MB/s)'}
+              </div>
+              {!devicesLoading && latestBandwidth && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span>Download</span>
+                    <span>{((latestBandwidth.downloadSpeed / 1024 / 1024 / 100) * 100).toFixed(0)}%</span>
+                  </div>
+                  <Progress value={Math.min((latestBandwidth.downloadSpeed / 1024 / 1024 / 100) * 100, 100)} className="h-1" />
+                  <div className="flex justify-between text-xs">
+                    <span>Upload</span>
+                    <span>{((latestBandwidth.uploadSpeed / 1024 / 1024 / 100) * 100).toFixed(0)}%</span>
+                  </div>
+                  <Progress value={Math.min((latestBandwidth.uploadSpeed / 1024 / 1024 / 100) * 100, 100)} className="h-1" />
                 </div>
               )}
             </div>
@@ -154,13 +180,13 @@ export default function Dashboard() {
                 {statusLoading ? (
                   <Skeleton className="h-8 w-20 mx-auto" />
                 ) : (
-                  `${((routerStatus?.memoryUsage || 0) * 1024).toFixed(0)}`
+                  `${routerStatus?.memoryUsage?.toFixed(0) || 0}`
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
-                Memory ({((routerStatus?.memoryTotal || 0) * 1024).toFixed(0)} MB)
+                Memory ({routerStatus?.memoryTotal?.toFixed(0) || 0} MB)
               </div>
-              {!statusLoading && (
+              {!statusLoading && routerStatus && (
                 <div className="mt-2">
                   <Progress 
                     value={routerStatus ? (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100 : 0} 
@@ -209,54 +235,70 @@ export default function Dashboard() {
             {/* Active Networks */}
             <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {wifiNetworks?.filter(network => network.enabled).length || 0}
+                {wifiNetworks?.filter(network => network.isEnabled).length || 0}
               </div>
               <div className="text-sm text-muted-foreground">WiFi Networks</div>
               <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                {wifiNetworks?.filter(network => network.name?.toLowerCase().includes('guest')).length || 0} Guest
+                {wifiNetworks?.filter(network => network.ssid?.toLowerCase().includes('guest')).length || 0} Guest
               </div>
             </div>
           </div>
 
-          {/* Connection Status Bar */}
-          {!routerStatus ? (
-            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Router Not Connected</span>
-                <Link href="/system">
-                  <Button variant="outline" size="sm" className="text-yellow-700 border-yellow-300 hover:bg-yellow-100">
-                    Configure Connection
-                  </Button>
-                </Link>
-              </div>
-              <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                Connect to your ASUS router via SSH to view real-time data, system metrics, and network information.
-              </p>
-            </div>
-          ) : (
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Network Status</span>
+          {/* Network Status Bar */}
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Network Status</span>
+              <div className="flex items-center space-x-4">
+                <span className="text-xs text-muted-foreground">
+                  {(routerStatus as any)?.connectionStatus?.isConnected ? (
+                    <span className="flex items-center space-x-1 text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Live Data</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center space-x-1 text-orange-600">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <span>Demo Mode</span>
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-muted-foreground">
                   Last updated: {routerStatus?.lastUpdated ? new Date(routerStatus.lastUpdated).toLocaleTimeString() : 'Never'}
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span>Router Online</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.enabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                  <span>WiFi Active</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${connectedDevicesCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                  <span>Devices Connected</span>
-                </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${(routerStatus as any)?.connectionStatus?.isConnected ? 'bg-green-500' : 'bg-orange-400'}`}></div>
+                <span>{(routerStatus as any)?.connectionStatus?.isConnected ? 'Router Connected' : 'SSH Setup Needed'}</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.isEnabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <span>WiFi Active</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${connectedDevicesCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <span>Devices Connected</span>
               </div>
             </div>
-          )}
+            {!(routerStatus as any)?.connectionStatus?.isConnected && (
+              <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border-l-4 border-orange-400">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Connect to Your Router</p>
+                    <p className="text-xs text-orange-600 dark:text-orange-300 mt-1">
+                      Configure SSH connection to display real-time data from your Asus router
+                    </p>
+                  </div>
+                  <Link href="/system">
+                    <Button size="sm" variant="outline" className="shrink-0 border-orange-300 text-orange-700 hover:bg-orange-100">
+                      Setup Connection
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
