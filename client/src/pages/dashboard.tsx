@@ -464,7 +464,26 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {devices?.slice(0, 5).map((device) => (
+                    {devices
+                      ?.sort((a, b) => {
+                        // First priority: Online devices
+                        if (a.isOnline !== b.isOnline) return b.isOnline ? 1 : -1;
+                        
+                        // Second priority: Total bandwidth activity (download + upload)
+                        const aTotalBandwidth = (a.downloadSpeed || 0) + (a.uploadSpeed || 0);
+                        const bTotalBandwidth = (b.downloadSpeed || 0) + (b.uploadSpeed || 0);
+                        if (aTotalBandwidth !== bTotalBandwidth) return bTotalBandwidth - aTotalBandwidth;
+                        
+                        // Third priority: Most recently connected (if available)
+                        if (a.lastSeen && b.lastSeen) {
+                          return new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime();
+                        }
+                        
+                        // Final priority: Alphabetical by name
+                        return a.name.localeCompare(b.name);
+                      })
+                      .slice(0, 5)
+                      .map((device) => (
                       <div key={device.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
