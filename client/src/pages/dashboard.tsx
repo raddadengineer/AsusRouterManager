@@ -179,7 +179,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Device Performance</span>
               <span className="text-xs text-muted-foreground">
-                Temperature: {routerStatus?.temperature ? `${routerStatus.temperature.toFixed(1)}°C` : 'N/A'}
+                CPU: {routerStatus?.cpuUsage ? `${routerStatus.cpuUsage.toFixed(1)}%` : 'N/A'}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
