@@ -128,42 +128,143 @@ export class RouterSyncService {
 
   private async syncConnectedDevices() {
     try {
-      console.log("Fetching connected devices...");
-      const devices = await sshClient.getConnectedDevices();
-      console.log(`Found ${devices.length} devices, processing in batches...`);
+      console.log("Fetching connected devices using ASUS-specific commands...");
+      
+      // Get wireless devices using your specific commands
+      const wirelessMacs = new Set<string>();
+      const wirelessDevices: any[] = [];
+      
+      // Get wireless interfaces and devices
+      const interfaces = ['eth6', 'eth7', 'eth8'];
+      const bandMap: { [key: string]: string } = {
+        'eth6': '2.4GHz',
+        'eth7': '5GHz', 
+        'eth8': '6GHz'
+      };
+      
+      for (const iface of interfaces) {
+        try {
+          const result = await sshClient.executeCommand(`wl -i ${iface} assoclist`);
+          const lines = result.split('\n').filter(line => line.trim().length > 0);
+          
+          for (const line of lines) {
+            const macMatch = line.match(/([a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2}:[a-fA-F0-9]{2})/);
+            if (macMatch) {
+              const mac = macMatch[1].toLowerCase();
+              wirelessMacs.add(mac);
+              
+              // Get device info from DHCP leases
+              const dhcpResult = await sshClient.executeCommand(`
+                cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "${mac}"
+              `);
+              
+              const dhcpInfo = dhcpResult.split('\n')[0]?.split(' ');
+              const ip = dhcpInfo?.[2] || '';
+              const hostname = dhcpInfo?.[3] || '';
+              
+              wirelessDevices.push({
+                macAddress: mac,
+                name: hostname || `Device-${mac.slice(-5)}`,
+                ipAddress: ip,
+                deviceType: this.getDeviceType(mac, hostname),
+                isOnline: true,
+                connectionType: 'wireless',
+                wirelessBand: bandMap[iface],
+                hostname: hostname
+              });
+            }
+          }
+        } catch (error) {
+          console.log(`Could not get wireless devices for interface ${iface}`);
+        }
+      }
+      
+      // Get all DHCP devices to identify wired ones
+      const dhcpResult = await sshClient.executeCommand(`
+        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null
+      `);
+      
+      const allDevices = [...wirelessDevices];
+      const dhcpLines = dhcpResult.split('\n').filter(line => line.trim().length > 0);
+      
+      for (const line of dhcpLines) {
+        const parts = line.split(' ');
+        if (parts.length >= 4) {
+          const [timestamp, mac, ip, hostname] = parts;
+          const normalizedMac = mac.toLowerCase();
+          
+          // If not wireless, it's wired
+          if (!wirelessMacs.has(normalizedMac)) {
+            allDevices.push({
+              macAddress: normalizedMac,
+              name: hostname || `Device-${mac.slice(-5)}`,
+              ipAddress: ip,
+              deviceType: this.getDeviceType(mac, hostname),
+              isOnline: true,
+              connectionType: 'ethernet',
+              wirelessBand: null,
+              hostname: hostname
+            });
+          }
+        }
+      }
+      
+      console.log(`Found ${wirelessDevices.length} wireless and ${allDevices.length - wirelessDevices.length} wired devices`);
       
       // Get existing devices to avoid duplicates
       const existingDevices = await storage.getConnectedDevices();
       const existingMacs = new Set(existingDevices.map(d => d.macAddress));
 
-      // Process devices in batches of 5 for faster incremental updates
+      // Process devices in batches
       const batchSize = 5;
-      for (let i = 0; i < devices.length; i += batchSize) {
-        const batch = devices.slice(i, i + batchSize);
+      for (let i = 0; i < allDevices.length; i += batchSize) {
+        const batch = allDevices.slice(i, i + batchSize);
         
         await Promise.all(batch.map(async (device) => {
           if (!existingMacs.has(device.macAddress)) {
             await storage.createConnectedDevice({
-              name: device.name || device.hostname || "Unknown Device",
+              name: device.name,
               macAddress: device.macAddress,
               ipAddress: device.ipAddress,
-              deviceType: device.deviceType || "unknown",
-              isOnline: device.isOnline ?? true,
-              downloadSpeed: device.downloadSpeed || null,
-              uploadSpeed: device.uploadSpeed || null,
-              connectionType: device.connectionType || null,
-              hostname: device.hostname || null
+              deviceType: device.deviceType,
+              isOnline: device.isOnline,
+              downloadSpeed: null,
+              uploadSpeed: null,
+              connectionType: device.connectionType,
+              hostname: device.hostname,
+              wirelessBand: device.wirelessBand,
+              signalStrength: null,
+              connectedAt: new Date(),
+              lastSeen: new Date(),
+              aimeshNode: null,
+              aimeshNodeMac: null
             });
           }
         }));
         
-        console.log(`Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(devices.length/batchSize)}`);
+        console.log(`Processed batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(allDevices.length/batchSize)}`);
       }
       
       this.markSynced('devices');
     } catch (error) {
       console.error("Error syncing connected devices:", error);
     }
+  }
+  
+  private getDeviceType(mac: string, hostname: string): string {
+    const macUpper = mac.toUpperCase();
+    const hostnameUpper = hostname?.toUpperCase() || '';
+    
+    // Common device type patterns
+    if (hostnameUpper.includes('IPHONE') || hostnameUpper.includes('IPAD')) return 'mobile';
+    if (hostnameUpper.includes('ANDROID')) return 'mobile';
+    if (hostnameUpper.includes('SAMSUNG') || hostnameUpper.includes('GALAXY')) return 'mobile';
+    if (hostnameUpper.includes('LAPTOP') || hostnameUpper.includes('MACBOOK')) return 'laptop';
+    if (hostnameUpper.includes('DESKTOP') || hostnameUpper.includes('PC')) return 'desktop';
+    if (hostnameUpper.includes('TV') || hostnameUpper.includes('ROKU')) return 'tv';
+    if (hostnameUpper.includes('ALEXA') || hostnameUpper.includes('ECHO')) return 'iot';
+    
+    return 'unknown';
   }
 
   private async syncWifiNetworks() {
