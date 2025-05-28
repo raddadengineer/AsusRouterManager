@@ -4,7 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PlayCircle, Clock, CheckCircle, AlertCircle, RefreshCw, Info, Code, Database } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PlayCircle, Clock, CheckCircle, AlertCircle, RefreshCw, Info, Code, Database, Edit, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -22,6 +24,8 @@ interface BackgroundJob {
 
 export default function BackgroundServicesManager() {
   const { toast } = useToast();
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [editCronExpression, setEditCronExpression] = useState<string>('');
 
   // Define available background services that should always be visible
   const defaultServices: BackgroundJob[] = [
@@ -104,6 +108,57 @@ export default function BackgroundServicesManager() {
       });
     }
   });
+
+  const updateScheduleMutation = useMutation({
+    mutationFn: async ({ jobId, cronExpression }: { jobId: string; cronExpression: string }) => {
+      const response = await fetch(`/api/background-services/${jobId}/schedule`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cronExpression }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to update schedule");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data, { jobId }) => {
+      toast({
+        title: "Schedule Updated",
+        description: `Schedule for "${jobId}" has been updated successfully.`,
+      });
+      setEditingJobId(null);
+      setEditCronExpression('');
+      refetch();
+    },
+    onError: (error, { jobId }) => {
+      toast({
+        title: "Failed to update schedule",
+        description: `Could not update schedule for "${jobId}". Please check the cron expression format.`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleEditSchedule = (job: BackgroundJob) => {
+    setEditingJobId(job.id);
+    setEditCronExpression(job.cronExpression);
+  };
+
+  const handleSaveSchedule = () => {
+    if (editingJobId && editCronExpression.trim()) {
+      updateScheduleMutation.mutate({
+        jobId: editingJobId,
+        cronExpression: editCronExpression.trim()
+      });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingJobId(null);
+    setEditCronExpression('');
+  };
 
   const getStatusBadge = (job: BackgroundJob) => {
     switch (job.status) {
@@ -286,7 +341,48 @@ export default function BackgroundServicesManager() {
                     {getJobDescription(job.id)}
                   </p>
                   <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                    <span>Schedule: {job.cronExpression}</span>
+                    <div className="flex items-center space-x-2">
+                      <span>Schedule:</span>
+                      {editingJobId === job.id ? (
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            value={editCronExpression}
+                            onChange={(e) => setEditCronExpression(e.target.value)}
+                            className="h-6 text-xs font-mono min-w-32"
+                            placeholder="* * * * *"
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={handleSaveSchedule}
+                            disabled={updateScheduleMutation.isPending}
+                          >
+                            <Save className="h-3 w-3 text-green-600" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 w-6 p-0"
+                            onClick={handleCancelEdit}
+                          >
+                            <X className="h-3 w-3 text-red-600" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1">
+                          <span className="font-mono">{job.cronExpression}</span>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 w-5 p-0"
+                            onClick={() => handleEditSchedule(job)}
+                          >
+                            <Edit className="h-3 w-3 text-blue-600" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                     {job.lastRun && (
                       <span>Last run: {new Date(job.lastRun).toLocaleString()}</span>
                     )}
