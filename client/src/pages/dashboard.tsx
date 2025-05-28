@@ -198,16 +198,44 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${(routerStatus?.cpuUsage || 0) < 80 ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                <span>CPU Normal</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  !routerStatus ? 'bg-gray-400' :
+                  (routerStatus.cpuUsage || 0) < 20 ? 'bg-green-500' :
+                  (routerStatus.cpuUsage || 0) < 60 ? 'bg-yellow-500' :
+                  (routerStatus.cpuUsage || 0) < 90 ? 'bg-orange-500' : 'bg-red-500'
+                }`}></div>
+                <span>{
+                  !routerStatus ? 'CPU Unknown' :
+                  (routerStatus.cpuUsage || 0) < 20 ? 'CPU Excellent' :
+                  (routerStatus.cpuUsage || 0) < 60 ? 'CPU Good' :
+                  (routerStatus.cpuUsage || 0) < 90 ? 'CPU High' : 'CPU Critical'
+                }</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${routerStatus ? ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 90 ? 'bg-green-500' : 'bg-red-500' : 'bg-gray-400'}`}></div>
-                <span>Memory OK</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  !routerStatus ? 'bg-gray-400' :
+                  ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 70 ? 'bg-green-500' :
+                  ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 85 ? 'bg-yellow-500' :
+                  ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 95 ? 'bg-orange-500' : 'bg-red-500'
+                }`}></div>
+                <span>{
+                  !routerStatus ? 'Memory Unknown' :
+                  ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 70 ? 'Memory Excellent' :
+                  ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 85 ? 'Memory Good' :
+                  ((routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) < 95 ? 'Memory High' : 'Memory Critical'
+                }</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${totalNetworkUsage < 50 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-                <span>Network Active</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  totalNetworkUsage < 10 ? 'bg-green-500' :
+                  totalNetworkUsage < 50 ? 'bg-yellow-500' :
+                  totalNetworkUsage < 100 ? 'bg-orange-500' : 'bg-red-500'
+                }`}></div>
+                <span>{
+                  totalNetworkUsage < 10 ? 'Network Light' :
+                  totalNetworkUsage < 50 ? 'Network Active' :
+                  totalNetworkUsage < 100 ? 'Network Heavy' : 'Network Saturated'
+                }</span>
               </div>
             </div>
           </div>
