@@ -13,8 +13,6 @@ import {
   InsertSSHConfig,
   RouterFeatures,
   InsertRouterFeatures,
-  AiMeshNode,
-  InsertAiMeshNode,
   DeviceGroup,
   InsertDeviceGroup,
   DeviceTag,
@@ -30,10 +28,10 @@ import {
   bandwidthData,
   sshConfig,
   routerFeatures,
-  aimeshNodes,
   deviceGroups,
-  clientAssociations,
-  deviceGroupAssignments,
+  deviceTags,
+  deviceGroupMemberships,
+  deviceTagAssignments,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -78,14 +76,6 @@ export interface IStorage {
   // Router Features
   getRouterFeatures(): Promise<RouterFeatures | undefined>;
   updateRouterFeatures(features: InsertRouterFeatures): Promise<RouterFeatures>;
-
-  // AiMesh Nodes
-  getAiMeshNodes(): Promise<AiMeshNode[]>;
-  getAiMeshNode(id: number): Promise<AiMeshNode | undefined>;
-  getAiMeshNodeByMac(macAddress: string): Promise<AiMeshNode | undefined>;
-  createAiMeshNode(node: InsertAiMeshNode): Promise<AiMeshNode>;
-  updateAiMeshNode(id: number, node: Partial<InsertAiMeshNode>): Promise<AiMeshNode | undefined>;
-  deleteAiMeshNode(id: number): Promise<boolean>;
 
   // Device Groups
   getDeviceGroups(): Promise<DeviceGroup[]>;
@@ -410,106 +400,6 @@ export class MemStorage implements IStorage {
     this.routerFeatures = newFeatures;
     return newFeatures;
   }
-
-  // Device Groups Methods
-  async getDeviceGroups(): Promise<DeviceGroup[]> {
-    return []; // Empty array for now
-  }
-
-  async getDeviceGroup(id: number): Promise<DeviceGroup | undefined> {
-    return undefined;
-  }
-
-  async createDeviceGroup(group: InsertDeviceGroup): Promise<DeviceGroup> {
-    const newGroup: DeviceGroup = {
-      id: Date.now(), // Simple ID generation
-      ...group,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    return newGroup;
-  }
-
-  async updateDeviceGroup(id: number, group: Partial<InsertDeviceGroup>): Promise<DeviceGroup | undefined> {
-    return undefined;
-  }
-
-  async deleteDeviceGroup(id: number): Promise<boolean> {
-    return true;
-  }
-
-  // Device Tags Methods
-  async getDeviceTags(): Promise<DeviceTag[]> {
-    return []; // Empty array for now
-  }
-
-  async getDeviceTag(id: number): Promise<DeviceTag | undefined> {
-    return undefined;
-  }
-
-  async createDeviceTag(tag: InsertDeviceTag): Promise<DeviceTag> {
-    const newTag: DeviceTag = {
-      id: Date.now(), // Simple ID generation
-      ...tag,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    return newTag;
-  }
-
-  async updateDeviceTag(id: number, tag: Partial<InsertDeviceTag>): Promise<DeviceTag | undefined> {
-    return undefined;
-  }
-
-  async deleteDeviceTag(id: number): Promise<boolean> {
-    return true;
-  }
-
-  // Device Group Management Methods
-  async addDeviceToGroup(deviceId: number, groupId: number): Promise<DeviceGroupMembership> {
-    const membership: DeviceGroupMembership = {
-      id: Date.now(),
-      deviceId,
-      groupId,
-      assignedAt: new Date(),
-    };
-    return membership;
-  }
-
-  async removeDeviceFromGroup(deviceId: number, groupId: number): Promise<boolean> {
-    return true;
-  }
-
-  async getDeviceGroups(deviceId: number): Promise<DeviceGroup[]> {
-    return [];
-  }
-
-  async getGroupDevices(groupId: number): Promise<ConnectedDevice[]> {
-    return [];
-  }
-
-  // Device Tag Management Methods
-  async assignTagToDevice(deviceId: number, tagId: number): Promise<DeviceTagAssignment> {
-    const assignment: DeviceTagAssignment = {
-      id: Date.now(),
-      deviceId,
-      tagId,
-      assignedAt: new Date(),
-    };
-    return assignment;
-  }
-
-  async removeTagFromDevice(deviceId: number, tagId: number): Promise<boolean> {
-    return true;
-  }
-
-  async getDeviceTags(deviceId: number): Promise<DeviceTag[]> {
-    return [];
-  }
-
-  async getTaggedDevices(tagId: number): Promise<ConnectedDevice[]> {
-    return [];
-  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -758,56 +648,6 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
-  }
-
-  // AiMesh Nodes Implementation
-  async getAiMeshNodes(): Promise<AiMeshNode[]> {
-    return await db.select().from(aimeshNodes).orderBy(aimeshNodes.nodeType, aimeshNodes.hostname);
-  }
-
-  async getAiMeshNode(id: number): Promise<AiMeshNode | undefined> {
-    const [node] = await db.select().from(aimeshNodes).where(eq(aimeshNodes.id, id));
-    return node || undefined;
-  }
-
-  async getAiMeshNodeByMac(macAddress: string): Promise<AiMeshNode | undefined> {
-    const [node] = await db.select().from(aimeshNodes).where(eq(aimeshNodes.macAddress, macAddress.toLowerCase()));
-    return node || undefined;
-  }
-
-  async createAiMeshNode(node: InsertAiMeshNode): Promise<AiMeshNode> {
-    const [created] = await db
-      .insert(aimeshNodes)
-      .values({
-        ...node,
-        macAddress: node.macAddress.toLowerCase(),
-        lastSeen: new Date(),
-        discoveredAt: new Date(),
-      })
-      .returning();
-    return created;
-  }
-
-  async updateAiMeshNode(id: number, node: Partial<InsertAiMeshNode>): Promise<AiMeshNode | undefined> {
-    const updateData = { ...node };
-    if (updateData.macAddress) {
-      updateData.macAddress = updateData.macAddress.toLowerCase();
-    }
-    
-    const [updated] = await db
-      .update(aimeshNodes)
-      .set({
-        ...updateData,
-        lastSeen: new Date(),
-      })
-      .where(eq(aimeshNodes.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deleteAiMeshNode(id: number): Promise<boolean> {
-    const result = await db.delete(aimeshNodes).where(eq(aimeshNodes.id, id));
-    return (result.rowCount ?? 0) > 0;
   }
 
   // Device Groups Implementation

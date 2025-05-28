@@ -345,28 +345,12 @@ export default function Dashboard() {
                     <span>{routerStatus?.firmware}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Internal IP:</span>
+                    <span className="text-muted-foreground">IP Address:</span>
                     <span className="font-mono">{routerStatus?.ipAddress}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">External IP:</span>
-                    <span className="font-mono">{routerStatus?.externalIpAddress || "N/A"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Uptime:</span>
                     <span>{routerStatus ? formatUptime(routerStatus.uptime) : "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">SSID 2.4GHz:</span>
-                    <span className="font-mono">{routerStatus?.ssid24 || "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">SSID 5GHz:</span>
-                    <span className="font-mono">{routerStatus?.ssid5 || "N/A"}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">SSID 6GHz:</span>
-                    <span className="font-mono">{routerStatus?.ssid6 || "N/A"}</span>
                   </div>
                   {routerStatus?.temperature && (
                     <div className="flex justify-between">
@@ -411,18 +395,7 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {devices
-                      ?.sort((a, b) => {
-                        // Sort by activity level: online first, then by total bandwidth
-                        if (a.isOnline && !b.isOnline) return -1;
-                        if (!a.isOnline && b.isOnline) return 1;
-                        
-                        const aActivity = (a.downloadSpeed || 0) + (a.uploadSpeed || 0);
-                        const bActivity = (b.downloadSpeed || 0) + (b.uploadSpeed || 0);
-                        return bActivity - aActivity;
-                      })
-                      .slice(0, 10)
-                      .map((device) => (
+                    {devices?.slice(0, 5).map((device) => (
                       <div key={device.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                         <div className="flex items-center space-x-3">
                           <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -445,11 +418,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
-                    {devices && devices.length > 10 && (
+                    {devices && devices.length > 5 && (
                       <div className="text-center pt-2">
                         <Link href="/devices">
                           <Button variant="ghost" size="sm" className="text-primary">
-                            View {devices.length - 10} more devices
+                            View {devices.length - 5} more devices
                             <ArrowRight className="h-4 w-4 ml-2" />
                           </Button>
                         </Link>

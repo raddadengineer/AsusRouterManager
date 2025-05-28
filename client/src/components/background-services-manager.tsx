@@ -177,9 +177,6 @@ export default function BackgroundServicesManager() {
       'device-detail-sync': 'Device Detail Sync',
       'bandwidth-monitoring': 'Bandwidth Monitoring',
       'router-health-check': 'Router Health Check',
-      'router-features-sync': 'Router Features Sync',
-      'aimesh-nodes-sync': 'AiMesh Nodes Sync',
-      'client-associations-sync': 'Client Associations Sync',
       'wifi-network-scan': 'WiFi Network Scan'
     };
     return jobNames[jobId] || jobId;
@@ -191,9 +188,6 @@ export default function BackgroundServicesManager() {
       'device-detail-sync': 'Collects detailed information about each device',
       'bandwidth-monitoring': 'Monitors network bandwidth usage',
       'router-health-check': 'Checks router system health and status',
-      'router-features-sync': 'Syncs router features and capabilities',
-      'aimesh-nodes-sync': 'Discovers and tracks AiMesh network nodes',
-      'client-associations-sync': 'Monitors wireless device associations',
       'wifi-network-scan': 'Scans for available WiFi networks'
     };
     return descriptions[jobId] || 'Background process for network management';
@@ -241,7 +235,7 @@ export default function BackgroundServicesManager() {
               <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
                 <div className="flex-1">
                   <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="font-medium text-foreground">{getJobDisplayName(job.id)}</h3>
+                    <h3 className="font-medium">{getJobDisplayName(job.id)}</h3>
                     {getStatusBadge(job)}
                   </div>
                   <p className="text-sm text-muted-foreground">

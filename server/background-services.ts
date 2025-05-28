@@ -45,7 +45,7 @@ class BackgroundServiceManager {
         id: 'bandwidth-monitoring',
         name: 'Bandwidth Monitoring',
         description: 'Collects bandwidth usage data for connected devices',
-        cronExpression: '*/10 * * * * *', // Every 10 seconds for real-time monitoring
+        cronExpression: '*/1 * * * *', // Every minute
         isEnabled: true,
         status: 'stopped'
       },
@@ -54,30 +54,6 @@ class BackgroundServiceManager {
         name: 'Router Health Check',
         description: 'Monitors router status and system resources',
         cronExpression: '*/3 * * * *', // Every 3 minutes
-        isEnabled: true,
-        status: 'stopped'
-      },
-      {
-        id: 'router-features-sync',
-        name: 'Router Features Sync',
-        description: 'Updates comprehensive router features using authentic ASUS commands',
-        cronExpression: '*/5 * * * *', // Every 5 minutes
-        isEnabled: true,
-        status: 'stopped'
-      },
-      {
-        id: 'aimesh-nodes-sync',
-        name: 'AiMesh Nodes Sync',
-        description: 'Discovers and updates AiMesh node information',
-        cronExpression: '*/4 * * * *', // Every 4 minutes
-        isEnabled: true,
-        status: 'stopped'
-      },
-      {
-        id: 'client-associations-sync',
-        name: 'Client Associations Sync',
-        description: 'Tracks real-time wireless client associations',
-        cronExpression: '*/30 * * * * *', // Every 30 seconds for real-time tracking
         isEnabled: true,
         status: 'stopped'
       },
@@ -142,15 +118,6 @@ class BackgroundServiceManager {
           break;
         case 'router-health-check':
           await this.executeRouterHealthCheck();
-          break;
-        case 'router-features-sync':
-          await this.executeRouterFeaturesSync();
-          break;
-        case 'aimesh-nodes-sync':
-          await this.executeAiMeshNodesSync();
-          break;
-        case 'client-associations-sync':
-          await this.executeClientAssociationsSync();
           break;
         case 'wifi-network-scan':
           await this.executeWifiNetworkScan();
@@ -244,32 +211,16 @@ class BackgroundServiceManager {
     if (!sshClient.isConnectionActive()) return;
 
     try {
-      // Use your comprehensive real-time traffic analysis command
-      const bandwidthCommand = `cat /proc/net/dev | grep -E "(eth|wl|br)" | awk '{gsub(":", "", $1); printf "%-8s RX: %.2f MB  TX: %.2f MB\\n", $1, $2/1024/1024, $10/1024/1024}'`;
-      const bandwidthResult = await sshClient.executeCommand(bandwidthCommand);
+      const bandwidthData = await sshClient.getBandwidthData();
       
-      if (bandwidthResult) {
-        const lines = bandwidthResult.split('\n').filter(line => line.trim());
-        
-        for (const line of lines) {
-          // Parse: "eth0     RX: 1234.56 MB  TX: 789.01 MB"
-          const match = line.match(/^(\w+)\s+RX:\s+([\d.]+)\s+MB\s+TX:\s+([\d.]+)\s+MB/);
-          if (match) {
-            const [, interfaceName, rxMB, txMB] = match;
-            
-            const newBandwidthData: InsertBandwidthData = {
-              downloadSpeed: parseFloat(rxMB),
-              uploadSpeed: parseFloat(txMB),
-              totalDownload: parseFloat(rxMB),
-              totalUpload: parseFloat(txMB)
-            };
-            
-            await storage.addBandwidthData(newBandwidthData);
-          }
-        }
-        
-        console.log(`Bandwidth data collected for ${lines.length} interfaces`);
-      }
+      const newBandwidthData: InsertBandwidthData = {
+        downloadSpeed: parseFloat(bandwidthData.download) || 0,
+        uploadSpeed: parseFloat(bandwidthData.upload) || 0,
+        totalDownload: parseFloat(bandwidthData.totalDownload) || 0,
+        totalUpload: parseFloat(bandwidthData.totalUpload) || 0
+      };
+
+      await storage.addBandwidthData(newBandwidthData);
     } catch (error) {
       console.error('Error collecting bandwidth data:', error);
     }
@@ -303,114 +254,15 @@ class BackgroundServiceManager {
     }
   }
 
-  // Your comprehensive Router Features Sync using authentic ASUS commands
-  private async executeRouterFeaturesSync() {
-    if (!sshClient.isConnectionActive()) return;
-
-    try {
-      const features = await sshClient.getMerlinFeatures();
-      await storage.updateRouterFeatures(features);
-    } catch (error) {
-      console.error('Error syncing router features:', error);
-    }
-  }
-
-  // AiMesh Nodes Sync with authentic node discovery
-  private async executeAiMeshNodesSync() {
-    if (!sshClient.isConnectionActive()) return;
-
-    try {
-      const nodes = await sshClient.getAiMeshNodes();
-      
-      for (const nodeData of nodes) {
-        try {
-          const existingNode = await storage.getAiMeshNodeByMac(nodeData.macAddress);
-          
-          if (existingNode) {
-            await storage.updateAiMeshNode(existingNode.id, {
-              name: nodeData.name,
-              ipAddress: nodeData.ipAddress,
-              status: nodeData.status,
-              connectionType: nodeData.connectionType,
-              model: nodeData.model,
-              firmware: nodeData.firmware,
-              uptime: nodeData.uptime
-            });
-          } else {
-            await storage.createAiMeshNode({
-              name: nodeData.name,
-              macAddress: nodeData.macAddress,
-              ipAddress: nodeData.ipAddress,
-              status: nodeData.status,
-              nodeType: nodeData.nodeType,
-              connectionType: nodeData.connectionType,
-              model: nodeData.model,
-              firmware: nodeData.firmware,
-              uptime: nodeData.uptime
-            });
-          }
-        } catch (error) {
-          console.error('Error processing AiMesh node:', error);
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing AiMesh nodes:', error);
-    }
-  }
-
-  // Real-time Client Associations tracking
-  private async executeClientAssociationsSync() {
-    if (!sshClient.isConnectionActive()) return;
-
-    try {
-      // Get current wireless client associations using your authentic commands
-      const associations = await sshClient.executeCommand(`
-        # Real-time wireless client associations with interface tracking
-        for interface in wl0 wl1 wl2; do
-          if [ -e "/proc/net/wl\${interface#wl}/assoclist" ]; then
-            while read mac; do
-              if [ -n "$mac" ]; then
-                signal=$(wl -i $interface rssi "$mac" 2>/dev/null | cut -d' ' -f1)
-                echo "$mac\t$interface\t$signal\t$(date +%s)"
-              fi
-            done < /proc/net/wl\${interface#wl}/assoclist
-          fi
-        done
-      `);
-
-      // Process and store client association data
-      if (associations) {
-        const lines = associations.split('\n').filter(line => line.trim());
-        for (const line of lines) {
-          const [mac, wirelessInterface, signal, timestamp] = line.split('\t');
-          if (mac && wirelessInterface) {
-            // Update device with current association info
-            const devices = await storage.getConnectedDevices();
-            const device = devices.find(d => d.macAddress === mac);
-            if (device) {
-              await storage.updateConnectedDevice(device.id, {
-                wirelessInterface: wirelessInterface,
-                signalStrength: signal ? parseInt(signal) : null,
-                lastSeen: new Date(parseInt(timestamp) * 1000)
-              });
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing client associations:', error);
-    }
-  }
-
   private async executeWifiNetworkScan() {
     if (!sshClient.isConnectionActive()) return;
 
     try {
       const wifiNetworks = await sshClient.getWiFiNetworks();
       
-      // Update WiFi network information in database
+      // Update WiFi network information
       for (const network of wifiNetworks) {
-        // Store WiFi network data - this would update your WiFi networks table
+        // This would need to be implemented based on your WiFi network storage structure
         console.log('WiFi network scan:', network);
       }
     } catch (error) {
