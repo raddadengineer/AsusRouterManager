@@ -475,13 +475,14 @@ export default function Dashboard() {
                             <div className="text-xs text-muted-foreground">{device.ipAddress}</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Badge variant={device.isOnline ? "default" : "secondary"} className="text-xs">
+                        <div className="text-right min-w-[120px] flex-shrink-0">
+                          <Badge variant={device.isOnline ? "default" : "secondary"} className="text-xs mb-1">
                             {device.isOnline ? "Online" : "Offline"}
                           </Badge>
                           {device.isOnline && (device.downloadSpeed || device.uploadSpeed) && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              ↓{(device.downloadSpeed || 0).toFixed(1)} ↑{(device.uploadSpeed || 0).toFixed(1)} Mbps
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">
+                              <div>↓{(device.downloadSpeed || 0).toFixed(1)} Mbps</div>
+                              <div>↑{(device.uploadSpeed || 0).toFixed(1)} Mbps</div>
                             </div>
                           )}
                         </div>
