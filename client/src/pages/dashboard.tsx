@@ -479,7 +479,7 @@ export default function Dashboard() {
                           <Badge variant={device.isOnline ? "default" : "secondary"} className="text-xs mb-1">
                             {device.isOnline ? "Online" : "Offline"}
                           </Badge>
-                          {device.isOnline && (device.downloadSpeed || device.uploadSpeed) && (
+                          {device.isOnline && (
                             <div className="text-xs text-muted-foreground whitespace-nowrap">
                               <div>↓{(device.downloadSpeed || 0).toFixed(1)} Mbps</div>
                               <div>↑{(device.uploadSpeed || 0).toFixed(1)} Mbps</div>
