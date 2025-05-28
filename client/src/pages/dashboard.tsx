@@ -272,50 +272,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
 
-        {/* Router Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Network className="h-5 w-5 text-blue-600" />
-              <span>Router Information</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {statusLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ) : (
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground font-medium">Model:</span>
-                  <span className="font-medium">{routerStatus?.model}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground font-medium">Firmware:</span>
-                  <span className="font-medium">{routerStatus?.firmware}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground font-medium">IP Address:</span>
-                  <span className="font-mono font-medium">{routerStatus?.ipAddress}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-border/50">
-                  <span className="text-muted-foreground font-medium">Uptime:</span>
-                  <span className="font-medium">{routerStatus ? formatUptime(routerStatus.uptime) : "N/A"}</span>
-                </div>
-                {routerStatus?.temperature && (
-                  <div className="flex justify-between py-2">
-                    <span className="text-muted-foreground font-medium">Temperature:</span>
-                    <span className="font-medium text-orange-600">{routerStatus.temperature.toFixed(1)}°C</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
       </div>
 
           {/* Connected Devices Summary */}
