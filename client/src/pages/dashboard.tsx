@@ -201,7 +201,10 @@ export default function Dashboard() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {connectedDevices?.filter(device => device.connectionType === 'ethernet').length || 0}
+                    {connectedDevices?.filter(device => 
+                      device.connectionType === 'ethernet' || 
+                      device.connectionType === 'wired'
+                    ).length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Wired Devices</div>
                 </div>
@@ -292,11 +295,11 @@ export default function Dashboard() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="text-center p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
                     <div className="text-lg font-bold text-red-600 dark:text-red-400">
-                      {routerStatus?.blockedThreats || 0}
+                      {routerFeatures?.blockedThreats || 0}
                     </div>
                     <div className="text-xs text-muted-foreground">Threats Blocked</div>
                     <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                      {routerStatus?.aiProtectionEnabled ? 'AI Protection ON' : 'AI Protection OFF'}
+                      {routerFeatures?.aiProtectionEnabled ? 'AI Protection ON' : 'AI Protection OFF'}
                     </div>
                   </div>
                   <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
@@ -310,11 +313,11 @@ export default function Dashboard() {
                   </div>
                   <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
                     <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                      {routerStatus?.vpnConnectedClients || 0}
+                      {routerFeatures?.vpnConnectedClients || 0}
                     </div>
                     <div className="text-xs text-muted-foreground">VPN Clients</div>
                     <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                      {routerStatus?.vpnServerEnabled ? 'VPN Server ON' : 'VPN Server OFF'}
+                      {routerFeatures?.vpnServerEnabled ? 'VPN Server ON' : 'VPN Server OFF'}
                     </div>
                   </div>
                 </div>

@@ -704,34 +704,17 @@ export class SSHClient {
       let wirelessClients6ghz = 0;
       
       try {
-        const wirelessCount = await this.executeCommand(`
-          for iface in $(nvram get wl_ifnames); do 
-            count=$(wl -i $iface assoclist 2>/dev/null | wc -l)
-            echo "$iface: $count clients"
-          done
-        `);
+        // Use the correct wireless interface commands for GT-AX11000
+        const eth6Count = await this.executeCommand("wl -i eth6 assoclist 2>/dev/null | wc -l").catch(() => "0");
+        const eth7Count = await this.executeCommand("wl -i eth7 assoclist 2>/dev/null | wc -l").catch(() => "0");
+        const eth8Count = await this.executeCommand("wl -i eth8 assoclist 2>/dev/null | wc -l").catch(() => "0");
         
-        // Parse the output to get band-specific counts
-        const lines = wirelessCount.split('\n').filter(line => line.includes('clients'));
+        wirelessClients24ghz = parseInt(eth6Count.trim()) || 0;
+        wirelessClients5ghz = parseInt(eth7Count.trim()) || 0;
+        wirelessClients6ghz = parseInt(eth8Count.trim()) || 0;
+        wirelessClientsTotal = wirelessClients24ghz + wirelessClients5ghz + wirelessClients6ghz;
         
-        lines.forEach(line => {
-          const match = line.match(/(\w+):\s*(\d+)\s+clients/);
-          if (match) {
-            const iface = match[1];
-            const count = parseInt(match[2]);
-            wirelessClientsTotal += count;
-            
-            // Map interfaces to bands (eth6=2.4GHz, eth7=5GHz, eth8=5GHz-2/6GHz)
-            if (iface === 'eth6') {
-              wirelessClients24ghz = count;
-            } else if (iface === 'eth7') {
-              wirelessClients5ghz = count;
-            } else if (iface === 'eth8') {
-              // Could be secondary 5GHz or 6GHz - check if router supports 6GHz
-              wirelessClients6ghz = count;
-            }
-          }
-        });
+        console.log(`Wireless clients - 2.4GHz (eth6): ${wirelessClients24ghz}, 5GHz (eth7): ${wirelessClients5ghz}, 6GHz (eth8): ${wirelessClients6ghz}, Total: ${wirelessClientsTotal}`);
       } catch (error) {
         console.log('Could not get wireless client count:', error);
       }
