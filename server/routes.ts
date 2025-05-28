@@ -463,18 +463,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const nodes = [];
       const meshNodeMacs = new Set();
       
-      // Parse DHCP leases for AiMesh nodes (looking for hostnames like RT-AX88U, AiMesh-Node, etc.)
+      // Parse DHCP leases for actual AiMesh nodes (only router model hostnames, not generic devices)
       const dhcpLines = dhcpLeases.split('\n').filter(line => line.trim());
       dhcpLines.forEach(line => {
         const parts = line.split(' ');
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
-          if (hostname && (hostname.includes('RT-') || hostname.includes('AiMesh') || hostname.includes('ASUS'))) {
+          // Only match actual ASUS router model names, not random devices
+          if (hostname && (
+            hostname.match(/^RT-AX\d+U?$/i) || 
+            hostname.match(/^GT-AX\d+$/i) ||
+            hostname.match(/^AX\d+U?$/i) ||
+            hostname.includes('AiMesh-Node') ||
+            hostname.includes('ASUS-Router')
+          )) {
             meshNodeMacs.add(mac.toLowerCase());
             nodes.push({
               id: mac.replace(/:/g, '-'),
               name: hostname,
-              model: hostname.includes('AX') ? hostname : 'ASUS Router',
+              model: hostname,
               macAddress: mac.toUpperCase(),
               ipAddress: ip,
               role: ip.endsWith('.1') ? 'router' : 'node',
@@ -493,36 +500,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      // Parse ARP table for additional mesh devices
-      const arpLines = arpTable.split('\n').filter(line => line.includes('192.168'));
-      arpLines.forEach(line => {
-        const match = line.match(/\(([\d.]+)\) at ([a-f0-9:]+)/i);
-        if (match) {
-          const [, ip, mac] = match;
-          const normalizedMac = mac.toLowerCase();
-          if (!meshNodeMacs.has(normalizedMac) && (ip.endsWith('.1') || ip.endsWith('.2') || ip.endsWith('.3'))) {
-            meshNodeMacs.add(normalizedMac);
-            nodes.push({
-              id: mac.replace(/:/g, '-'),
-              name: `Router ${ip}`,
-              model: 'ASUS Device',
-              macAddress: mac.toUpperCase(),
-              ipAddress: ip,
-              role: ip.endsWith('.1') ? 'router' : 'node',
-              status: 'online',
-              signalStrength: 90,
-              connectedDevices: 0,
-              firmwareVersion: 'Detection via SSH',
-              location: 'Detected via ARP',
-              uptime: 0,
-              bandwidth: { upload: 0, download: 0 },
-              temperature: null,
-              memoryUsage: null,
-              detectionMethod: 'ARP table'
-            });
-          }
+      // Check for actual AiMesh configuration using nvram commands
+      try {
+        const aimeshCheck = await sshClient.executeCommand('nvram get cfg_clientlist 2>/dev/null || echo ""');
+        if (aimeshCheck.trim()) {
+          // Parse actual AiMesh client list
+          const aimeshNodes = aimeshCheck.split('<').filter(node => node.trim());
+          aimeshNodes.forEach(nodeData => {
+            if (nodeData.includes('>')) {
+              const parts = nodeData.split('>');
+              if (parts.length >= 2) {
+                const ip = parts[0];
+                const mac = parts[1];
+                if (ip && mac && !meshNodeMacs.has(mac.toLowerCase())) {
+                  meshNodeMacs.add(mac.toLowerCase());
+                  nodes.push({
+                    id: mac.replace(/:/g, '-'),
+                    name: `AiMesh Node ${ip}`,
+                    model: 'ASUS AiMesh Node',
+                    macAddress: mac.toUpperCase(),
+                    ipAddress: ip,
+                    role: 'node',
+                    status: 'online',
+                    signalStrength: 90,
+                    connectedDevices: 0,
+                    firmwareVersion: 'Detection via SSH',
+                    location: 'Detected via AiMesh Config',
+                    uptime: 0,
+                    bandwidth: { upload: 0, download: 0 },
+                    temperature: null,
+                    memoryUsage: null,
+                    detectionMethod: 'nvram cfg_clientlist'
+                  });
+                }
+              }
+            }
+          });
         }
-      });
+      } catch (aimeshError) {
+        console.log('AiMesh configuration check failed:', aimeshError);
+      }
       
       // Parse backhaul connections from system logs
       const backhaullogs = syslogBackhaul.split('\n').filter(line => line.includes('backhaul'));
