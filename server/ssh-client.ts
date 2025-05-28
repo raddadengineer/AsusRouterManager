@@ -697,8 +697,12 @@ export class SSHClient {
       const aiProtection = await this.executeCommand("nvram get aiprotection_enable");
       const aimeshMaster = await this.executeCommand("nvram get cfg_master");
       
-      // Count wireless clients using your improved command
+      // Count wireless clients using your improved command for different bands
       let wirelessClientsTotal = 0;
+      let wirelessClients24ghz = 0;
+      let wirelessClients5ghz = 0;
+      let wirelessClients6ghz = 0;
+      
       try {
         const wirelessCount = await this.executeCommand(`
           for iface in $(nvram get wl_ifnames); do 
@@ -707,12 +711,26 @@ export class SSHClient {
           done
         `);
         
-        // Parse the output to get total count
+        // Parse the output to get band-specific counts
         const lines = wirelessCount.split('\n').filter(line => line.includes('clients'));
-        wirelessClientsTotal = lines.reduce((total, line) => {
-          const match = line.match(/(\d+)\s+clients/);
-          return total + (match ? parseInt(match[1]) : 0);
-        }, 0);
+        lines.forEach(line => {
+          const match = line.match(/(\w+):\s*(\d+)\s+clients/);
+          if (match) {
+            const iface = match[1];
+            const count = parseInt(match[2]);
+            wirelessClientsTotal += count;
+            
+            // Map interfaces to bands (eth6=2.4GHz, eth7=5GHz, eth8=5GHz-2/6GHz)
+            if (iface === 'eth6') {
+              wirelessClients24ghz = count;
+            } else if (iface === 'eth7') {
+              wirelessClients5ghz = count;
+            } else if (iface === 'eth8') {
+              // Could be secondary 5GHz or 6GHz - check if router supports 6GHz
+              wirelessClients6ghz = count;
+            }
+          }
+        });
       } catch (error) {
         console.log('Could not get wireless client count:', error);
       }
@@ -780,7 +798,10 @@ export class SSHClient {
         vpnServerEnabled,
         vpnConnectedClients,
         aimeshIsMaster: aimeshMaster.trim() === '1',
-        wirelessClientsTotal
+        wirelessClientsTotal,
+        wirelessClients24ghz,
+        wirelessClients5ghz,
+        wirelessClients6ghz
       };
     } catch (error) {
       console.error('Error getting Merlin features:', error);
