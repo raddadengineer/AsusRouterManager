@@ -196,15 +196,15 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {connectedDevices?.length || 0}
+                    {connectedDevices?.filter(device => device.connectionType === 'ethernet').length || 0}
                   </div>
-                  <div className="text-sm text-muted-foreground">Connected Devices</div>
+                  <div className="text-sm text-muted-foreground">Wired Devices</div>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {wifiNetworks?.length || 0}
+                    {connectedDevices?.filter(device => device.connectionType?.includes('wifi') || device.connectionType?.includes('WiFi')).length || 0}
                   </div>
-                  <div className="text-sm text-muted-foreground">WiFi Networks</div>
+                  <div className="text-sm text-muted-foreground">Wireless Devices</div>
                 </div>
               </div>
               <div className="flex justify-between items-center">
