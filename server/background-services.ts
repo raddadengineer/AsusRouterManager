@@ -45,7 +45,7 @@ class BackgroundServiceManager {
         id: 'bandwidth-monitoring',
         name: 'Bandwidth Monitoring',
         description: 'Collects bandwidth usage data for connected devices',
-        cronExpression: '*/1 * * * *', // Every minute
+        cronExpression: '*/10 * * * * *', // Every 10 seconds for real-time monitoring
         isEnabled: true,
         status: 'stopped'
       },
@@ -211,16 +211,32 @@ class BackgroundServiceManager {
     if (!sshClient.isConnectionActive()) return;
 
     try {
-      const bandwidthData = await sshClient.getBandwidthData();
+      // Use your efficient one-liner for network interface statistics
+      const bandwidthCommand = `cat /proc/net/dev | grep -E "(eth|wl)" | awk '{rx=$2/1024/1024; tx=$10/1024/1024; gsub(":", "", $1); printf "%-8s RX: %.2f MB  TX: %.2f MB\\n", $1, rx, tx}'`;
+      const bandwidthResult = await sshClient.executeCommand(bandwidthCommand);
       
-      const newBandwidthData: InsertBandwidthData = {
-        downloadSpeed: parseFloat(bandwidthData.download) || 0,
-        uploadSpeed: parseFloat(bandwidthData.upload) || 0,
-        totalDownload: parseFloat(bandwidthData.totalDownload) || 0,
-        totalUpload: parseFloat(bandwidthData.totalUpload) || 0
-      };
-
-      await storage.addBandwidthData(newBandwidthData);
+      if (bandwidthResult) {
+        const lines = bandwidthResult.split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          // Parse: "eth0     RX: 1234.56 MB  TX: 789.01 MB"
+          const match = line.match(/^(\w+)\s+RX:\s+([\d.]+)\s+MB\s+TX:\s+([\d.]+)\s+MB/);
+          if (match) {
+            const [, interfaceName, rxMB, txMB] = match;
+            
+            const newBandwidthData: InsertBandwidthData = {
+              downloadSpeed: parseFloat(rxMB),
+              uploadSpeed: parseFloat(txMB),
+              totalDownload: parseFloat(rxMB),
+              totalUpload: parseFloat(txMB)
+            };
+            
+            await storage.addBandwidthData(newBandwidthData);
+          }
+        }
+        
+        console.log(`Bandwidth data collected for ${lines.length} interfaces`);
+      }
     } catch (error) {
       console.error('Error collecting bandwidth data:', error);
     }
