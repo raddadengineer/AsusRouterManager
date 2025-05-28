@@ -713,6 +713,7 @@ export class SSHClient {
         
         // Parse the output to get band-specific counts
         const lines = wirelessCount.split('\n').filter(line => line.includes('clients'));
+        
         lines.forEach(line => {
           const match = line.match(/(\w+):\s*(\d+)\s+clients/);
           if (match) {
