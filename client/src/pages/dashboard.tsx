@@ -193,7 +193,7 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                     {connectedDevices?.filter(device => device.connectionType === 'ethernet').length || 0}
@@ -205,6 +205,12 @@ export default function Dashboard() {
                     {connectedDevices?.filter(device => device.connectionType?.includes('wifi') || device.connectionType?.includes('WiFi')).length || 0}
                   </div>
                   <div className="text-sm text-muted-foreground">Wireless Devices</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {connectedDevices?.filter(device => device.aimeshNode).length || 0}
+                  </div>
+                  <div className="text-sm text-muted-foreground">AiMesh Nodes</div>
                 </div>
               </div>
               <div className="flex justify-between items-center">
