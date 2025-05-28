@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Search, Laptop, Smartphone, Monitor, Tv, ChevronRight } from "lucide-react";
+import { RefreshCw, Search, Laptop, Smartphone, Monitor, Tv, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDeviceIcon, getDeviceColorClass, formatMacAddress } from "@/lib/utils";
 import { Link } from "wouter";
+import { useState } from "react";
 
 interface DeviceTableProps {
   className?: string;
@@ -33,19 +34,61 @@ const DeviceIcon = ({ type }: { type: string }) => {
   }
 };
 
+type SortField = 'name' | 'ipAddress' | 'status' | 'usage';
+type SortDirection = 'asc' | 'desc';
+
 export default function DeviceTable({ className, showSearch = true }: DeviceTableProps) {
   const { searchQuery, setSearchQuery } = useSearch();
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const { data: devices, isLoading, refetch } = useQuery<ConnectedDevice[]>({
     queryKey: ["/api/devices"],
     refetchInterval: 2000, // Fast progressive loading - refresh every 2 seconds
   });
 
-  const filteredDevices = devices?.filter(device =>
-    device.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    device.ipAddress.includes(searchQuery) ||
-    device.macAddress.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) return <ArrowUpDown className="h-4 w-4" />;
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  const filteredAndSortedDevices = devices
+    ?.filter(device =>
+      device.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      device.ipAddress.includes(searchQuery) ||
+      device.macAddress.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'ipAddress':
+          comparison = a.ipAddress.localeCompare(b.ipAddress);
+          break;
+        case 'status':
+          comparison = Number(b.isOnline) - Number(a.isOnline);
+          break;
+        case 'usage':
+          const aUsage = (a.downloadSpeed || 0) + (a.uploadSpeed || 0);
+          const bUsage = (b.downloadSpeed || 0) + (b.uploadSpeed || 0);
+          comparison = bUsage - aUsage;
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }) || [];
 
   if (isLoading) {
     return (
@@ -91,7 +134,7 @@ export default function DeviceTable({ className, showSearch = true }: DeviceTabl
         </div>
       </CardHeader>
       <CardContent>
-        {filteredDevices.length === 0 ? (
+        {filteredAndSortedDevices.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             {searchQuery ? "No devices match your search" : "No devices connected"}
           </div>
@@ -100,15 +143,55 @@ export default function DeviceTable({ className, showSearch = true }: DeviceTabl
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Device</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Usage</TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 font-semibold"
+                      onClick={() => handleSort('name')}
+                    >
+                      Device
+                      {getSortIcon('name')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 font-semibold"
+                      onClick={() => handleSort('ipAddress')}
+                    >
+                      IP Address
+                      {getSortIcon('ipAddress')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 font-semibold"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status
+                      {getSortIcon('status')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-0 font-semibold"
+                      onClick={() => handleSort('usage')}
+                    >
+                      Usage
+                      {getSortIcon('usage')}
+                    </Button>
+                  </TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDevices.map((device) => (
+                {filteredAndSortedDevices.map((device) => (
                   <TableRow key={device.id} className="hover:bg-muted/50 cursor-pointer">
                     <TableCell>
                       <Link href={`/devices/${device.id}`}>
