@@ -32,9 +32,8 @@ import {
   routerFeatures,
   aimeshNodes,
   deviceGroups,
-  deviceTags,
-  deviceGroupMemberships,
-  deviceTagAssignments,
+  clientAssociations,
+  deviceGroupAssignments,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
