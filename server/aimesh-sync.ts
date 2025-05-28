@@ -7,23 +7,22 @@ export class AiMeshSyncService {
     try {
       console.log("Syncing AiMesh nodes using ASUS-specific commands...");
       
-      // Get AiMesh nodes using your specific DHCP command
-      const dhcpResult = await sshClient.executeCommand(`
-        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "aimesh\\|rp-\\|asus"
-      `);
+      // Use your normalized tab-separated AiMesh discovery command
+      const aimeshCommand = `{ [ -f /etc/dnsmasq.leases ] && cat /etc/dnsmasq.leases || cat /var/lib/misc/dnsmasq.leases; } 2>/dev/null | grep -Ei "aimesh|rt-|rp-|asus" | awk '{ printf "%s\\t%s\\t%s\\n", $2, $4, ($3 == "*" ? "" : $3) }'`;
+      const aimeshResult = await sshClient.executeCommand(aimeshCommand);
       
       const nodes: any[] = [];
-      const dhcpLines = dhcpResult.split('\n').filter(line => line.trim().length > 0);
+      const lines = aimeshResult.split('\n').filter(line => line.trim().length > 0);
       
-      for (const line of dhcpLines) {
-        const parts = line.split(' ');
-        if (parts.length >= 4) {
-          const [timestamp, mac, ip, hostname] = parts;
+      for (const line of lines) {
+        const parts = line.split('\t');
+        if (parts.length >= 2) {
+          const [macAddress, hostname, ipAddress] = parts;
           
           nodes.push({
-            name: hostname || `AiMesh-${ip}`,
-            ipAddress: ip,
-            macAddress: mac.toLowerCase(),
+            name: hostname || `AiMesh-${macAddress.slice(-5)}`,
+            ipAddress: ipAddress || '',
+            macAddress: macAddress.toLowerCase(),
             isOnline: true,
             nodeType: hostname.toLowerCase().includes('aimesh') ? 'aimesh' : 'router',
             lastSeen: new Date()
