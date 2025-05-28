@@ -695,13 +695,70 @@ export class SSHClient {
     try {
       const adaptiveQos = await this.executeCommand("nvram get adaptive_qos_enable");
       const aiProtection = await this.executeCommand("nvram get aiprotection_enable");
-      const vpnServer = await this.executeCommand("nvram get vpn_server_enable");
       const aimeshMaster = await this.executeCommand("nvram get cfg_master");
+      
+      // Enhanced VPN server detection
+      let vpnServerEnabled = false;
+      let vpnConnectedClients = 0;
+      
+      try {
+        // Check all VPN server instances
+        const vpnServers = await this.executeCommand("nvram show | grep -i 'vpn_server[0-9]_enable'");
+        vpnServerEnabled = vpnServers.includes('=1');
+        
+        // Check VPN daemon status
+        const vpnDaemons = await this.executeCommand("ps | grep -E 'openvpn|pptpd' | grep -v grep");
+        const daemonRunning = vpnDaemons.trim().length > 0;
+        
+        // Count connected OpenVPN clients
+        try {
+          const clientList = await this.executeCommand("cat /tmp/openvpn/server1/client_list 2>/dev/null || cat /var/run/openvpn_server1_status 2>/dev/null || echo ''");
+          if (clientList.trim()) {
+            // Count lines that look like client connections (skip headers)
+            const lines = clientList.split('\n').filter(line => 
+              line.includes(',') && !line.includes('Common Name') && line.trim()
+            );
+            vpnConnectedClients += lines.length;
+          }
+        } catch (clientError) {
+          // Try alternative method - check connection logs
+          try {
+            const logEntries = await this.executeCommand("cat /tmp/var/log/messages 2>/dev/null | grep openvpn | grep 'peer info' | tail -10 || echo ''");
+            if (logEntries.trim()) {
+              const recentConnections = logEntries.split('\n').filter(line => line.includes('peer info'));
+              vpnConnectedClients += recentConnections.length;
+            }
+          } catch (logError) {
+            // Fallback to process count
+            try {
+              const processes = await this.executeCommand("ps | grep 'openvpn.*server' | grep -v grep | wc -l");
+              vpnConnectedClients = Math.max(0, parseInt(processes.trim()) - 1); // Subtract server process
+            } catch (processError) {
+              console.log('Could not determine VPN client count');
+            }
+          }
+        }
+        
+        // Check PPTP connections as well
+        try {
+          const pptpClients = await this.executeCommand("cat /tmp/ppp/connect.log 2>/dev/null | grep -i assigned | wc -l || echo '0'");
+          vpnConnectedClients += parseInt(pptpClients.trim()) || 0;
+        } catch (pptpError) {
+          // PPTP not available or no connections
+        }
+        
+        // Update VPN status based on daemon running state
+        vpnServerEnabled = vpnServerEnabled && daemonRunning;
+        
+      } catch (vpnError) {
+        console.error('Error getting VPN server info:', vpnError);
+      }
       
       return {
         adaptiveQosEnabled: adaptiveQos.trim() === '1',
         aiProtectionEnabled: aiProtection.trim() === '1',
-        vpnServerEnabled: vpnServer.trim() === '1',
+        vpnServerEnabled,
+        vpnConnectedClients,
         aimeshIsMaster: aimeshMaster.trim() === '1',
         wirelessClientsTotal: 0
       };
@@ -711,6 +768,7 @@ export class SSHClient {
         adaptiveQosEnabled: false,
         aiProtectionEnabled: false,
         vpnServerEnabled: false,
+        vpnConnectedClients: 0,
         aimeshIsMaster: false,
         wirelessClientsTotal: 0
       };
