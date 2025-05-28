@@ -186,6 +186,87 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      {/* Network Overview */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Network className="h-5 w-5 text-blue-600" />
+            <span>Network Overview</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Total Connected Devices */}
+            <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {connectedDevicesCount}
+              </div>
+              <div className="text-sm text-muted-foreground">Total Devices</div>
+              <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                {connectedDevices?.filter(device => device.isOnline).length || 0} Online
+              </div>
+            </div>
+
+            {/* Network Uptime */}
+            <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {routerStatus ? Math.floor(routerStatus.uptime / 24 / 3600) : 0}
+              </div>
+              <div className="text-sm text-muted-foreground">Days Uptime</div>
+              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                {routerStatus ? formatUptime(routerStatus.uptime) : "N/A"}
+              </div>
+            </div>
+
+            {/* Router Health */}
+            <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {routerStatus ? Math.round(100 - (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) : 0}%
+              </div>
+              <div className="text-sm text-muted-foreground">Health Score</div>
+              <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                {routerStatus?.temperature ? `${routerStatus.temperature.toFixed(0)}°C` : 'Good'}
+              </div>
+            </div>
+
+            {/* Active Networks */}
+            <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {wifiNetworks?.filter(network => network.enabled).length || 0}
+              </div>
+              <div className="text-sm text-muted-foreground">WiFi Networks</div>
+              <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                {wifiNetworks?.filter(network => network.name?.toLowerCase().includes('guest')).length || 0} Guest
+              </div>
+            </div>
+          </div>
+
+          {/* Network Status Bar */}
+          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">Network Status</span>
+              <span className="text-xs text-muted-foreground">
+                Last updated: {routerStatus?.lastUpdated ? new Date(routerStatus.lastUpdated).toLocaleTimeString() : 'Never'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Router Online</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.enabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <span>WiFi Active</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${connectedDevicesCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <span>Devices Connected</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
