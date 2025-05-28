@@ -817,7 +817,7 @@ export class SSHClient {
         # Count devices connected via wireless interfaces
         TOTAL=$(cat /proc/net/arp | grep -E "(wl0|wl1|wl2|eth1|eth2|eth3)" | wc -l)
         if [ "$TOTAL" = "0" ]; then
-          TOTAL=$(cat /tmp/dhcp_clients.txt 2>/dev/null | grep -c "wireless" || echo 0)
+          TOTAL=$(cat /var/lib/misc/dnsmasq.leases 2>/dev/null | wc -l || echo 0)
         fi
         echo $TOTAL
       `);
