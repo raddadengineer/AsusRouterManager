@@ -51,11 +51,28 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const { data: bandwidthData } = useQuery({
+    queryKey: ["/api/bandwidth"],
+    refetchInterval: 10000, // Update every 10 seconds for real-time network usage
+  });
+
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
-  const totalNetworkUsage = devices?.reduce((total, device) => 
-    device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
-  ) || 0;
+  
+  // Calculate real-time network usage from actual bandwidth data
+  const totalNetworkUsage = (() => {
+    if (!bandwidthData || bandwidthData.length === 0) return 0;
+    
+    // Get the most recent bandwidth reading
+    const latestBandwidth = bandwidthData[bandwidthData.length - 1];
+    if (!latestBandwidth) return 0;
+    
+    // Convert from bytes to MB/s and combine download + upload
+    const downloadMbps = (latestBandwidth.downloadSpeed || 0) / (1024 * 1024);
+    const uploadMbps = (latestBandwidth.uploadSpeed || 0) / (1024 * 1024);
+    
+    return downloadMbps + uploadMbps;
+  })();
 
   const handleQuickAction = async (action: string) => {
     try {
