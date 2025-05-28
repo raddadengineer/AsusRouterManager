@@ -250,7 +250,7 @@ export default function Dashboard() {
               </div>
               <div className="text-sm text-muted-foreground">WiFi Networks</div>
               <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                {wifiNetworks?.filter(network => network.name?.toLowerCase().includes('guest')).length || 0} Guest
+                {routerFeatures?.activeGuestNetworks || 0} Guest Active
               </div>
             </div>
           </div>

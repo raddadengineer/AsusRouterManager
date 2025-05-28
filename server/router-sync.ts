@@ -206,7 +206,8 @@ export class RouterSyncService {
       
       // Get the actual WiFi network count using your script
       const wifiNetworkCount = await sshClient.getWiFiNetworkCount();
-      console.log(`Syncing router features with WiFi network count: ${wifiNetworkCount}`);
+      const activeGuestNetworks = await sshClient.getActiveGuestNetworkCount();
+      console.log(`Syncing router features - WiFi networks: ${wifiNetworkCount}, Active guest networks: ${activeGuestNetworks}`);
       
       await storage.updateRouterFeatures({
         adaptiveQosEnabled: features.adaptiveQosEnabled ?? false,
@@ -219,7 +220,8 @@ export class RouterSyncService {
         wirelessClients5ghz: features.wirelessClients5ghz || 0,
         wirelessClients6ghz: features.wirelessClients6ghz || 0,
         wirelessClientsTotal: features.wirelessClientsTotal || 0,
-        wifiNetworkCount: wifiNetworkCount
+        wifiNetworkCount: wifiNetworkCount,
+        activeGuestNetworks: activeGuestNetworks
       });
     } catch (error) {
       console.error("Error syncing router features:", error);
