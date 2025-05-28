@@ -599,77 +599,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const liveNodes = await sshClient.getAiMeshNodes();
       res.json(liveNodes);
-        const infoLines = comprehensiveRouterInfo.split('\n');
-        infoLines.forEach(line => {
-          if (line.includes('Model:')) routerInfo.model = line.split('Model:')[1]?.trim();
-          if (line.includes('Firmware:')) routerInfo.firmware = line.split('Firmware:')[1]?.trim();
-          if (line.includes('LAN IP:')) routerInfo.lanIp = line.split('LAN IP:')[1]?.trim();
-          if (line.includes('LAN MAC:')) routerInfo.lanMac = line.split('LAN MAC:')[1]?.trim();
-          if (line.includes('WAN IP:')) routerInfo.wanIp = line.split('WAN IP:')[1]?.trim();
-          if (line.includes('SSID 2.4GHz:')) routerInfo.ssid24 = line.split('SSID 2.4GHz:')[1]?.trim();
-          if (line.includes('SSID 5GHz:')) routerInfo.ssid5 = line.split('SSID 5GHz:')[1]?.trim();
-          if (line.includes('SSID 6GHz:')) routerInfo.ssid6 = line.split('SSID 6GHz:')[1]?.trim();
-        });
-      }
-      
-      // Parse authentic AiMesh nodes using your improved command
-      const nodes = [];
-      const meshNodeMacs = new Set();
-      
-      // Add main router as primary node
-      if (routerInfo.lanIp) {
-        nodes.push({
-          id: 'main-router',
-          name: routerInfo.model || 'Main Router',
-          model: routerInfo.model || 'Unknown',
-          macAddress: routerInfo.lanMac || '',
-          ipAddress: routerInfo.lanIp,
-          role: 'router',
-          status: 'online',
-          firmwareVersion: routerInfo.firmware || 'Unknown',
-          connectedDevices: 0,
-          uptime: 0,
-          bandwidth: { upload: 0, download: 0 },
-          wanIp: routerInfo.wanIp || '',
-          ssids: {
-            '2.4GHz': routerInfo.ssid24 || '',
-            '5GHz': routerInfo.ssid5 || '',
-            '6GHz': routerInfo.ssid6 || ''
-          }
-        });
-      }
-      
-      // Parse AiMesh nodes from your improved DHCP command
-      const dhcpLines = aimeshDhcpNodes.split('\n').filter(line => line.trim() && !line.includes('Error:'));
-      dhcpLines.forEach(line => {
-        const parts = line.split(' ');
-        if (parts.length >= 4) {
-          const [timestamp, mac, ip, hostname] = parts;
-          if (hostname && (hostname.toLowerCase().includes('rt-') || hostname.toLowerCase().includes('aimesh') || hostname.toLowerCase().includes('rp-') || hostname.toLowerCase().includes('asus'))) {
-            meshNodeMacs.add(mac.toLowerCase());
-            nodes.push({
-              id: mac.replace(/:/g, '-'),
-              name: hostname,
-              model: hostname.includes('AX') ? hostname : 'ASUS Router',
-              macAddress: mac.toUpperCase(),
-              ipAddress: ip,
-              role: ip.endsWith('.1') ? 'router' : 'node',
-              status: 'online',
-              signalStrength: 85,
-              connectedDevices: 0,
-              firmwareVersion: 'Detection via SSH',
-              location: 'Detected via DHCP',
-              uptime: 0,
-              bandwidth: { upload: 0, download: 0 },
-              temperature: null,
-              memoryUsage: null,
-              detectionMethod: 'DHCP leases'
-            });
-          }
-        }
-      });
-      
-      // Parse ARP table for additional mesh devices
+    } catch (error) {
+      console.error('Error refreshing AiMesh data:', error);
+      res.status(500).json({ message: "Failed to refresh AiMesh data" });
+    }
+  });
+
+  // Return server instance
+  return server;
+}
       const arpLines = arpTable.split('\n').filter(line => line.includes('192.168'));
       arpLines.forEach(line => {
         const match = line.match(/\(([\d.]+)\) at ([a-f0-9:]+)/i);
