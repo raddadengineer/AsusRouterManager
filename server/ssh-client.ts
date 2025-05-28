@@ -553,6 +553,10 @@ export class SSHClient {
           if (neighCheck.trim()) {
             deviceInfo.connectionType = 'ethernet';
             deviceInfo.isOnline = true;
+            // Clear any wireless properties for ethernet devices
+            deviceInfo.signalStrength = null;
+            deviceInfo.wirelessInterface = null;
+            deviceInfo.wirelessBand = null;
           }
         } catch (error) {
           // Device might be offline
