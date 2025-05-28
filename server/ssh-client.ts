@@ -625,16 +625,9 @@ export class SSHClient {
 
   async getActiveGuestNetworkCount(): Promise<number> {
     try {
-      // Use your guest network counting script
+      // Use your improved one-liner for active guest networks
       const result = await this.executeCommand(`
-        guest_count=0
-        all_ifaces=$(ifconfig | cut -d ' ' -f1 | grep -E '^wl[0-9]+\\.[1-3]$')
-        for iface in $all_ifaces; do
-          if ifconfig "$iface" 2>/dev/null | grep -q "UP"; then
-            guest_count=$((guest_count + 1))
-          fi
-        done
-        echo "$guest_count"
+        ifconfig | cut -d ' ' -f1 | grep -E '^wl[0-9]+\\.[1-3]$' | xargs -n1 -I{} sh -c 'if ifconfig {} | grep -q "UP"; then echo {}; fi' | wc -l
       `);
       
       const count = parseInt(result.trim()) || 0;
