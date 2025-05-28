@@ -18,7 +18,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/router/status", async (req, res) => {
     try {
       const status = await storage.getRouterStatus();
-      res.json(status);
+      
+      // If SSH is connected, get real-time SSID and WAN IP info
+      if (sshClient.isConnectionActive()) {
+        try {
+          const comprehensiveInfo = await sshClient.executeCommand(
+            `echo "WAN IP: $(nvram get wan0_ipaddr)"; echo "SSID 2.4GHz: $(nvram get wl0_ssid)"; echo "SSID 5GHz: $(nvram get wl1_ssid)"; echo "SSID 6GHz: $(nvram get wl2_ssid)"`
+          );
+          
+          // Parse and add SSID and WAN IP information to status
+          const enhancedStatus = { ...status };
+          if (comprehensiveInfo && !comprehensiveInfo.includes('Error:')) {
+            const infoLines = comprehensiveInfo.split('\n');
+            infoLines.forEach(line => {
+              if (line.includes('WAN IP:')) enhancedStatus.externalIpAddress = line.split('WAN IP:')[1]?.trim();
+              if (line.includes('SSID 2.4GHz:')) enhancedStatus.ssid24 = line.split('SSID 2.4GHz:')[1]?.trim();
+              if (line.includes('SSID 5GHz:')) enhancedStatus.ssid5 = line.split('SSID 5GHz:')[1]?.trim();
+              if (line.includes('SSID 6GHz:')) enhancedStatus.ssid6 = line.split('SSID 6GHz:')[1]?.trim();
+            });
+          }
+          
+          res.json(enhancedStatus);
+        } catch (sshError) {
+          console.error('SSH error getting SSID info:', sshError);
+          res.json(status);
+        }
+      } else {
+        res.json(status);
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to get router status" });
     }

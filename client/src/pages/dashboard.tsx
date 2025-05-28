@@ -356,6 +356,18 @@ export default function Dashboard() {
                     <span className="text-muted-foreground">Uptime:</span>
                     <span>{routerStatus ? formatUptime(routerStatus.uptime) : "N/A"}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">SSID 2.4GHz:</span>
+                    <span className="font-mono">{routerStatus?.ssid24 || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">SSID 5GHz:</span>
+                    <span className="font-mono">{routerStatus?.ssid5 || "N/A"}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">SSID 6GHz:</span>
+                    <span className="font-mono">{routerStatus?.ssid6 || "N/A"}</span>
+                  </div>
                   {routerStatus?.temperature && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Temperature:</span>
