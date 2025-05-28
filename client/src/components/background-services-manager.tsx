@@ -314,7 +314,7 @@ export default function BackgroundServicesManager() {
                             <Info className="h-4 w-4 mr-2 text-blue-500" />
                             Purpose
                           </h3>
-                          <p className="text-sm text-muted-foreground bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
+                          <p className="text-sm text-gray-700 dark:text-gray-200 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg">
                             {getJobDetails(job.id).purpose}
                           </p>
                         </div>
