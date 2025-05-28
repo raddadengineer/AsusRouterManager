@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { RouterStatus, ConnectedDevice } from "@shared/schema";
+import type { RouterStatus, ConnectedDevice, BandwidthData, WifiNetwork } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -41,7 +41,7 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
-  const { data: wifiNetworks } = useQuery({
+  const { data: wifiNetworks } = useQuery<WifiNetwork[]>({
     queryKey: ["/api/wifi"],
     refetchInterval: 30000,
   });
@@ -51,11 +51,23 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const { data: bandwidthData } = useQuery<BandwidthData[]>({
+    queryKey: ["/api/bandwidth"],
+    refetchInterval: 15000,
+  });
+
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
-  const totalNetworkUsage = devices?.reduce((total, device) => 
-    device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
-  ) || 0;
+  
+  // Use real bandwidth data from router if available
+  const latestBandwidth = bandwidthData && Array.isArray(bandwidthData) && bandwidthData.length > 0 
+    ? bandwidthData[bandwidthData.length - 1] 
+    : null;
+  const totalNetworkUsage = latestBandwidth 
+    ? ((latestBandwidth.downloadSpeed || 0) + (latestBandwidth.uploadSpeed || 0)) / 1024 / 1024 // Convert to MB/s
+    : devices?.reduce((total, device) => 
+        device.isOnline ? total + (device.downloadSpeed || 0) + (device.uploadSpeed || 0) : total, 0
+      ) || 0;
 
   const handleQuickAction = async (action: string) => {
     try {
@@ -111,14 +123,30 @@ export default function Dashboard() {
               <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {devicesLoading ? (
                   <Skeleton className="h-8 w-16 mx-auto" />
+                ) : latestBandwidth ? (
+                  <>
+                    <div className="text-lg">↓ {(latestBandwidth.downloadSpeed / 1024 / 1024).toFixed(1)}</div>
+                    <div className="text-lg">↑ {(latestBandwidth.uploadSpeed / 1024 / 1024).toFixed(1)}</div>
+                  </>
                 ) : (
-                  `${totalNetworkUsage.toFixed(0)}`
+                  `${totalNetworkUsage.toFixed(1)}`
                 )}
               </div>
-              <div className="text-sm text-muted-foreground">Network Usage (MB/s)</div>
-              {!devicesLoading && (
-                <div className="mt-2">
-                  <Progress value={Math.min((totalNetworkUsage / 100) * 100, 100)} className="h-2" />
+              <div className="text-sm text-muted-foreground">
+                {latestBandwidth ? 'Current Usage (MB/s)' : 'Network Usage (MB/s)'}
+              </div>
+              {!devicesLoading && latestBandwidth && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span>Download</span>
+                    <span>{((latestBandwidth.downloadSpeed / 1024 / 1024 / 100) * 100).toFixed(0)}%</span>
+                  </div>
+                  <Progress value={Math.min((latestBandwidth.downloadSpeed / 1024 / 1024 / 100) * 100, 100)} className="h-1" />
+                  <div className="flex justify-between text-xs">
+                    <span>Upload</span>
+                    <span>{((latestBandwidth.uploadSpeed / 1024 / 1024 / 100) * 100).toFixed(0)}%</span>
+                  </div>
+                  <Progress value={Math.min((latestBandwidth.uploadSpeed / 1024 / 1024 / 100) * 100, 100)} className="h-1" />
                 </div>
               )}
             </div>
@@ -152,13 +180,13 @@ export default function Dashboard() {
                 {statusLoading ? (
                   <Skeleton className="h-8 w-20 mx-auto" />
                 ) : (
-                  `${((routerStatus?.memoryUsage || 0) * 1024).toFixed(0)}`
+                  `${routerStatus?.memoryUsage?.toFixed(0) || 0}`
                 )}
               </div>
               <div className="text-sm text-muted-foreground">
-                Memory ({((routerStatus?.memoryTotal || 0) * 1024).toFixed(0)} MB)
+                Memory ({routerStatus?.memoryTotal?.toFixed(0) || 0} MB)
               </div>
-              {!statusLoading && (
+              {!statusLoading && routerStatus && (
                 <div className="mt-2">
                   <Progress 
                     value={routerStatus ? (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100 : 0} 
@@ -207,11 +235,11 @@ export default function Dashboard() {
             {/* Active Networks */}
             <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {wifiNetworks?.filter(network => network.enabled).length || 0}
+                {wifiNetworks?.filter(network => network.isEnabled).length || 0}
               </div>
               <div className="text-sm text-muted-foreground">WiFi Networks</div>
               <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                {wifiNetworks?.filter(network => network.name?.toLowerCase().includes('guest')).length || 0} Guest
+                {wifiNetworks?.filter(network => network.ssid?.toLowerCase().includes('guest')).length || 0} Guest
               </div>
             </div>
           </div>
