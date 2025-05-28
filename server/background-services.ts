@@ -280,11 +280,10 @@ class BackgroundServiceManager {
             });
           } else {
             // Create new network
-            const newNetwork: InsertWifiNetwork = {
+            const newNetwork = {
               ssid: network.ssid,
               band: network.band,
               isEnabled: network.isEnabled,
-              isVisible: network.isVisible,
               channel: network.channel,
               signalStrength: network.signalStrength || null,
               connectedClients: network.connectedClients || 0,

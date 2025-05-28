@@ -246,11 +246,11 @@ export default function Dashboard() {
             {/* Active Networks */}
             <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {routerFeatures?.wifiNetworkCount || 0}
+                {wifiNetworks?.length || 0}
               </div>
               <div className="text-sm text-muted-foreground">WiFi Networks</div>
               <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                {routerFeatures?.activeGuestNetworks || 0} Guest Active
+                {routerFeatures?.guestNetworkEnabled ? '1' : '0'} Guest Active
               </div>
             </div>
           </div>

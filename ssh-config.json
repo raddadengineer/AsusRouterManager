@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "host": "173.25.127.254",
+  "port": 1215,
+  "username": "HAL",
+  "enabled": true,
+  "syncInterval": 5,
+  "lastConnected": "2025-05-28T23:02:55.348Z",
+  "connectionStatus": "connected",
+  "encryptedCredentials": {
+    "encrypted": "98b0fce69b810e5cf277f87af90e241cf2eaf4cf7f722a",
+    "iv": "f85fa41ae6b96ebd736759b14c19ef55",
+    "tag": "4acda72c33df93ebea4ec26245ba68ac"
+  }
+}
