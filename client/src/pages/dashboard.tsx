@@ -232,11 +232,86 @@ export default function Dashboard() {
             {/* Router Health */}
             <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {routerStatus ? Math.round(100 - (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100) : 0}%
+                {routerStatus ? (() => {
+                  // Calculate comprehensive health score based on multiple metrics
+                  let healthScore = 100;
+                  
+                  // Memory usage penalty (0-30 points)
+                  const memoryUsagePercent = (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100;
+                  if (memoryUsagePercent > 90) healthScore -= 30;
+                  else if (memoryUsagePercent > 80) healthScore -= 20;
+                  else if (memoryUsagePercent > 70) healthScore -= 10;
+                  
+                  // CPU usage penalty (0-25 points)
+                  const cpuUsage = routerStatus.cpuUsage || 0;
+                  if (cpuUsage > 90) healthScore -= 25;
+                  else if (cpuUsage > 80) healthScore -= 20;
+                  else if (cpuUsage > 60) healthScore -= 15;
+                  else if (cpuUsage > 40) healthScore -= 10;
+                  else if (cpuUsage > 20) healthScore -= 5;
+                  
+                  // Temperature penalty (0-20 points) - if available
+                  if (routerStatus.temperature) {
+                    if (routerStatus.temperature > 80) healthScore -= 20;
+                    else if (routerStatus.temperature > 70) healthScore -= 15;
+                    else if (routerStatus.temperature > 60) healthScore -= 10;
+                    else if (routerStatus.temperature > 50) healthScore -= 5;
+                  }
+                  
+                  // Network performance bonus/penalty (0-15 points)
+                  if (totalNetworkUsage > 80) healthScore -= 15;
+                  else if (totalNetworkUsage > 60) healthScore -= 10;
+                  else if (totalNetworkUsage > 40) healthScore -= 5;
+                  
+                  // Device count penalty for high loads (0-10 points)
+                  if (connectedDevicesCount > 100) healthScore -= 10;
+                  else if (connectedDevicesCount > 80) healthScore -= 5;
+                  
+                  return Math.max(0, Math.round(healthScore));
+                })() : 0}%
               </div>
               <div className="text-sm text-muted-foreground">Health Score</div>
               <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                {routerStatus?.temperature ? `${routerStatus.temperature.toFixed(0)}°C` : 'Good'}
+                {routerStatus ? (() => {
+                  const healthScore = routerStatus ? (() => {
+                    let score = 100;
+                    const memoryUsagePercent = (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100;
+                    const cpuUsage = routerStatus.cpuUsage || 0;
+                    
+                    if (memoryUsagePercent > 90) score -= 30;
+                    else if (memoryUsagePercent > 80) score -= 20;
+                    else if (memoryUsagePercent > 70) score -= 10;
+                    
+                    if (cpuUsage > 90) score -= 25;
+                    else if (cpuUsage > 80) score -= 20;
+                    else if (cpuUsage > 60) score -= 15;
+                    else if (cpuUsage > 40) score -= 10;
+                    else if (cpuUsage > 20) score -= 5;
+                    
+                    if (routerStatus.temperature) {
+                      if (routerStatus.temperature > 80) score -= 20;
+                      else if (routerStatus.temperature > 70) score -= 15;
+                      else if (routerStatus.temperature > 60) score -= 10;
+                      else if (routerStatus.temperature > 50) score -= 5;
+                    }
+                    
+                    if (totalNetworkUsage > 80) score -= 15;
+                    else if (totalNetworkUsage > 60) score -= 10;
+                    else if (totalNetworkUsage > 40) score -= 5;
+                    
+                    if (connectedDevicesCount > 100) score -= 10;
+                    else if (connectedDevicesCount > 80) score -= 5;
+                    
+                    return Math.max(0, Math.round(score));
+                  })() : 0;
+                  
+                  if (healthScore >= 90) return 'Excellent';
+                  else if (healthScore >= 80) return 'Very Good';
+                  else if (healthScore >= 70) return 'Good';
+                  else if (healthScore >= 60) return 'Fair';
+                  else if (healthScore >= 50) return 'Poor';
+                  else return 'Critical';
+                })() : 'Unknown'}
               </div>
             </div>
 
