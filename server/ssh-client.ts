@@ -505,79 +505,108 @@ export class SSHClient {
         wirelessBand: null,
         aimeshNode: null,
         downloadSpeed: null,
-        uploadSpeed: null
+        uploadSpeed: null,
+        bridgePort: null
       };
 
-      const leaseCommand = `grep -i "${macAddress}" /var/lib/misc/dnsmasq.leases`;
-      try {
-        const leaseInfo = await this.executeCommand(leaseCommand);
-        if (leaseInfo.trim()) {
-          const parts = leaseInfo.trim().split(/\s+/);
-          if (parts.length >= 4) {
-            deviceInfo.ipAddress = parts[2];
-            deviceInfo.hostname = parts[3];
+      // Use your comprehensive one-liner command for complete device information
+      const detailedCommand = `MAC="${macAddress}"; echo "DHCP:"; grep -i $MAC /var/lib/misc/dnsmasq.leases; echo; echo "ARP:"; ip neigh | grep -i $MAC; echo; echo "Bridge:"; brctl showmacs br0 | grep -i $MAC; for iface in $(nvram get sta_ifnames); do wl -i $iface assoclist 2>/dev/null | grep -iq $MAC && echo "Wireless: $iface" && wl -i $iface rssi $MAC 2>/dev/null; done`;
+      
+      const deviceOutput = await this.executeCommand(detailedCommand);
+      const sections = deviceOutput.split('\n\n');
+      
+      // Parse DHCP section
+      const dhcpSection = sections[0];
+      if (dhcpSection && dhcpSection.includes(':')) {
+        const dhcpLines = dhcpSection.split('\n');
+        for (const line of dhcpLines) {
+          if (line.includes(macAddress.toLowerCase()) || line.includes(macAddress.toUpperCase())) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 4) {
+              deviceInfo.ipAddress = parts[2];
+              deviceInfo.hostname = parts[3] !== '*' ? parts[3] : '';
+            }
           }
         }
-      } catch (error) {
-        // Device not in DHCP leases
       }
-
-      const wirelessInterfaces = ['wl0', 'wl1', 'wl2'];
-      let foundWireless = false;
-
-      for (const iface of wirelessInterfaces) {
-        try {
-          const assocCheck = await this.executeCommand(`wl -i ${iface} assoclist | grep -iq "${macAddress}" && echo "found" || echo ""`);
-          
-          if (assocCheck.trim() === 'found') {
-            foundWireless = true;
-            deviceInfo.connectionType = 'wifi';
-            deviceInfo.wirelessInterface = iface;
+      
+      // Parse ARP section
+      const arpSection = sections[1];
+      if (arpSection && arpSection.includes('ARP:')) {
+        const arpLines = arpSection.split('\n');
+        for (const line of arpLines) {
+          if (line.includes(macAddress.toLowerCase()) || line.includes(macAddress.toUpperCase())) {
             deviceInfo.isOnline = true;
-
-            try {
-              const rssiOutput = await this.executeCommand(`wl -i ${iface} rssi "${macAddress}"`);
-              const rssi = parseInt(rssiOutput.trim());
-              if (!isNaN(rssi)) {
-                deviceInfo.signalStrength = rssi;
+            if (!deviceInfo.ipAddress) {
+              const ipMatch = line.match(/(\d+\.\d+\.\d+\.\d+)/);
+              if (ipMatch) deviceInfo.ipAddress = ipMatch[1];
+            }
+          }
+        }
+      }
+      
+      // Parse Bridge section
+      const bridgeSection = sections[2];
+      if (bridgeSection && bridgeSection.includes('Bridge:')) {
+        const bridgeLines = bridgeSection.split('\n');
+        for (const line of bridgeLines) {
+          if (line.includes(macAddress.toLowerCase()) || line.includes(macAddress.toUpperCase())) {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length >= 1) {
+              deviceInfo.bridgePort = parts[0];
+            }
+          }
+        }
+      }
+      
+      // Parse Wireless section
+      const remainingSections = sections.slice(3);
+      for (const section of remainingSections) {
+        if (section.includes('Wireless:')) {
+          const lines = section.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('Wireless:')) {
+              const interfaceMatch = lines[i].match(/Wireless:\s*(\w+)/);
+              if (interfaceMatch) {
+                const iface = interfaceMatch[1];
+                deviceInfo.connectionType = 'wireless';
+                deviceInfo.wirelessInterface = iface;
+                
+                // Map interface to band using your specification
+                switch (iface) {
+                  case 'eth6': 
+                    deviceInfo.wirelessBand = '2.4GHz';
+                    deviceInfo.connectionType = '2.4GHz WiFi';
+                    break;
+                  case 'eth7': 
+                    deviceInfo.wirelessBand = '5GHz';
+                    deviceInfo.connectionType = '5GHz WiFi';
+                    break;
+                  case 'eth8': 
+                    deviceInfo.wirelessBand = '6GHz';
+                    deviceInfo.connectionType = '6GHz WiFi';
+                    break;
+                  default: 
+                    deviceInfo.wirelessBand = 'Unknown';
+                    deviceInfo.connectionType = 'wireless';
+                }
+                
+                // Get signal strength from next line
+                if (lines[i + 1] && lines[i + 1].trim()) {
+                  const rssi = parseInt(lines[i + 1].trim());
+                  if (!isNaN(rssi)) {
+                    deviceInfo.signalStrength = rssi;
+                  }
+                }
               }
-            } catch (rssiError) {
-              console.log(`Could not get RSSI for ${macAddress} on ${iface}`);
             }
-            
-            if (iface === 'wl0') {
-              deviceInfo.connectionType = '2.4GHz WiFi';
-              deviceInfo.wirelessBand = '2.4GHz';
-            } else if (iface === 'wl1') {
-              deviceInfo.connectionType = '5GHz WiFi';
-              deviceInfo.wirelessBand = '5GHz';
-            } else if (iface === 'wl2') {
-              deviceInfo.connectionType = '6GHz WiFi';
-              deviceInfo.wirelessBand = '6GHz';
-            }
-            
-            break;
           }
-        } catch (ifaceError) {
-          continue;
-        }
-      }
-
-      if (!foundWireless) {
-        try {
-          const neighCheck = await this.executeCommand(`ip neigh | grep -i "${macAddress}" | grep -q "br" && echo "wired" || echo ""`);
-          if (neighCheck.trim() === 'wired') {
-            deviceInfo.connectionType = 'ethernet';
-            deviceInfo.isOnline = true;
-          }
-        } catch (error) {
-          // Device might be offline
         }
       }
 
       return deviceInfo;
     } catch (error) {
-      console.error(`Error getting enhanced info for ${macAddress}:`, error);
+      console.error(`Error getting enhanced device info for ${macAddress}:`, error);
       return {
         hostname: '',
         ipAddress: '',
@@ -588,7 +617,8 @@ export class SSHClient {
         wirelessBand: null,
         aimeshNode: null,
         downloadSpeed: null,
-        uploadSpeed: null
+        uploadSpeed: null,
+        bridgePort: null
       };
     }
   }
