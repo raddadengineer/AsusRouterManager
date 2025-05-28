@@ -33,6 +33,7 @@ import {
   deviceGroupMemberships,
   deviceTagAssignments,
 } from "@shared/schema";
+import { encryptSSHConfig, decryptSSHConfig } from "./crypto";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
@@ -139,10 +140,14 @@ export class MemStorage implements IStorage {
       
       if (fs.existsSync(configPath)) {
         const configData = fs.readFileSync(configPath, 'utf8');
-        this.sshConfiguration = JSON.parse(configData);
+        const encryptedConfig = JSON.parse(configData);
+        // Decrypt the SSH configuration on load
+        this.sshConfiguration = decryptSSHConfig(encryptedConfig);
       }
     } catch (error) {
-      // Ignore errors, will start with no config
+      console.error('Failed to load SSH config:', error);
+      // Clear corrupted config and start fresh
+      this.sshConfiguration = undefined;
     }
   }
 
@@ -153,10 +158,12 @@ export class MemStorage implements IStorage {
       const configPath = path.join(process.cwd(), 'ssh-config.json');
       
       if (this.sshConfiguration) {
-        fs.writeFileSync(configPath, JSON.stringify(this.sshConfiguration, null, 2));
+        // Encrypt SSH configuration before saving to disk
+        const encryptedConfig = encryptSSHConfig(this.sshConfiguration);
+        fs.writeFileSync(configPath, JSON.stringify(encryptedConfig, null, 2));
       }
     } catch (error) {
-      // Ignore errors
+      console.error('Failed to save SSH config:', error);
     }
   }
 
