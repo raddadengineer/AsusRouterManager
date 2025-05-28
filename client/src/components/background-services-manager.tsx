@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayCircle, Clock, CheckCircle, AlertCircle, RefreshCw, Info, Code, Database, Edit, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 interface BackgroundJob {
   id: string;
@@ -130,6 +130,8 @@ export default function BackgroundServicesManager() {
       });
       setEditingJobId(null);
       setEditCronExpression('');
+      // Force immediate refresh of the background jobs data
+      queryClient.invalidateQueries({ queryKey: ["/api/background/jobs"] });
       refetch();
     },
     onError: (error, { jobId }) => {
