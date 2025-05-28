@@ -107,8 +107,8 @@ export class ImprovedSSHClient {
           fi
         done
         
-        # Check if wired with your method
-        ip neigh | grep -i "$MAC"
+        # Check if wired with improved method
+        ip neigh show | grep -i "$MAC" || cat /proc/net/arp | grep -i "$MAC"
         
         # Check AiMesh Node with your instant lookup method
         grep -i "$MAC" /tmp/sysinfo/mesh_status 2>/dev/null || grep -i "$MAC" /tmp/sysinfo/mesh_topology.json 2>/dev/null
