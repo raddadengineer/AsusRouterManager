@@ -248,17 +248,32 @@ export default function Dashboard() {
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Network Status</span>
-              <span className="text-xs text-muted-foreground">
-                Last updated: {routerStatus?.lastUpdated ? new Date(routerStatus.lastUpdated).toLocaleTimeString() : 'Never'}
-              </span>
+              <div className="flex items-center space-x-4">
+                <span className="text-xs text-muted-foreground">
+                  {(routerStatus as any)?.connectionStatus?.isConnected ? (
+                    <span className="flex items-center space-x-1 text-green-600">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span>Live Data</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center space-x-1 text-orange-600">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <span>Demo Mode</span>
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {routerStatus?.lastUpdated ? new Date(routerStatus.lastUpdated).toLocaleTimeString() : 'Never'}
+                </span>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Router Online</span>
+                <div className={`w-2 h-2 rounded-full ${(routerStatus as any)?.connectionStatus?.isConnected ? 'bg-green-500' : 'bg-orange-400'}`}></div>
+                <span>{(routerStatus as any)?.connectionStatus?.isConnected ? 'Router Connected' : 'SSH Setup Needed'}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.enabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.isEnabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
                 <span>WiFi Active</span>
               </div>
               <div className="flex items-center space-x-2">
@@ -266,6 +281,23 @@ export default function Dashboard() {
                 <span>Devices Connected</span>
               </div>
             </div>
+            {!(routerStatus as any)?.connectionStatus?.isConnected && (
+              <div className="mt-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg border-l-4 border-orange-400">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-800 dark:text-orange-200">Connect to Your Router</p>
+                    <p className="text-xs text-orange-600 dark:text-orange-300 mt-1">
+                      Configure SSH connection to display real-time data from your Asus router
+                    </p>
+                  </div>
+                  <Link href="/system">
+                    <Button size="sm" variant="outline" className="shrink-0 border-orange-300 text-orange-700 hover:bg-orange-100">
+                      Setup Connection
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

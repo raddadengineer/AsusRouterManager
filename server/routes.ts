@@ -18,7 +18,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/router/status", async (req, res) => {
     try {
       const status = await storage.getRouterStatus();
-      res.json(status);
+      const sshConfig = await storage.getSSHConfig();
+      const isConnected = sshClient.isConnectionActive();
+      
+      // Add connection status to response
+      const response = {
+        ...status,
+        connectionStatus: {
+          isConnected,
+          hasConfig: !!sshConfig,
+          lastUpdated: status?.lastUpdated || null
+        }
+      };
+      
+      res.json(response);
     } catch (error) {
       res.status(500).json({ message: "Failed to get router status" });
     }
