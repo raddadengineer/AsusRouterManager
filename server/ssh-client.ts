@@ -697,6 +697,26 @@ export class SSHClient {
       const aiProtection = await this.executeCommand("nvram get aiprotection_enable");
       const aimeshMaster = await this.executeCommand("nvram get cfg_master");
       
+      // Count wireless clients using your improved command
+      let wirelessClientsTotal = 0;
+      try {
+        const wirelessCount = await this.executeCommand(`
+          for iface in $(nvram get wl_ifnames); do 
+            count=$(wl -i $iface assoclist 2>/dev/null | wc -l)
+            echo "$iface: $count clients"
+          done
+        `);
+        
+        // Parse the output to get total count
+        const lines = wirelessCount.split('\n').filter(line => line.includes('clients'));
+        wirelessClientsTotal = lines.reduce((total, line) => {
+          const match = line.match(/(\d+)\s+clients/);
+          return total + (match ? parseInt(match[1]) : 0);
+        }, 0);
+      } catch (error) {
+        console.log('Could not get wireless client count:', error);
+      }
+      
       // Enhanced VPN server detection
       let vpnServerEnabled = false;
       let vpnConnectedClients = 0;
@@ -760,7 +780,7 @@ export class SSHClient {
         vpnServerEnabled,
         vpnConnectedClients,
         aimeshIsMaster: aimeshMaster.trim() === '1',
-        wirelessClientsTotal: 0
+        wirelessClientsTotal
       };
     } catch (error) {
       console.error('Error getting Merlin features:', error);
