@@ -192,7 +192,8 @@ export const insertRouterFeaturesSchema = createInsertSchema(routerFeatures).omi
 export const insertAiMeshNodeSchema = createInsertSchema(aimeshNodes).omit({
   id: true,
   lastSeen: true,
-  discoveredAt: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertDeviceGroupSchema = createInsertSchema(deviceGroups).omit({
@@ -201,19 +202,14 @@ export const insertDeviceGroupSchema = createInsertSchema(deviceGroups).omit({
   updatedAt: true,
 });
 
-export const insertDeviceTagSchema = createInsertSchema(deviceTags).omit({
+export const insertClientAssociationSchema = createInsertSchema(clientAssociations).omit({
   id: true,
-  createdAt: true,
+  timestamp: true,
 });
 
-export const insertDeviceGroupMembershipSchema = createInsertSchema(deviceGroupMemberships).omit({
+export const insertDeviceGroupAssignmentSchema = createInsertSchema(deviceGroupAssignments).omit({
   id: true,
   addedAt: true,
-});
-
-export const insertDeviceTagAssignmentSchema = createInsertSchema(deviceTagAssignments).omit({
-  id: true,
-  assignedAt: true,
 });
 
 // Types
