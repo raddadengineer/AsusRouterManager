@@ -140,21 +140,153 @@ ssh admin@192.168.1.1
 
 ## 📊 Background Services
 
-The system runs 7 automated background jobs:
+The system runs 7 automated background jobs that continuously collect authentic data from your ASUS router:
 
-1. **Device Discovery** (Every 60s) - Scans for new connected devices
-2. **Device Detail Sync** (Every 30s) - Updates device information
-3. **Bandwidth Monitoring** (Every 10s) - Collects traffic data
-4. **Router Health Check** (Every 120s) - Monitors system health
-5. **Router Features Sync** (Every 300s) - Detects capabilities
-6. **AiMesh Nodes Sync** (Every 180s) - Updates mesh topology
-7. **Client Associations Sync** (Every 15s) - Tracks wireless connections
+### 1. Device Discovery (Every 60s)
+**Purpose**: Scans for newly connected devices on your network
+**Commands Used**:
+```bash
+# ARP table for all connected devices
+arp -a
+
+# DHCP leases for IP assignments
+cat /var/lib/dhcp/dhcpd.leases
+
+# Active network connections
+netstat -an | grep ESTABLISHED
+```
+
+### 2. Device Detail Sync (Every 30s)
+**Purpose**: Updates detailed information for each discovered device
+**Commands Used**:
+```bash
+# Enhanced device information via MAC lookup
+wl -i eth1 sta_info [MAC_ADDRESS]
+wl -i eth2 sta_info [MAC_ADDRESS]
+
+# Signal strength and connection quality
+wl -i eth1 rssi [MAC_ADDRESS]
+wl -i eth2 rssi [MAC_ADDRESS]
+
+# Device manufacturer lookup via OUI database
+```
+
+### 3. Bandwidth Monitoring (Every 10s)
+**Purpose**: Collects real-time traffic data for all network interfaces
+**Commands Used**:
+```bash
+# Interface statistics
+cat /proc/net/dev
+
+# Per-device traffic via iptables
+iptables -L FORWARD -v -n
+
+# Wireless interface traffic
+wl -i eth1 counters
+wl -i eth2 counters
+```
+
+### 4. Router Health Check (Every 120s)
+**Purpose**: Monitors overall router system health and performance
+**Commands Used**:
+```bash
+# System uptime and load average
+uptime
+cat /proc/loadavg
+
+# Memory usage
+free -m
+cat /proc/meminfo
+
+# CPU temperature (if available)
+cat /proc/dmu/temperature
+```
+
+### 5. Router Features Sync (Every 300s)
+**Purpose**: Detects available router capabilities and Merlin-specific features
+**Commands Used**:
+```bash
+# Hardware acceleration status
+nvram get ctf_disable
+nvram get runner_disable
+
+# AiProtection status
+nvram get wrs_protect_enable
+
+# Adaptive QoS status
+nvram get adaptive_qos_enable
+
+# VPN server status
+nvram get vpn_server_enable
+```
+
+### 6. AiMesh Nodes Sync (Every 180s)
+**Purpose**: Updates mesh network topology and node status
+**Commands Used**:
+```bash
+# AiMesh configuration
+cfg_mnt
+
+# Node list and status
+nvram get cfg_group
+nvram get cfg_alias
+
+# Mesh topology information
+amas_lib get_node_info
+```
+
+### 7. Client Associations Sync (Every 15s)
+**Purpose**: Tracks wireless client connections and band assignments
+**Commands Used**:
+```bash
+# 2.4GHz wireless clients
+wl -i eth1 assoclist
+wl -i eth1 sta_info
+
+# 5GHz wireless clients  
+wl -i eth2 assoclist
+wl -i eth2 sta_info
+
+# 6GHz wireless clients (if available)
+wl -i eth3 assoclist
+wl -i eth3 sta_info
+```
 
 ### Managing Background Services
-- View status: **Dashboard** > **Background Services**
-- Start/Stop individual jobs
-- Run jobs manually with "Run Now" button
-- Monitor execution logs and performance
+- **View Status**: Navigate to **Dashboard** > **Background Services**
+- **Start/Stop Jobs**: Individual control for each service
+- **Run Manually**: "Run Now" button for immediate execution
+- **Monitor Performance**: Real-time execution logs and timing
+- **Adjust Intervals**: Modify cron expressions in System Settings
+
+### Background Service Configuration
+```bash
+# View current job status
+GET /api/background/jobs
+
+# Start a specific job
+POST /api/background/jobs/device-discovery/start
+
+# Stop a specific job
+POST /api/background/jobs/bandwidth-monitoring/stop
+
+# Run job immediately
+POST /api/background/jobs/router-health-check/run
+```
+
+### Cron Schedule Format
+```bash
+# Format: "second minute hour day month weekday"
+"*/10 * * * * *"    # Every 10 seconds
+"0 */5 * * * *"     # Every 5 minutes  
+"0 0 */2 * * *"     # Every 2 hours
+```
+
+### Performance Optimization
+- **High Traffic Networks**: Increase intervals to reduce load
+- **Large Device Count**: Enable batch processing for device sync
+- **Router Performance**: Monitor CPU usage and adjust accordingly
+- **Network Stability**: Reduce frequency during peak usage times
 
 ## 🌐 API Endpoints
 
