@@ -446,10 +446,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Execute authentic AiMesh detection commands as provided by user
       const meshCommands = [
-        `nvram get sta_info`, // Show AiMesh nodes via SSH (Merlin or Stock)
-        `cat /tmp/dnsmasq.leases`, // Check DHCP leases for mesh IPs
-        `arp -a`, // List all active IPs and hostnames
+        `cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'`, // Find actual AiMesh nodes
+        `nvram get cfg_clientlist`, // Show configured AiMesh nodes
         `cat /tmp/syslog.log | grep 'backhaul' | tail -10`, // Check system log for mesh node entries
+        `nvram get sta_info`, // Show AiMesh nodes via SSH (Merlin or Stock)
         `for iface in wl0 wl1 wl2; do echo "==== $iface ===="; wl -i $iface assoclist; done` // Query all interfaces for mesh devices
       ];
       
@@ -457,31 +457,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         meshCommands.map(cmd => sshClient.executeCommand(cmd).catch(err => `Error: ${err.message}`))
       );
       
-      const [staInfo, dhcpLeases, arpTable, syslogBackhaul, wirelessAssoc] = meshResults;
+      const [aimeshLeases, cfgClientlist, syslogBackhaul, staInfo, wirelessAssoc] = meshResults;
       
       // Parse authentic router data to detect AiMesh nodes
       const nodes = [];
       const meshNodeMacs = new Set();
       
-      // Parse DHCP leases for actual AiMesh nodes (only router model hostnames, not generic devices)
-      const dhcpLines = dhcpLeases.split('\n').filter(line => line.trim());
-      dhcpLines.forEach(line => {
+      // Parse the specific AiMesh command output: cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'
+      const aimeshLines = aimeshLeases.split('\n').filter(line => line.trim() && !line.startsWith('Error:'));
+      aimeshLines.forEach(line => {
         const parts = line.split(' ');
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
-          // Only match actual ASUS router model names, not random devices
-          if (hostname && (
-            hostname.match(/^RT-AX\d+U?$/i) || 
-            hostname.match(/^GT-AX\d+$/i) ||
-            hostname.match(/^AX\d+U?$/i) ||
-            hostname.includes('AiMesh-Node') ||
-            hostname.includes('ASUS-Router')
-          )) {
+          // These are already filtered by the grep command to be actual ASUS devices
+          if (hostname && mac && ip) {
             meshNodeMacs.add(mac.toLowerCase());
             nodes.push({
               id: mac.replace(/:/g, '-'),
               name: hostname,
-              model: hostname,
+              model: hostname.includes('RT-') || hostname.includes('GT-') ? hostname : 'ASUS AiMesh Device',
               macAddress: mac.toUpperCase(),
               ipAddress: ip,
               role: ip.endsWith('.1') ? 'router' : 'node',
@@ -489,56 +483,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
               signalStrength: 85,
               connectedDevices: 0,
               firmwareVersion: 'Detection via SSH',
-              location: 'Detected via DHCP',
+              location: 'Detected via AiMesh Command',
               uptime: 0,
               bandwidth: { upload: 0, download: 0 },
               temperature: null,
               memoryUsage: null,
-              detectionMethod: 'DHCP leases'
+              detectionMethod: 'AiMesh DHCP Leases'
             });
           }
         }
       });
       
-      // Check for actual AiMesh configuration using nvram commands
-      try {
-        const aimeshCheck = await sshClient.executeCommand('nvram get cfg_clientlist 2>/dev/null || echo ""');
-        if (aimeshCheck.trim()) {
-          // Parse actual AiMesh client list
-          const aimeshNodes = aimeshCheck.split('<').filter(node => node.trim());
-          aimeshNodes.forEach(nodeData => {
-            if (nodeData.includes('>')) {
-              const parts = nodeData.split('>');
-              if (parts.length >= 2) {
-                const ip = parts[0];
-                const mac = parts[1];
-                if (ip && mac && !meshNodeMacs.has(mac.toLowerCase())) {
-                  meshNodeMacs.add(mac.toLowerCase());
-                  nodes.push({
-                    id: mac.replace(/:/g, '-'),
-                    name: `AiMesh Node ${ip}`,
-                    model: 'ASUS AiMesh Node',
-                    macAddress: mac.toUpperCase(),
-                    ipAddress: ip,
-                    role: 'node',
-                    status: 'online',
-                    signalStrength: 90,
-                    connectedDevices: 0,
-                    firmwareVersion: 'Detection via SSH',
-                    location: 'Detected via AiMesh Config',
-                    uptime: 0,
-                    bandwidth: { upload: 0, download: 0 },
-                    temperature: null,
-                    memoryUsage: null,
-                    detectionMethod: 'nvram cfg_clientlist'
-                  });
-                }
+      // Parse the nvram cfg_clientlist for additional AiMesh nodes
+      if (cfgClientlist.trim() && !cfgClientlist.startsWith('Error:')) {
+        // Parse actual AiMesh client list
+        const aimeshNodes = cfgClientlist.split('<').filter(node => node.trim());
+        aimeshNodes.forEach(nodeData => {
+          if (nodeData.includes('>')) {
+            const parts = nodeData.split('>');
+            if (parts.length >= 2) {
+              const ip = parts[0];
+              const mac = parts[1];
+              if (ip && mac && !meshNodeMacs.has(mac.toLowerCase())) {
+                meshNodeMacs.add(mac.toLowerCase());
+                nodes.push({
+                  id: mac.replace(/:/g, '-'),
+                  name: `AiMesh Node ${ip}`,
+                  model: 'ASUS AiMesh Node',
+                  macAddress: mac.toUpperCase(),
+                  ipAddress: ip,
+                  role: 'node',
+                  status: 'online',
+                  signalStrength: 90,
+                  connectedDevices: 0,
+                  firmwareVersion: 'Detection via SSH',
+                  location: 'Detected via AiMesh Config',
+                  uptime: 0,
+                  bandwidth: { upload: 0, download: 0 },
+                  temperature: null,
+                  memoryUsage: null,
+                  detectionMethod: 'nvram cfg_clientlist'
+                });
               }
             }
-          });
-        }
-      } catch (aimeshError) {
-        console.log('AiMesh configuration check failed:', aimeshError);
+          }
+        });
       }
       
       // Parse backhaul connections from system logs
