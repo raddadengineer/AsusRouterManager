@@ -177,6 +177,9 @@ export default function BackgroundServicesManager() {
       'device-detail-sync': 'Device Detail Sync',
       'bandwidth-monitoring': 'Bandwidth Monitoring',
       'router-health-check': 'Router Health Check',
+      'router-features-sync': 'Router Features Sync',
+      'aimesh-nodes-sync': 'AiMesh Nodes Sync',
+      'client-associations-sync': 'Client Associations Sync',
       'wifi-network-scan': 'WiFi Network Scan'
     };
     return jobNames[jobId] || jobId;
@@ -188,6 +191,9 @@ export default function BackgroundServicesManager() {
       'device-detail-sync': 'Collects detailed information about each device',
       'bandwidth-monitoring': 'Monitors network bandwidth usage',
       'router-health-check': 'Checks router system health and status',
+      'router-features-sync': 'Syncs router features and capabilities',
+      'aimesh-nodes-sync': 'Discovers and tracks AiMesh network nodes',
+      'client-associations-sync': 'Monitors wireless device associations',
       'wifi-network-scan': 'Scans for available WiFi networks'
     };
     return descriptions[jobId] || 'Background process for network management';
