@@ -234,7 +234,7 @@ export default function Dashboard() {
                           <div
                             key={bar}
                             className={`w-1 h-2 rounded-full ${
-                              (connectedDevices?.filter(device => device.wirelessBand === '2.4GHz' && device.signalStrength && device.signalStrength > -70).length || 0) >= bar 
+                              (routerFeatures?.wirelessClients24ghz || 0) >= bar * 4
                                 ? 'bg-orange-500' 
                                 : 'bg-gray-300 dark:bg-gray-600'
                             }`}
@@ -254,7 +254,7 @@ export default function Dashboard() {
                           <div
                             key={bar}
                             className={`w-1 h-2 rounded-full ${
-                              (connectedDevices?.filter(device => device.wirelessBand === '5GHz' && device.signalStrength && device.signalStrength > -60).length || 0) >= bar 
+                              (routerFeatures?.wirelessClients5ghz || 0) >= bar * 3
                                 ? 'bg-emerald-500' 
                                 : 'bg-gray-300 dark:bg-gray-600'
                             }`}
@@ -274,7 +274,7 @@ export default function Dashboard() {
                           <div
                             key={bar}
                             className={`w-1 h-2 rounded-full ${
-                              (connectedDevices?.filter(device => device.wirelessBand === '6GHz' && device.signalStrength && device.signalStrength > -50).length || 0) >= bar 
+                              (routerFeatures?.wirelessClients6ghz || 0) >= bar * 1
                                 ? 'bg-cyan-500' 
                                 : 'bg-gray-300 dark:bg-gray-600'
                             }`}
