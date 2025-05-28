@@ -178,8 +178,16 @@ export class SSHClient {
           echo "MAIN_NODE: $(nvram get lan_ipaddr) | MAC: $(nvram get lan_hwaddr) | Name: $(nvram get productid)"
         fi
         
-        # Get all AiMesh nodes
-        echo "=== AiMesh Connected Nodes ==="
+        # Get AiMesh nodes from DHCP leases using your specific command
+        echo "=== AiMesh Connected Nodes from DHCP ==="
+        cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "aimesh\|rp-\|asus" | while read timestamp mac ip hostname; do
+          if [ -n "$mac" ] && [ -n "$ip" ]; then
+            echo "AIMESH_NODE: $ip | MAC: $mac | Hostname: $hostname"
+          fi
+        done
+        
+        # Also get from nvram for additional node info
+        echo "=== AiMesh Connected Nodes from nvram ==="
         cfg_clientlist=$(nvram get cfg_clientlist 2>/dev/null || echo "")
         if [ -n "$cfg_clientlist" ]; then
           echo "$cfg_clientlist" | sed 's/</\n/g' | while read node; do
