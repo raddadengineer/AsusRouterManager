@@ -444,31 +444,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for AiMesh data" });
       }
       
-      // Use your authentic ASUS-specific command for AiMesh discovery
+      // Use your enhanced ASUS-specific commands for comprehensive discovery
       const meshCommands = [
-        `cat /etc/dnsmasq.leases 2>/dev/null || cat /var/lib/misc/dnsmasq.leases 2>/dev/null | grep -i "aimesh\\|rp-\\|asus"`, // Your specific AiMesh discovery command
-        `nvram get lan_ipaddr && nvram get lan_hwaddr && nvram get productid`, // Main router info
+        `{ [ -f /etc/dnsmasq.leases ] && cat /etc/dnsmasq.leases || cat /var/lib/misc/dnsmasq.leases; } 2>/dev/null | grep -Ei "aimesh|rt-|rp-|asus"`, // Your improved AiMesh discovery
+        `echo "Model: $(nvram get productid)"; echo "Firmware: $(nvram get firmware_version)"; echo "LAN IP: $(nvram get lan_ipaddr)"; echo "LAN MAC: $(nvram get lan_hwaddr)"; echo "WAN IP: $(nvram get wan0_ipaddr)"; echo "SSID 2.4GHz: $(nvram get wl0_ssid)"; echo "SSID 5GHz: $(nvram get wl1_ssid)"; echo "SSID 6GHz: $(nvram get wl2_ssid)"`, // Comprehensive router info
         `nvram get cfg_clientlist`, // AiMesh client list from nvram
-        `for iface in $(nvram get sta_ifnames); do echo "--- $iface ---"; wl -i $iface assoclist 2>/dev/null; done` // Your enhanced wireless discovery
+        `for iface in $(nvram get sta_ifnames); do echo "--- $iface ---"; wl -i $iface assoclist 2>/dev/null; done` // Enhanced wireless discovery
       ];
       
       const meshResults = await Promise.all(
         meshCommands.map(cmd => sshClient.executeCommand(cmd).catch(err => `Error: ${err.message}`))
       );
       
-      const [aimeshDhcpNodes, mainRouterInfo, nvramClientList, wirelessDevices] = meshResults;
+      const [aimeshDhcpNodes, comprehensiveRouterInfo, nvramClientList, wirelessDevices] = meshResults;
       
-      // Parse authentic AiMesh nodes using your specific command
+      // Parse comprehensive router information from your enhanced command
+      const routerInfo: any = {};
+      if (comprehensiveRouterInfo && !comprehensiveRouterInfo.includes('Error:')) {
+        const infoLines = comprehensiveRouterInfo.split('\n');
+        infoLines.forEach(line => {
+          if (line.includes('Model:')) routerInfo.model = line.split('Model:')[1]?.trim();
+          if (line.includes('Firmware:')) routerInfo.firmware = line.split('Firmware:')[1]?.trim();
+          if (line.includes('LAN IP:')) routerInfo.lanIp = line.split('LAN IP:')[1]?.trim();
+          if (line.includes('LAN MAC:')) routerInfo.lanMac = line.split('LAN MAC:')[1]?.trim();
+          if (line.includes('WAN IP:')) routerInfo.wanIp = line.split('WAN IP:')[1]?.trim();
+          if (line.includes('SSID 2.4GHz:')) routerInfo.ssid24 = line.split('SSID 2.4GHz:')[1]?.trim();
+          if (line.includes('SSID 5GHz:')) routerInfo.ssid5 = line.split('SSID 5GHz:')[1]?.trim();
+          if (line.includes('SSID 6GHz:')) routerInfo.ssid6 = line.split('SSID 6GHz:')[1]?.trim();
+        });
+      }
+      
+      // Parse authentic AiMesh nodes using your improved command
       const nodes = [];
       const meshNodeMacs = new Set();
       
-      // Parse your specific AiMesh DHCP command results
+      // Add main router as primary node
+      if (routerInfo.lanIp) {
+        nodes.push({
+          id: 'main-router',
+          name: routerInfo.model || 'Main Router',
+          model: routerInfo.model || 'Unknown',
+          macAddress: routerInfo.lanMac || '',
+          ipAddress: routerInfo.lanIp,
+          role: 'router',
+          status: 'online',
+          firmwareVersion: routerInfo.firmware || 'Unknown',
+          connectedDevices: 0,
+          uptime: 0,
+          bandwidth: { upload: 0, download: 0 },
+          wanIp: routerInfo.wanIp || '',
+          ssids: {
+            '2.4GHz': routerInfo.ssid24 || '',
+            '5GHz': routerInfo.ssid5 || '',
+            '6GHz': routerInfo.ssid6 || ''
+          }
+        });
+      }
+      
+      // Parse AiMesh nodes from your improved DHCP command
       const dhcpLines = aimeshDhcpNodes.split('\n').filter(line => line.trim() && !line.includes('Error:'));
       dhcpLines.forEach(line => {
         const parts = line.split(' ');
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
-          if (hostname && (hostname.includes('RT-') || hostname.includes('AiMesh') || hostname.includes('ASUS'))) {
+          if (hostname && (hostname.toLowerCase().includes('rt-') || hostname.toLowerCase().includes('aimesh') || hostname.toLowerCase().includes('rp-') || hostname.toLowerCase().includes('asus'))) {
             meshNodeMacs.add(mac.toLowerCase());
             nodes.push({
               id: mac.replace(/:/g, '-'),
