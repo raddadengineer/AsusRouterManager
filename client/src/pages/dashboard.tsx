@@ -141,7 +141,7 @@ export default function Dashboard() {
               {!statusLoading && (
                 <>
                   <div className="text-xs text-muted-foreground mb-2">
-                    {((routerStatus?.memoryUsage || 0) / 1024).toFixed(0)}MB / {((routerStatus?.memoryTotal || 0) / 1024).toFixed(0)}MB
+                    {(routerStatus?.memoryUsage || 0).toFixed(0)}MB / {(routerStatus?.memoryTotal || 0).toFixed(0)}MB
                   </div>
                   <Progress 
                     value={routerStatus ? (routerStatus.memoryUsage / routerStatus.memoryTotal) * 100 : 0} 
