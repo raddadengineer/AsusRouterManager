@@ -476,7 +476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `{ [ -f /etc/dnsmasq.leases ] && cat /etc/dnsmasq.leases || cat /var/lib/misc/dnsmasq.leases; } 2>/dev/null | grep -Ei "aimesh|rt-|rp-|asus"`, // Your improved AiMesh discovery
         `echo "Model: $(nvram get productid)"; echo "Firmware: $(nvram get firmware_version)"; echo "LAN IP: $(nvram get lan_ipaddr)"; echo "LAN MAC: $(nvram get lan_hwaddr)"; echo "WAN IP: $(nvram get wan0_ipaddr)"; echo "SSID 2.4GHz: $(nvram get wl0_ssid)"; echo "SSID 5GHz: $(nvram get wl1_ssid)"; echo "SSID 6GHz: $(nvram get wl2_ssid)"`, // Comprehensive router info
         `nvram get cfg_clientlist`, // AiMesh client list from nvram
-        `for iface in $(nvram get sta_ifnames); do echo "--- $iface ---"; wl -i $iface assoclist 2>/dev/null; done` // Enhanced wireless discovery
+        `LEASE_FILE="/var/lib/misc/dnsmasq.leases"; for iface in $(nvram get sta_ifnames); do wl -i $iface assoclist 2>/dev/null | tail -n +2; done | sed 's/^.*\\(..:..:..:..:..:..\).*$/\\1/' | while read mac; do ip=$(awk -v mac="$mac" 'tolower($2) == tolower(mac) { print $3, $4 }' "$LEASE_FILE"); if [ -n "$ip" ]; then echo "$mac → $ip"; else echo "$mac → IP not found"; fi; done` // Your enhanced wireless discovery with IP mapping
       ];
       
       const meshResults = await Promise.all(
