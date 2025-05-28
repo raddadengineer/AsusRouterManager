@@ -111,12 +111,14 @@ export default function Dashboard() {
               <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                 {devicesLoading ? (
                   <Skeleton className="h-8 w-16 mx-auto" />
-                ) : (
+                ) : routerStatus ? (
                   `${totalNetworkUsage.toFixed(0)}`
+                ) : (
+                  "--"
                 )}
               </div>
               <div className="text-sm text-muted-foreground">Network Usage (MB/s)</div>
-              {!devicesLoading && (
+              {!devicesLoading && routerStatus && (
                 <div className="mt-2">
                   <Progress value={Math.min((totalNetworkUsage / 100) * 100, 100)} className="h-2" />
                 </div>
@@ -216,29 +218,45 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Network Status Bar */}
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Network Status</span>
-              <span className="text-xs text-muted-foreground">
-                Last updated: {routerStatus?.lastUpdated ? new Date(routerStatus.lastUpdated).toLocaleTimeString() : 'Never'}
-              </span>
+          {/* Connection Status Bar */}
+          {!routerStatus ? (
+            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Router Not Connected</span>
+                <Link href="/system">
+                  <Button variant="outline" size="sm" className="text-yellow-700 border-yellow-300 hover:bg-yellow-100">
+                    Configure Connection
+                  </Button>
+                </Link>
+              </div>
+              <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                Connect to your ASUS router via SSH to view real-time data, system metrics, and network information.
+              </p>
             </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Router Online</span>
+          ) : (
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Network Status</span>
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {routerStatus?.lastUpdated ? new Date(routerStatus.lastUpdated).toLocaleTimeString() : 'Never'}
+                </span>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.enabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                <span>WiFi Active</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${connectedDevicesCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                <span>Devices Connected</span>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Router Online</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.enabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <span>WiFi Active</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${connectedDevicesCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+                  <span>Devices Connected</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
