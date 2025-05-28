@@ -23,7 +23,16 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        // Sanitize sensitive SSH data from logs
+        let sanitizedResponse = capturedJsonResponse;
+        if (path.includes("/ssh") && capturedJsonResponse) {
+          sanitizedResponse = {
+            ...capturedJsonResponse,
+            password: capturedJsonResponse.password ? '[REDACTED]' : capturedJsonResponse.password,
+            privateKey: capturedJsonResponse.privateKey ? '[REDACTED]' : capturedJsonResponse.privateKey
+          };
+        }
+        logLine += ` :: ${JSON.stringify(sanitizedResponse)}`;
       }
 
       if (logLine.length > 80) {
