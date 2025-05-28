@@ -169,17 +169,27 @@ export class RouterSyncService {
   private async syncWifiNetworks() {
     try {
       const networks = await sshClient.getWiFiNetworks();
+      console.log(`Found ${networks.length} WiFi networks to sync`);
+      
+      // Clear existing WiFi networks before syncing new ones
+      const existingNetworks = await storage.getWifiNetworks();
+      for (const existing of existingNetworks) {
+        await storage.deleteWifiNetwork(existing.id);
+      }
       
       for (const network of networks) {
         await storage.createWifiNetwork({
-          ssid: network.ssid,
-          band: network.frequency || "2.4GHz",
+          ssid: network.ssid || "Unknown Network",
+          band: network.band || "2.4GHz",
           channel: network.channel || 0,
-          isEnabled: network.isEnabled ?? true,
+          enabled: network.enabled ?? true,
           securityMode: network.security || "WPA2",
           connectedDevices: network.connectedClients || 0
         });
+        console.log(`Synced WiFi network: ${network.ssid} (${network.band})`);
       }
+      
+      this.markSynced('wifi');
     } catch (error) {
       console.error("Error syncing WiFi networks:", error);
     }

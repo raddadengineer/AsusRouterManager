@@ -281,14 +281,15 @@ class BackgroundServiceManager {
           } else {
             // Create new network
             const newNetwork = {
-              ssid: network.ssid,
-              band: network.band,
-              isEnabled: network.isEnabled,
-              channel: network.channel,
-              signalStrength: network.signalStrength || null,
-              connectedClients: network.connectedClients || 0,
-              isGuest: network.isGuest || false
+              ssid: network.ssid || "Unknown Network",
+              band: network.band || "2.4GHz",
+              enabled: network.enabled ?? true,
+              channel: network.channel || 0,
+              securityMode: network.security || "WPA2",
+              connectedDevices: network.connectedClients || 0,
+              signalStrength: network.signalStrength || null
             };
+            console.log(`Creating WiFi network: ${newNetwork.ssid} (${newNetwork.band})`);
             await storage.createWifiNetwork(newNetwork);
           }
         } catch (error) {
