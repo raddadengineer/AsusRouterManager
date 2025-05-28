@@ -114,6 +114,9 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="text-sm text-muted-foreground mb-2">CPU Usage</div>
+              <div className="text-xs text-muted-foreground mb-2" style={{ height: '16px' }}>
+                {/* Spacer for alignment */}
+              </div>
               {!statusLoading && (
                 <Progress 
                   value={routerStatus?.cpuUsage || 0} 
