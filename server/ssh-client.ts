@@ -605,9 +605,30 @@ export class SSHClient {
     return 'unknown';
   }
 
+  async getWiFiNetworkCount(): Promise<number> {
+    try {
+      // Use the script you provided to get the actual WiFi network count
+      const result = await this.executeCommand(`
+        base_ifaces=$(nvram get wl_ifnames)
+        base_count=$(echo "$base_ifaces" | wc -w)
+        echo "$base_count"
+      `);
+      
+      const count = parseInt(result.trim()) || 0;
+      console.log(`WiFi network count: ${count}`);
+      return count;
+    } catch (error) {
+      console.error('Error getting WiFi network count:', error);
+      return 0;
+    }
+  }
+
   async getWiFiNetworks(): Promise<any[]> {
     try {
       const networks: any[] = [];
+      
+      // Get the actual count of WiFi networks using your script
+      const networkCount = await this.getWiFiNetworkCount();
       
       // Get main networks
       const wlInterfaces = await this.executeCommand("nvram show | grep '^wl[0-9]_ssid=' | cut -d'=' -f1 | sed 's/_ssid//'");
@@ -626,7 +647,8 @@ export class SSHClient {
             band,
             enabled: enabled.trim() === '1',
             interface: iface.trim(),
-            isGuest: false
+            isGuest: false,
+            totalNetworkCount: networkCount // Add the actual count to each network object
           });
         } catch (error) {
           console.error(`Error getting WiFi info for ${iface}:`, error);

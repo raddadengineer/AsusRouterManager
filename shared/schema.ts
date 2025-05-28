@@ -96,6 +96,7 @@ export const routerFeatures = pgTable("router_features", {
   wirelessClients5ghz: integer("wireless_clients_5ghz").default(0),
   wirelessClients6ghz: integer("wireless_clients_6ghz").default(0),
   wirelessClientsTotal: integer("wireless_clients_total").default(0),
+  wifiNetworkCount: integer("wifi_network_count").default(0),
   lastUpdated: timestamp("last_updated").defaultNow(),
 });
 

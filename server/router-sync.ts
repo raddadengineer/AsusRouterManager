@@ -204,6 +204,10 @@ export class RouterSyncService {
     try {
       const features = await sshClient.getMerlinFeatures();
       
+      // Get the actual WiFi network count using your script
+      const wifiNetworkCount = await sshClient.getWiFiNetworkCount();
+      console.log(`Syncing router features with WiFi network count: ${wifiNetworkCount}`);
+      
       await storage.updateRouterFeatures({
         adaptiveQosEnabled: features.adaptiveQosEnabled ?? false,
         aiProtectionEnabled: features.aiProtectionEnabled ?? false,
@@ -214,7 +218,8 @@ export class RouterSyncService {
         wirelessClients24ghz: features.wirelessClients24ghz || 0,
         wirelessClients5ghz: features.wirelessClients5ghz || 0,
         wirelessClients6ghz: features.wirelessClients6ghz || 0,
-        wirelessClientsTotal: features.wirelessClientsTotal || 0
+        wirelessClientsTotal: features.wirelessClientsTotal || 0,
+        wifiNetworkCount: wifiNetworkCount
       });
     } catch (error) {
       console.error("Error syncing router features:", error);
