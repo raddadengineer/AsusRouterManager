@@ -626,6 +626,85 @@ export class SSHClient {
     }
   }
 
+  // AiMesh Nodes Discovery - Authentic data collection with normalized output
+  async getAiMeshNodes(): Promise<any[]> {
+    try {
+      // Your normalized AiMesh node discovery command
+      const aimeshCommand = `
+        # AiMesh Node Discovery with normalized tab-separated output
+        printf "MAC\\tHostname\\tIP\\tType\\tStatus\\tModel\\tFirmware\\tUptime\\tConnection\\n"
+        
+        # Get master node info
+        master_mac=$(nvram get et0macaddr || nvram get lan_hwaddr)
+        master_ip=$(nvram get lan_ipaddr)
+        master_hostname=$(nvram get computer_name || hostname)
+        master_model=$(nvram get productid || nvram get model)
+        master_firmware=$(nvram get buildno || nvram get firmver)
+        master_uptime=$(awk '{print int($1)}' /proc/uptime 2>/dev/null || echo "0")
+        
+        printf "%s\\t%s\\t%s\\tmaster\\tonline\\t%s\\t%s\\t%s\\twired\\n" \\
+          "$master_mac" "$master_hostname" "$master_ip" "$master_model" "$master_firmware" "$master_uptime"
+        
+        # Get AiMesh satellite nodes
+        if [ -f /tmp/aimesh_nodelist ]; then
+          while read -r line; do
+            [ -z "$line" ] && continue
+            node_mac=$(echo "$line" | awk '{print $1}')
+            node_ip=$(echo "$line" | awk '{print $2}')
+            node_hostname=$(echo "$line" | awk '{print $3}' | tr -d '"')
+            node_model=$(echo "$line" | awk '{print $4}' | tr -d '"')
+            node_status=$(echo "$line" | awk '{print $5}')
+            
+            # Get additional node details if available
+            node_firmware=$(nvram get "aimesh_${node_mac}_fwver" 2>/dev/null || echo "Unknown")
+            node_uptime=$(nvram get "aimesh_${node_mac}_uptime" 2>/dev/null || echo "0")
+            
+            # Determine connection type (wireless backhaul detection)
+            connection_type="wireless"
+            if nvram get "aimesh_${node_mac}_wired" 2>/dev/null | grep -q "1"; then
+              connection_type="wired"
+            fi
+            
+            printf "%s\\t%s\\t%s\\tsatellite\\t%s\\t%s\\t%s\\t%s\\t%s\\n" \\
+              "$node_mac" "$node_hostname" "$node_ip" "$node_status" "$node_model" "$node_firmware" "$node_uptime" "$connection_type"
+          done < /tmp/aimesh_nodelist
+        fi
+      `;
+
+      const result = await this.executeCommand(aimeshCommand);
+      const nodes = [];
+      
+      if (result) {
+        const lines = result.split('\n').filter(line => line.trim() && !line.includes('MAC\t'));
+        
+        for (const line of lines) {
+          const parts = line.split('\t');
+          if (parts.length >= 9) {
+            const [mac, hostname, ip, nodeType, status, model, firmware, uptimeStr, connectionInfo] = parts;
+            
+            nodes.push({
+              macAddress: mac.toLowerCase(),
+              hostname: hostname || 'Unknown',
+              ipAddress: ip || '0.0.0.0',
+              nodeType: nodeType === 'master' ? 'master' : 'satellite',
+              isOnline: status === 'online',
+              model: model || 'Unknown',
+              firmware: firmware || 'Unknown',
+              uptime: parseInt(uptimeStr) || 0,
+              connectionInfo: connectionInfo || 'unknown',
+              signalStrength: nodeType === 'satellite' ? -50 : null // Default RSSI for satellites
+            });
+          }
+        }
+      }
+
+      return nodes;
+    } catch (error) {
+      console.error('Error getting AiMesh nodes:', error);
+      return [];
+    }
+  }
+
   async getMerlinFeatures(): Promise<any> {
     try {
       const adaptiveQos = await this.executeCommand("nvram get adaptive_qos_enable");

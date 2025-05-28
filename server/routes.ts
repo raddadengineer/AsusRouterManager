@@ -554,14 +554,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AiMesh Management Routes with Authentic SSH Detection
   app.get("/api/aimesh/nodes", async (req, res) => {
     try {
+      // Get authentic AiMesh nodes from database first
+      const storedNodes = await storage.getAiMeshNodes();
+      
+      // If SSH is connected, refresh with live data from your router
+      if (sshClient.isConnectionActive()) {
+        try {
+          const liveNodes = await sshClient.getAiMeshNodes();
+          
+          // Update or create nodes in database with authentic router data
+          for (const nodeData of liveNodes) {
+            const existingNode = await storage.getAiMeshNodeByMac(nodeData.macAddress);
+            
+            if (existingNode) {
+              await storage.updateAiMeshNode(existingNode.id, nodeData);
+            } else {
+              await storage.createAiMeshNode(nodeData);
+            }
+          }
+          
+          // Return updated authentic data from database
+          const updatedNodes = await storage.getAiMeshNodes();
+          res.json(updatedNodes);
+        } catch (sshError) {
+          console.error("SSH command failed, returning stored data:", sshError);
+          res.json(storedNodes);
+        }
+      } else {
+        // Return stored nodes when no SSH connection
+        res.json(storedNodes);
+      }
+    } catch (error) {
+      console.error("Error fetching AiMesh nodes:", error);
+      res.status(500).json({ message: "Failed to fetch AiMesh nodes" });
+    }
+  });
+
+  // Refresh AiMesh nodes manually
+  app.post("/api/aimesh/refresh", async (req, res) => {
+    try {
       if (!sshClient.isConnectionActive()) {
-        return res.status(400).json({ message: "SSH connection required for AiMesh data" });
+        return res.status(400).json({ message: "SSH connection required to refresh AiMesh data" });
       }
       
-      // Use your enhanced ASUS-specific commands for comprehensive discovery
-      const meshCommands = [
-        `{ [ -f /etc/dnsmasq.leases ] && cat /etc/dnsmasq.leases || cat /var/lib/misc/dnsmasq.leases; } 2>/dev/null | grep -Ei "aimesh|rt-|rp-|asus" | awk '{ printf "%s\\t%s\\t%s\\n", $2, $4, ($3 == "*" ? "" : $3) }'`, // Your normalized AiMesh discovery with tab-separated format
-        `echo "Model: $(nvram get productid)"; echo "Firmware: $(nvram get firmware_version)"; echo "LAN IP: $(nvram get lan_ipaddr)"; echo "LAN MAC: $(nvram get lan_hwaddr)"; echo "WAN IP: $(nvram get wan0_ipaddr)"; echo "SSID 2.4GHz: $(nvram get wl0_ssid)"; echo "SSID 5GHz: $(nvram get wl1_ssid)"; echo "SSID 6GHz: $(nvram get wl2_ssid)"`, // Comprehensive router info
+      const liveNodes = await sshClient.getAiMeshNodes();
         `LEASE_FILE="/var/lib/misc/dnsmasq.leases"; echo -e "mac_address\\tip_address\\thostname"; for iface in $(nvram get sta_ifnames); do wl -i "$iface" assoclist 2>/dev/null | tail -n +2; done | grep -Eoi "([0-9a-f]{2}:){5}[0-9a-f]{2}" | while read mac; do entry=$(awk -v m="$mac" 'tolower($2)==tolower(m) {print $4 "\\t" ($3=="*" ? "" : $3)}' "$LEASE_FILE"); if [ -n "$entry" ]; then echo -e "$mac\\t$entry"; else echo -e "$mac\\t\\t"; fi; done` // Your normalized tab-separated wireless discovery
       ];
       
