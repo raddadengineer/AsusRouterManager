@@ -382,16 +382,45 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span>Router Online</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  !routerStatus ? 'bg-gray-400' :
+                  routerStatus.uptime > 86400 ? 'bg-green-500' : // > 1 day
+                  routerStatus.uptime > 3600 ? 'bg-yellow-500' : // > 1 hour
+                  'bg-orange-500' // < 1 hour
+                }`}></div>
+                <span>{
+                  !routerStatus ? 'Router Unknown' :
+                  routerStatus.uptime > 86400 ? 'Router Stable' :
+                  routerStatus.uptime > 3600 ? 'Router Online' :
+                  'Router Starting'
+                }</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${wifiNetworks?.some(n => n.enabled) ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                <span>WiFi Active</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  !wifiNetworks || wifiNetworks.length === 0 ? 'bg-gray-400' :
+                  wifiNetworks.filter(n => n.isEnabled).length >= 3 ? 'bg-green-500' :
+                  wifiNetworks.filter(n => n.isEnabled).length >= 2 ? 'bg-yellow-500' :
+                  wifiNetworks.filter(n => n.isEnabled).length >= 1 ? 'bg-orange-500' : 'bg-red-500'
+                }`}></div>
+                <span>{
+                  !wifiNetworks || wifiNetworks.length === 0 ? 'WiFi Unknown' :
+                  `WiFi Active (${wifiNetworks.filter(n => n.isEnabled).length}/${wifiNetworks.length})`
+                }</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${connectedDevicesCount > 0 ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                <span>Devices Connected</span>
+                <div className={`w-2 h-2 rounded-full ${
+                  connectedDevicesCount === 0 ? 'bg-gray-400' :
+                  connectedDevicesCount >= 50 ? 'bg-green-500' :
+                  connectedDevicesCount >= 20 ? 'bg-yellow-500' :
+                  connectedDevicesCount >= 5 ? 'bg-orange-500' : 'bg-blue-500'
+                }`}></div>
+                <span>{
+                  connectedDevicesCount === 0 ? 'No Devices' :
+                  connectedDevicesCount >= 50 ? `${connectedDevicesCount} Devices (High Load)` :
+                  connectedDevicesCount >= 20 ? `${connectedDevicesCount} Devices (Active)` :
+                  connectedDevicesCount >= 5 ? `${connectedDevicesCount} Devices (Normal)` :
+                  `${connectedDevicesCount} Devices (Light)`
+                }</span>
               </div>
             </div>
           </div>
