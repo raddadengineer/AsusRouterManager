@@ -704,7 +704,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ssh/config", async (req, res) => {
     try {
-      console.log("Received SSH config data:", req.body);
+      // Log config data without sensitive credentials
+      const sanitizedData = {
+        ...req.body,
+        password: req.body.password ? '[REDACTED]' : undefined,
+        privateKey: req.body.privateKey ? '[REDACTED]' : undefined
+      };
+      console.log("Received SSH config data:", sanitizedData);
       
       // Ensure syncInterval has a default value if not provided
       const configData = {
