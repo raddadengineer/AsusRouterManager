@@ -98,6 +98,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Client Association Analysis - Real-time interface tracking
+  app.get("/api/devices/associations", async (req, res) => {
+    try {
+      if (!sshClient.isConnectionActive()) {
+        return res.status(400).json({ message: "SSH connection required for association analysis" });
+      }
+
+      // Use your normalized tab-separated Client Association Analysis command
+      const associationCommand = `
+        for iface in eth6 eth7 eth8; do
+          timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+          wl -i "$iface" assoclist 2>/dev/null | grep -Eoi '([0-9a-f]{2}:){5}[0-9a-f]{2}' | while read mac; do
+            printf "%s\\t%s\\t%s\\n" "$timestamp" "$iface" "$mac"
+          done || echo -e "$timestamp\\t$iface\\tNo clients"
+        done
+      `;
+
+      const result = await sshClient.executeCommand(associationCommand);
+      const associations = [];
+      
+      if (result) {
+        const lines = result.split('\n').filter(line => line.trim());
+        
+        for (const line of lines) {
+          const parts = line.split('\t');
+          if (parts.length >= 3) {
+            const [timestamp, interface_name, macAddress] = parts;
+            
+            // Map interface to band
+            let band = 'Unknown';
+            switch (interface_name) {
+              case 'eth6': band = '2.4GHz'; break;
+              case 'eth7': band = '5GHz'; break;
+              case 'eth8': band = '6GHz'; break;
+            }
+            
+            associations.push({
+              timestamp,
+              interface: interface_name,
+              band,
+              macAddress: macAddress !== 'No clients' ? macAddress.toLowerCase() : null,
+              hasClients: macAddress !== 'No clients'
+            });
+          }
+        }
+      }
+
+      res.json({
+        timestamp: new Date().toISOString(),
+        associations,
+        totalInterfaces: 3,
+        activeInterfaces: associations.filter(a => a.hasClients).length
+      });
+
+    } catch (error) {
+      console.error("Error getting client associations:", error);
+      res.status(500).json({ message: "Failed to get client associations" });
+    }
+  });
+
   // Device count summary using your math: wired = total - wireless
   app.get("/api/devices/counts", async (req, res) => {
     try {
