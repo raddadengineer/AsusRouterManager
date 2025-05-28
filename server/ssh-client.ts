@@ -705,20 +705,129 @@ export class SSHClient {
     }
   }
 
+  // Comprehensive Router Features - Using your authentic ASUS commands
   async getMerlinFeatures(): Promise<any> {
     try {
-      const adaptiveQos = await this.executeCommand("nvram get adaptive_qos_enable");
-      const aiProtection = await this.executeCommand("nvram get aiprotection_enable");
-      const vpnServer = await this.executeCommand("nvram get vpn_server_enable");
-      const aimeshMaster = await this.executeCommand("nvram get cfg_master");
-      
-      return {
-        adaptiveQosEnabled: adaptiveQos.trim() === '1',
-        aiProtectionEnabled: aiProtection.trim() === '1',
-        vpnServerEnabled: vpnServer.trim() === '1',
-        aimeshIsMaster: aimeshMaster.trim() === '1',
-        wirelessClientsTotal: 0
+      // Your comprehensive router features detection script
+      const featuresCommand = `
+        #!/bin/sh
+        echo -e "Feature\\tStatus"
+        
+        # Network Acceleration
+        echo -e "Cut Through Forwarding (CTF)\\t$( [ "$(nvram get hw_nat)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "Flow Cache\\t$( [ "$(nvram get fc_enable)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        
+        # Security / AiProtection
+        echo -e "AiProtection\\t$( [ "$(nvram get bwdpi_dpi_enabled)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "Malware Protection\\t$( [ "$(nvram get bwdpi_malware_enabled)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "Vulnerability Protection\\t$( [ "$(nvram get bwdpi_vulnerability_enabled)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        
+        # QoS
+        qos_mode=$(nvram get qos_type)
+        case "$qos_mode" in
+          1) qos_mode="Adaptive";;
+          2) qos_mode="Traditional";;
+          3) qos_mode="Bandwidth Limiter";;
+          *) qos_mode="N/A";;
+        esac
+        echo -e "QoS\\t$( [ "$(nvram get qos_enable)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "QoS Mode\\t$qos_mode"
+        
+        # USB Services
+        usb_count=$(ls /tmp/mnt/ | grep -v '^admin$' | wc -l)
+        echo -e "USB Services\\t$( [ "$usb_count" -gt 0 ] && echo "Active" || echo "Inactive" )"
+        
+        # Wireless / AiMesh
+        aimesh_mode=$(nvram get amesh_mode)
+        case "$aimesh_mode" in
+          1) echo -e "AiMesh\\tRouter (Primary)";;
+          2) echo -e "AiMesh\\tNode";;
+          *) echo -e "AiMesh\\tDisabled";;
+        esac
+        
+        echo -e "Beamforming (2.4GHz)\\t$( [ "$(nvram get wl0_bfr_enable)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "Beamforming (5GHz)\\t$( [ "$(nvram get wl1_bfr_enable)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "Guest Network (2.4GHz)\\t$( [ "$(nvram get wl0.1_bss_enabled)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+        echo -e "Guest Network (5GHz)\\t$( [ "$(nvram get wl1.1_bss_enabled)" = "1" ] && echo "Enabled" || echo "Disabled" )"
+      `;
+
+      const result = await this.executeCommand(featuresCommand);
+      const features: any = {
+        // Initialize with defaults
+        adaptiveQosEnabled: false,
+        aiProtectionEnabled: false,
+        vpnServerEnabled: false,
+        aimeshIsMaster: true,
+        wirelessClientsTotal: 0,
+        // Extended features from your script
+        cutThroughForwarding: false,
+        flowCache: false,
+        malwareProtection: false,
+        vulnerabilityProtection: false,
+        qosMode: 'N/A',
+        usbServices: false,
+        aimeshMode: 'Disabled',
+        beamforming24: false,
+        beamforming5: false,
+        guestNetwork24: false,
+        guestNetwork5: false
       };
+
+      if (result) {
+        const lines = result.split('\n').filter(line => line.trim() && !line.includes('Feature\t'));
+        
+        for (const line of lines) {
+          const [feature, status] = line.split('\t');
+          if (feature && status) {
+            const enabled = status.includes('Enabled') || status.includes('Active') || status.includes('Router');
+            
+            switch (feature.trim()) {
+              case 'Cut Through Forwarding (CTF)':
+                features.cutThroughForwarding = enabled;
+                break;
+              case 'Flow Cache':
+                features.flowCache = enabled;
+                break;
+              case 'AiProtection':
+                features.aiProtectionEnabled = enabled;
+                break;
+              case 'Malware Protection':
+                features.malwareProtection = enabled;
+                break;
+              case 'Vulnerability Protection':
+                features.vulnerabilityProtection = enabled;
+                break;
+              case 'QoS':
+                features.adaptiveQosEnabled = enabled;
+                break;
+              case 'QoS Mode':
+                features.qosMode = status.trim();
+                break;
+              case 'USB Services':
+                features.usbServices = enabled;
+                break;
+              case 'AiMesh':
+                features.aimeshMode = status.trim();
+                features.aimeshIsMaster = status.includes('Primary');
+                break;
+              case 'Beamforming (2.4GHz)':
+                features.beamforming24 = enabled;
+                break;
+              case 'Beamforming (5GHz)':
+                features.beamforming5 = enabled;
+                break;
+              case 'Guest Network (2.4GHz)':
+                features.guestNetwork24 = enabled;
+                break;
+              case 'Guest Network (5GHz)':
+                features.guestNetwork5 = enabled;
+                break;
+            }
+          }
+        }
+      }
+
+      return features;
     } catch (error) {
       console.error('Error getting Merlin features:', error);
       return {
@@ -726,7 +835,18 @@ export class SSHClient {
         aiProtectionEnabled: false,
         vpnServerEnabled: false,
         aimeshIsMaster: false,
-        wirelessClientsTotal: 0
+        wirelessClientsTotal: 0,
+        cutThroughForwarding: false,
+        flowCache: false,
+        malwareProtection: false,
+        vulnerabilityProtection: false,
+        qosMode: 'N/A',
+        usbServices: false,
+        aimeshMode: 'Disabled',
+        beamforming24: false,
+        beamforming5: false,
+        guestNetwork24: false,
+        guestNetwork5: false
       };
     }
   }
