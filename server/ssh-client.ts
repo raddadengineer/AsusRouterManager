@@ -607,18 +607,16 @@ export class SSHClient {
 
   async getWiFiNetworkCount(): Promise<number> {
     try {
-      // Use the script you provided to get the actual WiFi network count
+      // Use your improved script to count only active WiFi networks
       const result = await this.executeCommand(`
-        base_ifaces=$(nvram get wl_ifnames)
-        base_count=$(echo "$base_ifaces" | wc -w)
-        echo "$base_count"
+        for i in $(nvram get wl_ifnames); do if ifconfig "$i" 2>/dev/null | grep -q "UP"; then echo "$i"; fi; done | wc -l
       `);
       
       const count = parseInt(result.trim()) || 0;
-      console.log(`WiFi network count: ${count}`);
+      console.log(`Active WiFi network count: ${count}`);
       return count;
     } catch (error) {
-      console.error('Error getting WiFi network count:', error);
+      console.error('Error getting active WiFi network count:', error);
       return 0;
     }
   }
