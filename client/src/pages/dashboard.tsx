@@ -213,6 +213,107 @@ export default function Dashboard() {
                   <div className="text-sm text-muted-foreground">AiMesh Nodes</div>
                 </div>
               </div>
+
+              {/* WiFi Band Breakdown */}
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">WiFi Band Distribution</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
+                    <div className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                      {connectedDevices?.filter(device => device.wirelessBand === '2.4GHz').length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">2.4GHz</div>
+                    <div className="flex justify-center mt-1">
+                      <div className="flex space-x-1">
+                        {[1, 2, 3].map((bar) => (
+                          <div
+                            key={bar}
+                            className={`w-1 h-2 rounded-full ${
+                              (connectedDevices?.filter(device => device.wirelessBand === '2.4GHz' && device.signalStrength && device.signalStrength > -70).length || 0) >= bar 
+                                ? 'bg-orange-500' 
+                                : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                      {connectedDevices?.filter(device => device.wirelessBand === '5GHz').length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">5GHz</div>
+                    <div className="flex justify-center mt-1">
+                      <div className="flex space-x-1">
+                        {[1, 2, 3].map((bar) => (
+                          <div
+                            key={bar}
+                            className={`w-1 h-2 rounded-full ${
+                              (connectedDevices?.filter(device => device.wirelessBand === '5GHz' && device.signalStrength && device.signalStrength > -60).length || 0) >= bar 
+                                ? 'bg-emerald-500' 
+                                : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-lg">
+                    <div className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
+                      {connectedDevices?.filter(device => device.wirelessBand === '6GHz').length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">6GHz</div>
+                    <div className="flex justify-center mt-1">
+                      <div className="flex space-x-1">
+                        {[1, 2, 3].map((bar) => (
+                          <div
+                            key={bar}
+                            className={`w-1 h-2 rounded-full ${
+                              (connectedDevices?.filter(device => device.wirelessBand === '6GHz' && device.signalStrength && device.signalStrength > -50).length || 0) >= bar 
+                                ? 'bg-cyan-500' 
+                                : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Security Status */}
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Security & Features</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                    <div className="text-lg font-bold text-red-600 dark:text-red-400">
+                      {routerStatus?.blockedThreats || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Threats Blocked</div>
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      {routerStatus?.aiProtectionEnabled ? 'AI Protection ON' : 'AI Protection OFF'}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                    <div className="text-lg font-bold text-amber-600 dark:text-amber-400">
+                      {wifiNetworks?.filter(network => network.name?.toLowerCase().includes('guest')).length || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">Guest Networks</div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      {wifiNetworks?.some(network => network.name?.toLowerCase().includes('guest')) ? 'Enabled' : 'Disabled'}
+                    </div>
+                  </div>
+                  <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
+                    <div className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                      {routerStatus?.vpnConnectedClients || 0}
+                    </div>
+                    <div className="text-xs text-muted-foreground">VPN Clients</div>
+                    <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                      {routerStatus?.vpnServerEnabled ? 'VPN Server ON' : 'VPN Server OFF'}
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">
                   Network Health: <span className="text-green-600 dark:text-green-400 font-medium">Good</span>
