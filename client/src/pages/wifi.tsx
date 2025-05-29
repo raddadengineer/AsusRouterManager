@@ -549,9 +549,10 @@ export default function WiFiSettingsPage() {
                   <Button 
                     onClick={handleScanNetworks}
                     disabled={isScanning}
+                    className="bg-primary hover:bg-primary/90"
                   >
                     {isScanning ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Signal className="h-4 w-4 mr-2" />}
-                    {isScanning ? 'Scanning...' : 'Scan Networks'}
+                    {isScanning ? 'Scanning Networks...' : 'Scan for Networks'}
                   </Button>
                 </div>
                 

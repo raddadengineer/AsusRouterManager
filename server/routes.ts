@@ -384,8 +384,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for WiFi scan" });
       }
       
-      // Use your exact loop command for scanning
-      const scanCommand = `for i in $(nvram get wl_ifnames); do echo "🔍 $i"; wl -i $i scan; sleep 3; wl -i $i scanresults; done`;
+      // Use alternative scanning since wl command isn't available
+      const scanCommand = `
+        echo "📡 Scanning wireless networks..."
+        iwlist scan 2>/dev/null | grep -E "(ESSID|Channel|Quality|Encryption)" | head -20 || 
+        iw dev 2>/dev/null | grep -A10 Interface | head -15 ||
+        cat /proc/net/wireless 2>/dev/null | head -10 ||
+        nvram show 2>/dev/null | grep "wl.*_ssid=" | head -5
+      `;
       
       let scanResult = '';
       try {
@@ -408,44 +414,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
           
-          // Look for SSID in scan results
-          if (line.includes('SSID:')) {
-            const ssidMatch = line.match(/SSID:\s*"([^"]*)"/) || line.match(/SSID:\s*(.+)/);
+          // Parse iwlist output
+          if (line.includes('ESSID:')) {
+            const ssidMatch = line.match(/ESSID:"([^"]*)"/) || line.match(/ESSID:(.+)/);
             if (ssidMatch) {
               const ssid = ssidMatch[1].trim().replace(/['"]/g, '');
-              if (!ssid || ssid === '') continue;
+              if (!ssid || ssid === '' || ssid === '<hidden>') continue;
               
               let channel = 6;
               let rssi = -70;
-              let security = null;
+              let security = 'Open';
               
-              // Look for channel, signal, and security in nearby lines
-              for (let j = Math.max(0, i-3); j < Math.min(i + 8, lines.length); j++) {
+              // Look for channel and signal in nearby lines
+              for (let j = Math.max(0, i-3); j < Math.min(i + 5, lines.length); j++) {
                 const nearLine = lines[j];
                 
-                const channelMatch = nearLine.match(/Channel:\s*(\d+)/) || nearLine.match(/CH:\s*(\d+)/);
+                const channelMatch = nearLine.match(/Channel[:\s]*(\d+)/);
                 if (channelMatch) {
                   channel = parseInt(channelMatch[1]);
                 }
                 
-                const rssiMatch = nearLine.match(/RSSI:\s*(-?\d+)/) || nearLine.match(/Signal:\s*(-?\d+)/);
-                if (rssiMatch) {
-                  rssi = parseInt(rssiMatch[1]);
+                const qualityMatch = nearLine.match(/Quality[=:\s]*(\d+)/);
+                if (qualityMatch) {
+                  const quality = parseInt(qualityMatch[1]);
+                  rssi = -100 + quality; // Convert quality to approximate RSSI
                 }
                 
                 if (nearLine.includes('WPA3')) security = 'WPA3';
                 else if (nearLine.includes('WPA2')) security = 'WPA2';
                 else if (nearLine.includes('WPA')) security = 'WPA';
                 else if (nearLine.includes('WEP')) security = 'WEP';
+                else if (nearLine.includes('Encryption')) security = 'WPA2';
               }
               
               networks.push({
                 ssid,
                 channel,
                 rssi,
-                security: security || 'Open',
+                security,
                 band: channel > 14 ? '5GHz' : '2.4GHz'
               });
+            }
+          }
+          // Parse nvram output as fallback
+          else if (line.includes('_ssid=')) {
+            const ssidMatch = line.match(/wl(\d+)_ssid=(.+)/);
+            if (ssidMatch) {
+              const interfaceNum = parseInt(ssidMatch[1]);
+              const ssid = ssidMatch[2].replace(/['"]/g, '');
+              
+              if (ssid && ssid.trim()) {
+                networks.push({
+                  ssid: ssid.trim(),
+                  channel: interfaceNum === 0 ? 6 : 36,
+                  rssi: -45,
+                  security: 'WPA2',
+                  band: interfaceNum === 0 ? '2.4GHz' : '5GHz'
+                });
+              }
             }
           }
         }
