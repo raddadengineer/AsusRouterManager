@@ -444,20 +444,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for AiMesh data" });
       }
       
-      // Execute authentic AiMesh detection commands as provided by user
-      const meshCommands = [
-        `cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'`, // Find actual AiMesh nodes
-        `nvram get cfg_clientlist`, // Show configured AiMesh nodes
-        `cat /tmp/syslog.log | grep 'backhaul' | tail -10`, // Check system log for mesh node entries
-        `nvram get sta_info`, // Show AiMesh nodes via SSH (Merlin or Stock)
-        `for iface in wl0 wl1 wl2; do echo "==== $iface ===="; wl -i $iface assoclist; done` // Query all interfaces for mesh devices
-      ];
+      // Execute your exact AiMesh detection command
+      const aimeshCommand = `cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'`;
+      const aimeshLeases = await sshClient.executeCommand(aimeshCommand);
       
-      const meshResults = await Promise.all(
-        meshCommands.map(cmd => sshClient.executeCommand(cmd).catch(err => `Error: ${err.message}`))
-      );
-      
-      const [aimeshLeases, cfgClientlist, syslogBackhaul, staInfo, wirelessAssoc] = meshResults;
+      // Log what your command finds
+      console.log('\n=== AiMesh Command Results ===');
+      console.log('Command:', aimeshCommand);
+      console.log('Raw output:');
+      console.log(aimeshLeases);
+      console.log('==============================\n');
       
       // Parse authentic router data to detect AiMesh nodes
       const nodes = [];
