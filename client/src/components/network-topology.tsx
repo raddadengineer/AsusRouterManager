@@ -25,7 +25,10 @@ import {
   RefreshCw,
   Eye,
   Settings,
-  Info
+  Info,
+  ZoomIn,
+  ZoomOut,
+  RotateCcw
 } from 'lucide-react';
 import { cn, getDeviceIcon, getDeviceColorClass, formatBytes, formatSpeed } from '@/lib/utils';
 import type { ConnectedDevice, RouterStatus, RouterFeatures } from '@shared/schema';
@@ -211,6 +214,10 @@ const NetworkNode = ({
 export default function NetworkTopology({ className }: NetworkTopologyProps) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'topology' | 'grid'>('topology');
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Fetch connected devices
   const { data: devices, isLoading: devicesLoading } = useQuery({
@@ -226,6 +233,45 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
   const { data: routerStatus } = useQuery({
     queryKey: ['/api/router/status'],
   });
+
+  // Zoom control functions
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev * 1.2, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev / 1.2, 0.5));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  // Mouse event handlers for panning
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPanOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Wheel zoom handler
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setZoomLevel(prev => Math.max(0.5, Math.min(3, prev * delta)));
+  };
 
   if (devicesLoading || featuresLoading) {
     return (
@@ -393,7 +439,57 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
             </CardHeader>
             <CardContent>
               <div className="relative w-full h-96 bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden">
-                <svg width="100%" height="100%" viewBox="0 0 800 400">
+                {/* Zoom Controls */}
+                <div className="absolute top-4 right-4 z-10 flex flex-col space-y-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" variant="outline" onClick={handleZoomIn} className="bg-white dark:bg-gray-800">
+                          <ZoomIn className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Zoom In</TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" variant="outline" onClick={handleZoomOut} className="bg-white dark:bg-gray-800">
+                          <ZoomOut className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Zoom Out</TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" variant="outline" onClick={handleResetZoom} className="bg-white dark:bg-gray-800">
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Reset View</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+
+                {/* Zoom Level Indicator */}
+                <div className="absolute bottom-4 right-4 z-10 bg-white dark:bg-gray-800 rounded-lg px-3 py-1 shadow-lg">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    {Math.round(zoomLevel * 100)}%
+                  </span>
+                </div>
+
+                <svg 
+                  width="100%" 
+                  height="100%" 
+                  viewBox="0 0 800 400"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                  onWheel={handleWheel}
+                  style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                >
+                  <g transform={`translate(${panOffset.x}, ${panOffset.y}) scale(${zoomLevel})`}>
                   {/* Connection lines */}
                   {connections.map((connection, index) => {
                     const fromNode = nodes.find(n => n.id === connection.from);
@@ -421,6 +517,7 @@ export default function NetworkTopology({ className }: NetworkTopologyProps) {
                       onClick={() => setSelectedNode(selectedNode === node.id ? null : node.id)}
                     />
                   ))}
+                  </g>
                 </svg>
                 
                 {/* Legend */}
