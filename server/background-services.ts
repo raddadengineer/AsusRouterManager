@@ -58,14 +58,6 @@ class BackgroundServiceManager {
         status: 'stopped'
       },
       {
-        id: 'enhanced-wireless-detection',
-        name: 'Enhanced Wireless Detection',
-        description: 'Advanced wireless device identification with comprehensive data correlation',
-        cronExpression: '*/2 * * * *', // Every 2 minutes
-        isEnabled: true,
-        status: 'stopped'
-      },
-      {
         id: 'wifi-network-scan',
         name: 'WiFi Network Scan',
         description: 'Updates WiFi network information and client associations',
@@ -126,9 +118,6 @@ class BackgroundServiceManager {
           break;
         case 'router-health-check':
           await this.executeRouterHealthCheck();
-          break;
-        case 'enhanced-wireless-detection':
-          await this.executeEnhancedWirelessDetection();
           break;
         case 'wifi-network-scan':
           await this.executeWifiNetworkScan();
@@ -329,124 +318,6 @@ class BackgroundServiceManager {
       await storage.updateRouterFeatures(routerFeatures);
     } catch (error) {
       console.error('Error scanning WiFi networks:', error);
-    }
-  }
-
-  private async executeEnhancedWirelessDetection() {
-    try {
-      console.log('Running enhanced wireless device detection...');
-      
-      // Get comprehensive wireless device data using our enhanced commands
-      const wirelessInterfaces = ['eth6', 'eth7', 'eth8'];
-      const bandNames = ['2.4GHz', '5GHz', '6GHz'];
-      
-      let wirelessDeviceUpdates = 0;
-      
-      for (let i = 0; i < wirelessInterfaces.length; i++) {
-        const iface = wirelessInterfaces[i];
-        const band = bandNames[i];
-        
-        try {
-          // Get wireless clients from this interface
-          const assocCommand = `wl -i ${iface} assoclist 2>/dev/null`;
-          const assocResult = await sshClient.executeCommand(assocCommand);
-          
-          if (assocResult && assocResult.trim()) {
-            const macAddresses = assocResult.trim().split('\n')
-              .map(line => line.trim())
-              .filter(line => line.match(/^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/));
-            
-            for (const mac of macAddresses) {
-              try {
-                // Get signal strength
-                const rssiCommand = `wl -i ${iface} rssi "${mac}" 2>/dev/null || echo "N/A"`;
-                const rssiResult = await sshClient.executeCommand(rssiCommand);
-                const signalStrength = rssiResult.trim() !== 'N/A' ? parseInt(rssiResult.trim()) : null;
-                
-                // Get device info from DHCP leases
-                const dhcpCommand = `grep -i "${mac}" /var/lib/misc/dnsmasq.leases | head -1`;
-                const dhcpResult = await sshClient.executeCommand(dhcpCommand);
-                
-                let hostname = 'Unknown';
-                let ipAddress = null;
-                
-                if (dhcpResult && dhcpResult.trim()) {
-                  const parts = dhcpResult.trim().split(/\s+/);
-                  if (parts.length >= 4) {
-                    ipAddress = parts[2];
-                    hostname = parts[3] || 'Unknown';
-                  }
-                }
-                
-                // Check if this device already exists in our database
-                const existingDevices = await storage.getConnectedDevices();
-                const existingDevice = existingDevices.find(d => 
-                  d.macAddress.toLowerCase() === mac.toLowerCase()
-                );
-                
-                if (existingDevice) {
-                  // Update existing device with wireless connection details
-                  await storage.updateConnectedDevice(existingDevice.id, {
-                    connectionType: 'wireless',
-                    wirelessBand: band,
-                    signalStrength: signalStrength,
-                    ipAddress: ipAddress || existingDevice.ipAddress,
-                    name: hostname !== 'Unknown' ? hostname : existingDevice.name,
-                    lastSeen: new Date()
-                  });
-                  wirelessDeviceUpdates++;
-                } else {
-                  // Create new wireless device entry
-                  const newDevice: InsertConnectedDevice = {
-                    name: hostname,
-                    macAddress: mac,
-                    ipAddress: ipAddress || '0.0.0.0',
-                    deviceType: this.getDeviceTypeFromMAC(mac),
-                    connectionType: 'wireless',
-                    wirelessBand: band,
-                    signalStrength: signalStrength,
-                    isOnline: true,
-                    lastSeen: new Date()
-                  };
-                  
-                  await storage.createConnectedDevice(newDevice);
-                  wirelessDeviceUpdates++;
-                }
-              } catch (deviceError) {
-                console.error(`Error processing wireless device ${mac}:`, deviceError);
-              }
-            }
-          }
-        } catch (ifaceError) {
-          console.error(`Error processing interface ${iface}:`, ifaceError);
-        }
-      }
-      
-      console.log(`Enhanced wireless detection updated ${wirelessDeviceUpdates} devices with wireless connection details`);
-      
-    } catch (error) {
-      console.error('Error in enhanced wireless detection:', error);
-    }
-  }
-
-  private getDeviceTypeFromMAC(mac: string): string {
-    const vendor = mac.substring(0, 8).toLowerCase();
-    
-    switch (vendor) {
-      case 'ac:bc:32':
-      case 'f0:18:98':
-      case '14:7d:da':
-        return 'Apple Device';
-      case 'b8:27:eb':
-      case 'dc:a6:32':
-        return 'Raspberry Pi';
-      case '00:e0:4c':
-      case '00:01:e3':
-        return 'Realtek Device';
-      case '08:00:27':
-        return 'VirtualBox';
-      default:
-        return 'Unknown';
     }
   }
 
