@@ -446,6 +446,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Execute your exact AiMesh detection command
       const aimeshCommand = `cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'`;
+      
+      // First check what router we're connected to
+      const routerCheck = await sshClient.executeCommand('hostname && whoami && pwd');
+      console.log('SSH CONNECTED TO:', routerCheck);
+      
       const aimeshLeases = await sshClient.executeCommand(aimeshCommand);
       
       // Log what your command finds - with more detail
