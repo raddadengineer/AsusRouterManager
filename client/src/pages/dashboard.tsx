@@ -186,30 +186,58 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Network Usage */}
+            {/* Internet Traffic */}
             <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
               <div className="flex items-center justify-center mb-3">
                 <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                {devicesLoading ? (
-                  <Skeleton className="h-8 w-16 mx-auto" />
-                ) : (
-                  `${totalNetworkUsage.toFixed(1)}`
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground mb-2">Network Usage</div>
-              <div className="text-xs text-muted-foreground mb-2">{networkUsage.unit}</div>
-              {!devicesLoading && networkUsage.total > 0 && (
-                <div className="text-xs text-muted-foreground">
-                  ↓{networkUsage.download.toFixed(1)} ↑{networkUsage.upload.toFixed(1)}
+              <div className="text-sm text-muted-foreground mb-3">Internet Traffic</div>
+              
+              {/* Download and Upload Side by Side */}
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+                    {devicesLoading ? (
+                      <Skeleton className="h-6 w-12 mx-auto" />
+                    ) : (
+                      `${networkUsage.download.toFixed(1)}`
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">↓ Download</div>
                 </div>
-              )}
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mb-1">
+                    {devicesLoading ? (
+                      <Skeleton className="h-6 w-12 mx-auto" />
+                    ) : (
+                      `${networkUsage.upload.toFixed(1)}`
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">↑ Upload</div>
+                </div>
+              </div>
+              
+              <div className="text-xs text-muted-foreground mb-2">{networkUsage.unit}</div>
+              
               {!devicesLoading && (
-                <Progress 
-                  value={Math.min((totalNetworkUsage / 100) * 100, 100)} 
-                  className="h-2"
-                />
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Download</span>
+                    <span>{networkUsage.download.toFixed(1)} {networkUsage.unit}</span>
+                  </div>
+                  <Progress 
+                    value={Math.min((networkUsage.download / (networkUsage.unit === 'MB/s' ? 100 : 1000)) * 100, 100)} 
+                    className="h-1 bg-blue-100 dark:bg-blue-900"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>Upload</span>
+                    <span>{networkUsage.upload.toFixed(1)} {networkUsage.unit}</span>
+                  </div>
+                  <Progress 
+                    value={Math.min((networkUsage.upload / (networkUsage.unit === 'MB/s' ? 100 : 1000)) * 100, 100)} 
+                    className="h-1 bg-orange-100 dark:bg-orange-900"
+                  />
+                </div>
               )}
             </div>
           </div>
