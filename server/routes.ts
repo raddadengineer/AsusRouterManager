@@ -464,25 +464,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meshNodeMacs = new Set();
       
       // Parse the specific AiMesh command output: cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'
-      console.log('AiMesh command output:', aimeshLeases);
       const aimeshLines = aimeshLeases.split('\n').filter(line => line.trim() && !line.startsWith('Error:'));
-      console.log('Filtered AiMesh lines:', aimeshLines);
       
       aimeshLines.forEach(line => {
         const parts = line.split(' ');
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
-          console.log(`Checking device: hostname="${hostname}", mac="${mac}", ip="${ip}"`);
           
-          // Only accept devices that are ACTUALLY ASUS router models, not random devices
-          if (hostname && mac && ip && (
-            hostname.match(/^RT-[A-Z0-9]+$/i) ||        // RT-AX88U, RT-AX86U, etc.
-            hostname.match(/^GT-[A-Z0-9]+$/i) ||        // GT-AX11000, GT-AX6000, etc.
-            hostname.match(/^RP-[A-Z0-9]+$/i) ||        // RP-AX58, etc. (AiMesh nodes)
-            hostname.includes('AiMesh-Node') ||          // Explicit AiMesh nodes
-            hostname.includes('ASUS-Router')             // Explicit ASUS routers
-          )) {
-            console.log(`ACCEPTED as AiMesh node: ${hostname}`);
+          // Trust your exact command - devices found are AiMesh nodes
+          if (hostname && mac && ip) {
             meshNodeMacs.add(mac.toLowerCase());
             nodes.push({
               id: mac.replace(/:/g, '-'),
@@ -495,15 +485,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               signalStrength: 85,
               connectedDevices: 0,
               firmwareVersion: 'Detection via SSH',
-              location: 'Detected via AiMesh Command',
+              location: 'AiMesh Network',
               uptime: 0,
               bandwidth: { upload: 0, download: 0 },
               temperature: null,
               memoryUsage: null,
-              detectionMethod: 'AiMesh DHCP Leases'
+              detectionMethod: 'DHCP Lease Analysis'
             });
-          } else {
-            console.log(`REJECTED device: ${hostname} (not an ASUS router model)`);
           }
         }
       });
