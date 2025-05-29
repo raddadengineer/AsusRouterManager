@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useSearch } from "@/hooks/use-search";
 import { NotificationPanel } from "@/components/notification-panel";
 
 interface TopBarProps {
@@ -26,8 +27,8 @@ export default function TopBar({
   onSearch,
   searchQuery: externalSearchQuery
 }: TopBarProps) {
-  const [localSearchQuery, setLocalSearchQuery] = useState("");
-  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearchQuery;
+  const { searchQuery: globalSearchQuery, setSearchQuery } = useSearch();
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : globalSearchQuery;
   const { toast } = useToast();
   
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +36,7 @@ export default function TopBar({
     if (onSearch) {
       onSearch(query);
     } else {
-      setLocalSearchQuery(query);
+      setSearchQuery(query);
     }
   };
 
