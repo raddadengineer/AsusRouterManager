@@ -59,27 +59,20 @@ export default function Dashboard() {
   const connectedDevices = devices || [];
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
   
-  // Calculate real-time network throughput from actual bandwidth data
-  const currentThroughput = (() => {
-    if (!bandwidthData || bandwidthData.length === 0) return { download: 0, upload: 0, total: 0 };
+  // Calculate real-time network usage from actual bandwidth data
+  const totalNetworkUsage = (() => {
+    if (!bandwidthData || bandwidthData.length === 0) return 0;
     
     // Get the most recent bandwidth reading
     const latestBandwidth = bandwidthData[bandwidthData.length - 1];
-    if (!latestBandwidth) return { download: 0, upload: 0, total: 0 };
+    if (!latestBandwidth) return 0;
     
-    // The bandwidth data is already in the correct units (bits per second), convert to Mbps
+    // Convert from bytes to MB/s and combine download + upload
     const downloadMbps = (latestBandwidth.downloadSpeed || 0) / (1024 * 1024);
     const uploadMbps = (latestBandwidth.uploadSpeed || 0) / (1024 * 1024);
     
-    return {
-      download: downloadMbps,
-      upload: uploadMbps,
-      total: downloadMbps + uploadMbps
-    };
+    return downloadMbps + uploadMbps;
   })();
-  
-  // For backward compatibility with existing code
-  const totalNetworkUsage = currentThroughput.total;
 
   const handleQuickAction = async (action: string) => {
     try {
@@ -175,7 +168,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Network Throughput */}
+            {/* Network Usage */}
             <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
               <div className="flex items-center justify-center mb-3">
                 <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
@@ -184,16 +177,14 @@ export default function Dashboard() {
                 {devicesLoading ? (
                   <Skeleton className="h-8 w-16 mx-auto" />
                 ) : (
-                  `${currentThroughput.total.toFixed(1)}`
+                  `${totalNetworkUsage.toFixed(1)}`
                 )}
               </div>
-              <div className="text-sm text-muted-foreground mb-2">Network Throughput</div>
-              <div className="text-xs text-muted-foreground mb-2">
-                ↓{currentThroughput.download.toFixed(1)} ↑{currentThroughput.upload.toFixed(1)} Mbps
-              </div>
+              <div className="text-sm text-muted-foreground mb-2">Network Usage</div>
+              <div className="text-xs text-muted-foreground mb-2">MB/s</div>
               {!devicesLoading && (
                 <Progress 
-                  value={Math.min((currentThroughput.total / 1000) * 100, 100)} 
+                  value={Math.min((totalNetworkUsage / 100) * 100, 100)} 
                   className="h-2"
                 />
               )}
