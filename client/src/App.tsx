@@ -55,7 +55,7 @@ function Router() {
 
               <Route path="/wifi" component={WiFiSettings} />
               <Route path="/port-forwarding" component={PortForwarding} />
-              <Route path="/aimesh" component={AiMeshPage} />
+
               <Route path="/bandwidth" component={BandwidthMonitor} />
               <Route path="/system" component={SystemSettings} />
               <Route path="/system/details" component={SystemDetailsPage} />

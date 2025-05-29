@@ -45,11 +45,7 @@ const navigationItems = [
     label: "Port Forwarding",
     icon: ArrowRightLeft,
   },
-  {
-    href: "/aimesh",
-    label: "AiMesh Network",
-    icon: Router,
-  },
+
   {
     href: "/bandwidth",
     label: "Bandwidth Monitor",
