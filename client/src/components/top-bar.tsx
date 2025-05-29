@@ -78,18 +78,6 @@ export default function TopBar({
         </div>
         
         <div className="flex items-center space-x-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search devices, networks, settings..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="pl-10 w-64 bg-background border-border focus:ring-primary"
-            />
-          </div>
-          
           {/* Quick Actions Gear Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
