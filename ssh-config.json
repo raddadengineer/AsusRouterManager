@@ -5,11 +5,11 @@
   "username": "HAL",
   "enabled": true,
   "syncInterval": 5,
-  "lastConnected": "2025-05-29T03:39:01.715Z",
+  "lastConnected": "2025-05-29T03:48:56.595Z",
   "connectionStatus": "connected",
   "encryptedCredentials": {
-    "encrypted": "2b16c3e9265a78cc7af793786edde4608d063db4c4a4b2",
-    "iv": "2cc2c95c59c9cbc08794423c2b6c4104",
-    "tag": "77bef06cf9549232e83ccb33825b190f"
+    "encrypted": "de179df4ff74ab8afac5a6520f18edd4923cc1391b495b",
+    "iv": "c0e130e718420020458951cae5dfcf54",
+    "tag": "76d85a660f3bfe6424c51f395ac18bb5"
   }
 }
