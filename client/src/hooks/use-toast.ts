@@ -4,6 +4,7 @@ import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
+import { addNotificationToHistory } from "./use-notification-history"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -148,6 +149,14 @@ function toast({ ...props }: Toast) {
       toast: { ...props, id },
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+
+  // Add to notification history
+  addNotificationToHistory({
+    id,
+    title: props.title,
+    description: props.description,
+    type: props.variant === 'destructive' ? 'destructive' : 'default'
+  })
 
   dispatch({
     type: "ADD_TOAST",
