@@ -60,19 +60,37 @@ export default function Dashboard() {
   const connectedDevicesCount = devices?.filter(device => device.isOnline).length || 0;
   
   // Calculate real-time network usage from actual bandwidth data
-  const totalNetworkUsage = (() => {
-    if (!bandwidthData || bandwidthData.length === 0) return 0;
+  const networkUsage = (() => {
+    if (!bandwidthData || bandwidthData.length === 0) return { total: 0, unit: 'KB/s', download: 0, upload: 0 };
     
     // Get the most recent bandwidth reading
     const latestBandwidth = bandwidthData[bandwidthData.length - 1];
-    if (!latestBandwidth) return 0;
+    if (!latestBandwidth) return { total: 0, unit: 'KB/s', download: 0, upload: 0 };
     
-    // Convert from bytes to MB/s and combine download + upload
-    const downloadMbps = (latestBandwidth.downloadSpeed || 0) / (1024 * 1024);
-    const uploadMbps = (latestBandwidth.uploadSpeed || 0) / (1024 * 1024);
+    // Convert from bytes to KB/s
+    const downloadKbps = (latestBandwidth.downloadSpeed || 0) / 1024;
+    const uploadKbps = (latestBandwidth.uploadSpeed || 0) / 1024;
+    const totalKbps = downloadKbps + uploadKbps;
     
-    return downloadMbps + uploadMbps;
+    // Choose appropriate unit based on size
+    if (totalKbps >= 1024) {
+      return {
+        total: totalKbps / 1024,
+        unit: 'MB/s',
+        download: downloadKbps / 1024,
+        upload: uploadKbps / 1024
+      };
+    } else {
+      return {
+        total: totalKbps,
+        unit: 'KB/s',
+        download: downloadKbps,
+        upload: uploadKbps
+      };
+    }
   })();
+
+  const totalNetworkUsage = networkUsage.total;
 
   const handleQuickAction = async (action: string) => {
     try {
@@ -181,7 +199,12 @@ export default function Dashboard() {
                 )}
               </div>
               <div className="text-sm text-muted-foreground mb-2">Network Usage</div>
-              <div className="text-xs text-muted-foreground mb-2">MB/s</div>
+              <div className="text-xs text-muted-foreground mb-2">{networkUsage.unit}</div>
+              {!devicesLoading && networkUsage.total > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  ↓{networkUsage.download.toFixed(1)} ↑{networkUsage.upload.toFixed(1)}
+                </div>
+              )}
               {!devicesLoading && (
                 <Progress 
                   value={Math.min((totalNetworkUsage / 100) * 100, 100)} 
