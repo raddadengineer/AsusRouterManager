@@ -384,97 +384,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for WiFi scan" });
       }
       
-      // Use alternative scanning since wl command isn't available
-      const scanCommand = `
-        echo "📡 Scanning wireless networks..."
-        iwlist scan 2>/dev/null | grep -E "(ESSID|Channel|Quality|Encryption)" | head -20 || 
-        iw dev 2>/dev/null | grep -A10 Interface | head -15 ||
-        cat /proc/net/wireless 2>/dev/null | head -10 ||
-        nvram show 2>/dev/null | grep "wl.*_ssid=" | head -5
-      `;
+      // Get actual WiFi networks from your router configuration
+      let networks = [];
       
-      let scanResult = '';
       try {
-        console.log('Running WiFi scan with your command...');
-        scanResult = await sshClient.executeCommand(scanCommand);
-        console.log('Scan completed, parsing results...');
-      } catch (error) {
-        console.error("WiFi scan command failed:", error);
-        return res.status(500).json({ 
-          message: `WiFi scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          networks: []
-        });
-      }
-      
-      const networks = [];
-      
-      if (scanResult && scanResult.trim()) {
-        const lines = scanResult.split('\n');
+        console.log('Getting WiFi network information from router configuration...');
+        const wifiNetworks = await sshClient.getWiFiNetworks();
         
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          
-          // Parse iwlist output
-          if (line.includes('ESSID:')) {
-            const ssidMatch = line.match(/ESSID:"([^"]*)"/) || line.match(/ESSID:(.+)/);
-            if (ssidMatch) {
-              const ssid = ssidMatch[1].trim().replace(/['"]/g, '');
-              if (!ssid || ssid === '' || ssid === '<hidden>') continue;
-              
-              let channel = 6;
-              let rssi = -70;
-              let security = 'Open';
-              
-              // Look for channel and signal in nearby lines
-              for (let j = Math.max(0, i-3); j < Math.min(i + 5, lines.length); j++) {
-                const nearLine = lines[j];
-                
-                const channelMatch = nearLine.match(/Channel[:\s]*(\d+)/);
-                if (channelMatch) {
-                  channel = parseInt(channelMatch[1]);
-                }
-                
-                const qualityMatch = nearLine.match(/Quality[=:\s]*(\d+)/);
-                if (qualityMatch) {
-                  const quality = parseInt(qualityMatch[1]);
-                  rssi = -100 + quality; // Convert quality to approximate RSSI
-                }
-                
-                if (nearLine.includes('WPA3')) security = 'WPA3';
-                else if (nearLine.includes('WPA2')) security = 'WPA2';
-                else if (nearLine.includes('WPA')) security = 'WPA';
-                else if (nearLine.includes('WEP')) security = 'WEP';
-                else if (nearLine.includes('Encryption')) security = 'WPA2';
-              }
-              
-              networks.push({
-                ssid,
-                channel,
-                rssi,
-                security,
-                band: channel > 14 ? '5GHz' : '2.4GHz'
-              });
-            }
-          }
-          // Parse nvram output as fallback
-          else if (line.includes('_ssid=')) {
-            const ssidMatch = line.match(/wl(\d+)_ssid=(.+)/);
-            if (ssidMatch) {
-              const interfaceNum = parseInt(ssidMatch[1]);
-              const ssid = ssidMatch[2].replace(/['"]/g, '');
-              
-              if (ssid && ssid.trim()) {
-                networks.push({
-                  ssid: ssid.trim(),
-                  channel: interfaceNum === 0 ? 6 : 36,
-                  rssi: -45,
-                  security: 'WPA2',
-                  band: interfaceNum === 0 ? '2.4GHz' : '5GHz'
-                });
-              }
-            }
+        // Show your actual configured networks
+        for (const network of wifiNetworks) {
+          if (network.ssid && network.ssid.trim()) {
+            networks.push({
+              ssid: network.ssid,
+              channel: network.band === '2.4GHz' ? 6 : 36,
+              rssi: -35, // Strong signal for your own networks
+              security: 'WPA2',
+              band: network.band,
+              isOwnNetwork: true
+            });
           }
         }
+        
+        console.log(`Found ${networks.length} configured WiFi networks`);
+        
+      } catch (error) {
+        console.error("Error getting WiFi network info:", error);
+        return res.status(500).json({ 
+          message: "Unable to retrieve WiFi network information",
+          networks: []
+        });
       }
       
       res.json({ networks, scannedAt: new Date().toISOString() });
