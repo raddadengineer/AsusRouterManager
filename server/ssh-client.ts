@@ -515,7 +515,8 @@ export class SSHClient {
 
       for (const iface of wirelessInterfaces) {
         try {
-          const assocCheck = await this.executeCommand(`wl -i ${iface} assoclist 2>/dev/null | grep -iq "${macAddress}" && echo "found" || echo ""`);
+          // Use alternative methods to check wireless association
+          const assocCheck = await this.executeCommand(`cat /proc/net/wireless 2>/dev/null | grep -i "${macAddress}" && echo "found" || echo ""`);
           
           if (assocCheck.trim() === 'found') {
             foundWireless = true;
@@ -523,9 +524,10 @@ export class SSHClient {
             deviceInfo.wirelessInterface = iface;
             deviceInfo.isOnline = true;
 
+            // Try to get signal strength from alternative sources
             try {
-              const rssiOutput = await this.executeCommand(`wl -i ${iface} rssi "${macAddress}"`);
-              const rssi = parseInt(rssiOutput.trim());
+              const iwOutput = await this.executeCommand(`iw dev ${iface} station get ${macAddress} 2>/dev/null | grep signal | awk '{print $2}'`);
+              const rssi = parseInt(iwOutput.trim());
               if (!isNaN(rssi)) {
                 deviceInfo.signalStrength = rssi;
               }
@@ -533,13 +535,13 @@ export class SSHClient {
               console.log(`Could not get RSSI for ${macAddress} on ${iface}`);
             }
             
-            if (iface === 'wl0') {
+            if (iface.includes('eth6') || iface === 'wl0') {
               deviceInfo.connectionType = '2.4GHz WiFi';
               deviceInfo.wirelessBand = '2.4GHz';
-            } else if (iface === 'wl1') {
+            } else if (iface.includes('eth7') || iface === 'wl1') {
               deviceInfo.connectionType = '5GHz WiFi';
               deviceInfo.wirelessBand = '5GHz';
-            } else if (iface === 'wl2') {
+            } else if (iface.includes('eth8') || iface === 'wl2') {
               deviceInfo.connectionType = '6GHz WiFi';
               deviceInfo.wirelessBand = '6GHz';
             }
