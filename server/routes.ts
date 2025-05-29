@@ -464,11 +464,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const meshNodeMacs = new Set();
       
       // Parse the specific AiMesh command output: cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'
+      console.log('AiMesh command output:', aimeshLeases);
       const aimeshLines = aimeshLeases.split('\n').filter(line => line.trim() && !line.startsWith('Error:'));
+      console.log('Filtered AiMesh lines:', aimeshLines);
+      
       aimeshLines.forEach(line => {
         const parts = line.split(' ');
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
+          console.log(`Checking device: hostname="${hostname}", mac="${mac}", ip="${ip}"`);
+          
           // Only accept devices that are ACTUALLY ASUS router models, not random devices
           if (hostname && mac && ip && (
             hostname.match(/^RT-[A-Z0-9]+$/i) ||        // RT-AX88U, RT-AX86U, etc.
@@ -477,6 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hostname.includes('AiMesh-Node') ||          // Explicit AiMesh nodes
             hostname.includes('ASUS-Router')             // Explicit ASUS routers
           )) {
+            console.log(`ACCEPTED as AiMesh node: ${hostname}`);
             meshNodeMacs.add(mac.toLowerCase());
             nodes.push({
               id: mac.replace(/:/g, '-'),
@@ -496,6 +502,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               memoryUsage: null,
               detectionMethod: 'AiMesh DHCP Leases'
             });
+          } else {
+            console.log(`REJECTED device: ${hostname} (not an ASUS router model)`);
           }
         }
       });
