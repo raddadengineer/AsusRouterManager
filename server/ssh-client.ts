@@ -44,9 +44,13 @@ export class SSHClient {
       throw new Error('SSH connection not established');
     }
 
+    // Log every command execution
+    console.log(`[SSH EXEC] Running command: ${command}`);
+
     return new Promise((resolve, reject) => {
       this.client.exec(command, (err, stream) => {
         if (err) {
+          console.log(`[SSH ERROR] Command failed: ${command}`, err);
           reject(err);
           return;
         }
