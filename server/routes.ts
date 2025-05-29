@@ -248,12 +248,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.set({
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'ETag': `"${Date.now()}"`, // Force fresh responses with timestamp
+        'Last-Modified': new Date().toUTCString()
       });
       
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 24;
       const data = await storage.getBandwidthData(limit);
-      res.json(data);
+      
+      // Add a timestamp to ensure response uniqueness
+      const response = {
+        data,
+        timestamp: Date.now(),
+        lastUpdated: new Date().toISOString()
+      };
+      
+      res.json(response.data);
     } catch (error) {
       res.status(500).json({ message: "Failed to get bandwidth data" });
     }
