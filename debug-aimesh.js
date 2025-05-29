@@ -1,5 +1,4 @@
-// Quick debug script to show AiMesh devices
-const fetch = require('node:fetch');
+import fetch from 'node-fetch';
 
 async function showAiMeshDevices() {
   try {
