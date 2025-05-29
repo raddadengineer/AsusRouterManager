@@ -384,31 +384,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for WiFi scan" });
       }
       
-      // Get your current WiFi networks since wl scanning isn't available
-      const networks = [];
+      // Use your exact loop command for scanning
+      const scanCommand = `for i in $(nvram get wl_ifnames); do echo "🔍 $i"; wl -i $i scan; sleep 3; wl -i $i scanresults; done`;
       
+      let scanResult = '';
       try {
-        const wifiNetworks = await sshClient.getWiFiNetworks();
-        
-        for (const network of wifiNetworks) {
-          if (network.ssid && network.ssid.trim()) {
-            networks.push({
-              ssid: network.ssid,
-              channel: network.band === '2.4GHz' ? 6 : 36,
-              rssi: -40,
-              security: 'WPA2',
-              band: network.band,
-              isOwnNetwork: true
-            });
-          }
-        }
-        
+        console.log('Running WiFi scan with your command...');
+        scanResult = await sshClient.executeCommand(scanCommand);
+        console.log('Scan completed, parsing results...');
       } catch (error) {
-        console.error("Error getting network info:", error);
+        console.error("WiFi scan command failed:", error);
         return res.status(500).json({ 
-          message: "Unable to scan networks - wl command not available on this router",
+          message: `WiFi scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
           networks: []
         });
+      }
+      
+      const networks = [];
+      
+      if (scanResult && scanResult.trim()) {
+        const lines = scanResult.split('\n');
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          
+          // Look for SSID in scan results
+          if (line.includes('SSID:')) {
+            const ssidMatch = line.match(/SSID:\s*"([^"]*)"/) || line.match(/SSID:\s*(.+)/);
+            if (ssidMatch) {
+              const ssid = ssidMatch[1].trim().replace(/['"]/g, '');
+              if (!ssid || ssid === '') continue;
+              
+              let channel = 6;
+              let rssi = -70;
+              let security = null;
+              
+              // Look for channel, signal, and security in nearby lines
+              for (let j = Math.max(0, i-3); j < Math.min(i + 8, lines.length); j++) {
+                const nearLine = lines[j];
+                
+                const channelMatch = nearLine.match(/Channel:\s*(\d+)/) || nearLine.match(/CH:\s*(\d+)/);
+                if (channelMatch) {
+                  channel = parseInt(channelMatch[1]);
+                }
+                
+                const rssiMatch = nearLine.match(/RSSI:\s*(-?\d+)/) || nearLine.match(/Signal:\s*(-?\d+)/);
+                if (rssiMatch) {
+                  rssi = parseInt(rssiMatch[1]);
+                }
+                
+                if (nearLine.includes('WPA3')) security = 'WPA3';
+                else if (nearLine.includes('WPA2')) security = 'WPA2';
+                else if (nearLine.includes('WPA')) security = 'WPA';
+                else if (nearLine.includes('WEP')) security = 'WEP';
+              }
+              
+              networks.push({
+                ssid,
+                channel,
+                rssi,
+                security: security || 'Open',
+                band: channel > 14 ? '5GHz' : '2.4GHz'
+              });
+            }
+          }
+        }
       }
       
       res.json({ networks, scannedAt: new Date().toISOString() });
