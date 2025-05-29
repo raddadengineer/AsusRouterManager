@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import BandwidthChart from "@/components/bandwidth-chart";
+
 import OptimizedNetworkTopology from "@/components/optimized-network-topology";
 import DeviceTable from "@/components/device-table";
 import TopBar from "@/components/top-bar";
@@ -582,10 +582,7 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Bandwidth Chart */}
-          <div className="mt-6">
-            <BandwidthChart />
-          </div>
+
         </div>
       </div>
     </div>
