@@ -384,23 +384,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for WiFi scan" });
       }
       
-      // Use iw command instead of wl for WiFi scanning (more widely supported)
+      // Use your exact method: Get real wireless interface names first
+      const interfacesResult = await sshClient.executeCommand('nvram get wl_ifnames');
+      const interfaces = interfacesResult.trim().split(' ').filter(iface => iface.trim());
+      
+      console.log('Found wireless interfaces:', interfaces);
+      
       let scanResult = '';
       
-      try {
-        // Try iw scan first
-        scanResult = await sshClient.executeCommand('iw dev | grep Interface | head -3');
-        if (scanResult.trim()) {
-          const iwScan = await sshClient.executeCommand('iw dev $(iw dev | grep Interface | head -1 | awk \'{print $2}\') scan 2>/dev/null | head -50');
-          scanResult = iwScan;
-        }
-      } catch (error) {
-        // Fallback to iwlist if iw fails
+      // Scan all wireless interfaces automatically using your approach
+      for (const iface of interfaces) {
+        if (!iface.trim()) continue;
+        
         try {
-          scanResult = await sshClient.executeCommand('iwlist scanning 2>/dev/null | head -50');
-        } catch (error2) {
-          // Final fallback - show current network info instead
-          scanResult = await sshClient.executeCommand('nvram show 2>/dev/null | grep "wl.*_ssid=" | head -5');
+          console.log(`📡 Scanning on ${iface}...`);
+          
+          // Use your exact command sequence: scan then sleep then scanresults
+          await sshClient.executeCommand(`wl -i ${iface} scan`);
+          
+          // Wait 3 seconds as you specified
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          // Get scan results
+          const results = await sshClient.executeCommand(`wl -i ${iface} scanresults`);
+          if (results && results.trim()) {
+            scanResult += `Interface ${iface}:\n${results}\n\n`;
+            console.log(`Successfully scanned ${iface}`);
+          }
+        } catch (error) {
+          console.log(`Scan failed on ${iface}:`, error);
+          // Try fallback interfaces if main ones fail
+          if (iface.includes('eth')) {
+            const fallbackIface = iface.replace('eth', 'wl').replace('6', '0').replace('7', '1').replace('8', '2');
+            try {
+              console.log(`Trying fallback interface ${fallbackIface}...`);
+              await sshClient.executeCommand(`wl -i ${fallbackIface} scan`);
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              const fallbackResults = await sshClient.executeCommand(`wl -i ${fallbackIface} scanresults`);
+              if (fallbackResults && fallbackResults.trim()) {
+                scanResult += `Interface ${fallbackIface}:\n${fallbackResults}\n\n`;
+              }
+            } catch (fallbackError) {
+              continue;
+            }
+          }
         }
       }
       
