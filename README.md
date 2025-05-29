@@ -8,17 +8,13 @@ A comprehensive web application for managing ASUS routers with Merlin firmware, 
 - 🖥️ Modern responsive UI with dark/light theme support
 - 🔌 Secure SSH connectivity to ASUS routers with Merlin firmware
 - 📊 Real-time system monitoring and bandwidth tracking
-- 📱 Advanced connected device management with grouping and tagging
 - 📡 WiFi network configuration and monitoring
-- 🔄 Port forwarding rule management
 - 🛠️ Comprehensive system administration tools
 
 ### Advanced Features
 - 🤖 Automated background services for continuous monitoring
 - 🔍 Device discovery and network topology mapping
-- 📈 Historical bandwidth usage analytics
 - 🚨 Router health monitoring and alerts
-- 🏷️ Device organization with custom groups and tags
 - 📋 Detailed device information and connection analysis
 - 🔐 Encrypted storage of sensitive configuration data
 - ⚡ Real-time data synchronization with configurable intervals
