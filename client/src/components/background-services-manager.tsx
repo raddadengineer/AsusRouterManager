@@ -198,7 +198,7 @@ export default function BackgroundServicesManager() {
         scripts: [
           'for iface in eth6 eth7 eth8; do wl -i $iface assoclist 2>/dev/null | tr \' \' \'\\n\' | grep -E \'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$\'; done', 
           'cat /var/lib/misc/dnsmasq.leases',
-          'ifconfig wl0 | grep "inet addr"'
+          'for iface in eth6 eth7 eth8; do echo "Clients on $iface:"; for mac in $(wl -i $iface assoclist 2>/dev/null | tr \' \' \'\\n\' | grep -iE \'^([0-9A-F]{2}:){5}[0-9A-F]{2}$\'); do ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk \'{print $3}\'); echo "$mac -> ${ip:-IP not found}"; done; done'
         ],
         dataCollected: [
           'Wireless signal strength (RSSI)',
