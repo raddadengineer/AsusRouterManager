@@ -448,17 +448,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aimeshCommand = `cat /var/lib/misc/dnsmasq.leases | grep -Ei 'rp-|rt-|aimesh|asus'`;
       const aimeshLeases = await sshClient.executeCommand(aimeshCommand);
       
-      // Log what your command finds
-      console.log('\n=== AiMesh Command Results ===');
-      console.log('Command:', aimeshCommand);
-      console.log('Raw output:');
-      console.log('Length:', aimeshLeases.length);
-      console.log('Content:', JSON.stringify(aimeshLeases));
-      console.log('Lines:');
-      aimeshLeases.split('\n').forEach((line, i) => {
-        console.log(`  ${i}: "${line}"`);
-      });
-      console.log('==============================\n');
+      // Log what your command finds - with more detail
+      console.log('\n======== DEBUG: AiMesh SSH Command ========');
+      console.log('Command executed:', aimeshCommand);
+      console.log('SSH Result length:', aimeshLeases.length);
+      console.log('SSH Result (raw):', aimeshLeases);
+      console.log('SSH Result (JSON):', JSON.stringify(aimeshLeases));
+      
+      if (aimeshLeases.includes('RT-AC68U') || aimeshLeases.includes('RT-AC3100')) {
+        console.log('✓ Found expected ASUS routers in SSH output');
+      } else {
+        console.log('✗ Expected RT-AC68U and RT-AC3100 not found in SSH output');
+        console.log('✗ This suggests SSH is connected to wrong router or command failed');
+      }
+      console.log('==========================================\n');
       
       // Parse authentic router data to detect AiMesh nodes
       const nodes = [];
