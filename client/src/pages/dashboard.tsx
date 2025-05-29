@@ -54,6 +54,7 @@ export default function Dashboard() {
   const { data: bandwidthData } = useQuery({
     queryKey: ["/api/bandwidth"],
     refetchInterval: 5000, // Update every 5 seconds for real-time network usage
+    staleTime: 0, // Always consider data stale
   });
 
   const connectedDevices = devices || [];
