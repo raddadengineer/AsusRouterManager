@@ -40,17 +40,9 @@ const navigationItems = [
     label: "WiFi Settings",
     icon: Wifi,
   },
-  {
-    href: "/port-forwarding",
-    label: "Port Forwarding",
-    icon: ArrowRightLeft,
-  },
 
-  {
-    href: "/bandwidth",
-    label: "Bandwidth Monitor",
-    icon: TrendingUp,
-  },
+
+
   {
     href: "/system",
     label: "System Settings",

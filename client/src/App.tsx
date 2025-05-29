@@ -8,8 +8,8 @@ import Dashboard from "@/pages/dashboard";
 import NetworkTopology from "@/pages/topology";
 import ConnectedDevices from "@/pages/devices";
 import WiFiSettings from "@/pages/wifi";
-import PortForwarding from "@/pages/port-forwarding";
-import BandwidthMonitor from "@/pages/bandwidth";
+
+
 import SystemSettings from "@/pages/system";
 import SystemDetailsPage from "@/pages/system-details";
 import DeviceDetailsPage from "@/pages/device-details";
@@ -54,9 +54,9 @@ function Router() {
               <Route path="/devices/:id" component={DeviceDetailsPage} />
 
               <Route path="/wifi" component={WiFiSettings} />
-              <Route path="/port-forwarding" component={PortForwarding} />
 
-              <Route path="/bandwidth" component={BandwidthMonitor} />
+
+
               <Route path="/system" component={SystemSettings} />
               <Route path="/system/details" component={SystemDetailsPage} />
               <Route component={NotFound} />
