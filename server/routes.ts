@@ -384,35 +384,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for WiFi scan" });
       }
       
-      // Get actual WiFi networks from your router configuration
-      let networks = [];
+      // Use your exact WiFi scan command
+      const scanCommand = `for i in $(nvram get wl_ifnames); do echo "🔍 $i"; wl -i $i scan; sleep 3; wl -i $i scanresults; done`;
       
+      let scanResult = '';
       try {
-        console.log('Getting WiFi network information from router configuration...');
-        const wifiNetworks = await sshClient.getWiFiNetworks();
-        
-        // Show your actual configured networks
-        for (const network of wifiNetworks) {
-          if (network.ssid && network.ssid.trim()) {
-            networks.push({
-              ssid: network.ssid,
-              channel: network.band === '2.4GHz' ? 6 : 36,
-              rssi: -35, // Strong signal for your own networks
-              security: 'WPA2',
-              band: network.band,
-              isOwnNetwork: true
-            });
-          }
-        }
-        
-        console.log(`Found ${networks.length} configured WiFi networks`);
-        
+        console.log('Running WiFi scan with your command...');
+        scanResult = await sshClient.executeCommand(scanCommand);
+        console.log('WiFi scan completed, parsing results...');
       } catch (error) {
-        console.error("Error getting WiFi network info:", error);
+        console.error("WiFi scan command failed:", error);
         return res.status(500).json({ 
-          message: "Unable to retrieve WiFi network information",
+          message: `WiFi scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
           networks: []
         });
+      }
+      
+      const networks = [];
+      const seenNetworks = new Set(); // Avoid duplicates
+      
+      if (scanResult && scanResult.trim()) {
+        const lines = scanResult.split('\n');
+        let currentInterface = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          
+          // Track which interface we're processing
+          if (line.includes('🔍')) {
+            currentInterface = line.replace('🔍', '').trim();
+            continue;
+          }
+          
+          // Parse SSID from scan results
+          if (line.includes('SSID:')) {
+            const ssidMatch = line.match(/SSID:\s*"([^"]*)"/) || line.match(/SSID:\s*(.+)/);
+            if (ssidMatch) {
+              const ssid = ssidMatch[1].trim().replace(/['"]/g, '');
+              if (!ssid || ssid === '' || ssid === 'Broadcast' || seenNetworks.has(ssid)) continue;
+              
+              let channel = 6;
+              let rssi = -70;
+              let security = 'Open';
+              let band = '2.4GHz';
+              
+              // Look for associated data in nearby lines
+              for (let j = Math.max(0, i-5); j < Math.min(i + 10, lines.length); j++) {
+                const dataLine = lines[j];
+                
+                // Parse channel
+                const channelMatch = dataLine.match(/Channel:\s*(\d+)/) || dataLine.match(/primary channel:\s*(\d+)/i);
+                if (channelMatch) {
+                  channel = parseInt(channelMatch[1]);
+                  band = channel > 14 ? '5GHz' : '2.4GHz';
+                }
+                
+                // Parse RSSI/signal strength
+                const rssiMatch = dataLine.match(/RSSI:\s*(-?\d+)/) || dataLine.match(/Signal:\s*(-?\d+)/);
+                if (rssiMatch) {
+                  rssi = parseInt(rssiMatch[1]);
+                }
+                
+                // Parse security
+                if (dataLine.includes('WPA3')) security = 'WPA3';
+                else if (dataLine.includes('WPA2')) security = 'WPA2';
+                else if (dataLine.includes('WPA')) security = 'WPA';
+                else if (dataLine.includes('WEP')) security = 'WEP';
+                else if (dataLine.includes('Privacy')) security = 'WPA2';
+              }
+              
+              // Normalize and add network
+              seenNetworks.add(ssid);
+              networks.push({
+                ssid,
+                channel,
+                rssi,
+                security,
+                band,
+                interface: currentInterface
+              });
+            }
+          }
+        }
       }
       
       res.json({ networks, scannedAt: new Date().toISOString() });
