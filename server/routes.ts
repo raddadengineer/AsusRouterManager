@@ -469,13 +469,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const parts = line.split(' ');
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
-          // These are already filtered by the grep command to be actual ASUS devices
-          if (hostname && mac && ip) {
+          // Only accept devices that are ACTUALLY ASUS router models, not random devices
+          if (hostname && mac && ip && (
+            hostname.match(/^RT-[A-Z0-9]+$/i) ||        // RT-AX88U, RT-AX86U, etc.
+            hostname.match(/^GT-[A-Z0-9]+$/i) ||        // GT-AX11000, GT-AX6000, etc.
+            hostname.match(/^RP-[A-Z0-9]+$/i) ||        // RP-AX58, etc. (AiMesh nodes)
+            hostname.includes('AiMesh-Node') ||          // Explicit AiMesh nodes
+            hostname.includes('ASUS-Router')             // Explicit ASUS routers
+          )) {
             meshNodeMacs.add(mac.toLowerCase());
             nodes.push({
               id: mac.replace(/:/g, '-'),
               name: hostname,
-              model: hostname.includes('RT-') || hostname.includes('GT-') ? hostname : 'ASUS AiMesh Device',
+              model: hostname,
               macAddress: mac.toUpperCase(),
               ipAddress: ip,
               role: ip.endsWith('.1') ? 'router' : 'node',
