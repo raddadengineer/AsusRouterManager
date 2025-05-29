@@ -196,8 +196,7 @@ export default function BackgroundServicesManager() {
       'device-detail-sync': {
         purpose: 'Enriches device information with detailed connection data',
         scripts: [
-          'wl -i wl0 assoclist | head -20',
-          'wl -i wl1 assoclist | head -20', 
+          'for iface in eth6 eth7 eth8; do echo "Clients on $iface:"; wl -i $iface assoclist | tr \' \' \'\\n\'; done', 
           'cat /tmp/dhcp.leases',
           'ifconfig wl0 | grep "inet addr"'
         ],
