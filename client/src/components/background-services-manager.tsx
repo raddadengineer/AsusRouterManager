@@ -244,27 +244,6 @@ export default function BackgroundServicesManager() {
         databaseTables: ['router_status', 'router_features'],
         frequency: 'Every 5 minutes'
       },
-      'enhanced-wireless-detection': {
-        purpose: 'Advanced wireless device identification using comprehensive data correlation',
-        scripts: [
-          'echo "=== Enhanced Wireless Device Analysis ==="; echo "Date: $(date)"; echo',
-          'echo "--- Step 1: Active Wireless Interfaces ---"; for iface in eth6 eth7 eth8; do count=$(wl -i $iface assoclist 2>/dev/null | wc -l); echo "$iface: $count clients"; done; echo',
-          'echo "--- Step 2: Wireless Client Details with Signal Strength ---"; for iface in eth6 eth7 eth8; do echo "Interface $iface:"; wl -i $iface assoclist 2>/dev/null | while read mac; do if [ -n "$mac" ]; then rssi=$(wl -i $iface rssi "$mac" 2>/dev/null || echo "N/A"); ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk \'{print $3}\' | head -1); hostname=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk \'{print $4}\' | head -1); band="Unknown"; if [ "$iface" = "eth6" ]; then band="2.4GHz"; elif [ "$iface" = "eth7" ]; then band="5GHz"; elif [ "$iface" = "eth8" ]; then band="6GHz"; fi; echo "  $mac | $band | ${ip:-No-IP} | ${hostname:-No-Name} | RSSI: $rssi dBm"; fi; done; echo; done',
-          'echo "--- Step 3: Cross-Reference with ARP Table ---"; echo "Checking network neighbor status:"; ip neigh | grep -E "REACHABLE|STALE" | while read ip dev mac nud state; do wireless_match=""; for iface in eth6 eth7 eth8; do if wl -i $iface assoclist 2>/dev/null | grep -qi "$mac"; then wireless_match="$iface"; break; fi; done; if [ -n "$wireless_match" ]; then echo "WIRELESS: $ip | $mac | $wireless_match | $state"; else echo "WIRED: $ip | $mac | $dev | $state"; fi; done; echo',
-          'echo "--- Step 4: Device Type Classification ---"; echo "Analyzing device patterns:"; for iface in eth6 eth7 eth8; do wl -i $iface assoclist 2>/dev/null | while read mac; do if [ -n "$mac" ]; then hostname=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk \'{print $4}\' | head -1); vendor=$(echo "$mac" | cut -d: -f1-3); case "$vendor" in "ac:bc:32"|"f0:18:98"|"14:7d:da") device_type="Apple Device";; "b8:27:eb"|"dc:a6:32") device_type="Raspberry Pi";; "00:e0:4c"|"00:01:e3") device_type="Realtek Device";; "08:00:27") device_type="VirtualBox";; *) device_type="Unknown";; esac; echo "$mac | ${hostname:-Unknown} | $device_type | Interface: $iface"; fi; done; done; echo',
-          'echo "--- Step 5: Summary Statistics ---"; total_wireless=0; for iface in eth6 eth7 eth8; do count=$(wl -i $iface assoclist 2>/dev/null | wc -l); total_wireless=$((total_wireless + count)); done; total_dhcp=$(cat /var/lib/misc/dnsmasq.leases | wc -l); echo "Total wireless clients: $total_wireless"; echo "Total DHCP leases: $total_dhcp"; echo "Wireless coverage: $((total_wireless * 100 / total_dhcp))%" 2>/dev/null || echo "Wireless coverage: N/A"; echo "=== Analysis Complete ==="'
-        ],
-        dataCollected: [
-          'Comprehensive wireless client mapping',
-          'Signal strength analysis per band',
-          'Device type identification',
-          'Cross-referenced network topology',
-          'Wireless vs wired classification',
-          'Coverage statistics and insights'
-        ],
-        databaseTables: ['connected_devices', 'wifi_networks'],
-        frequency: 'Every 2 minutes'
-      },
       'wifi-network-scan': {
         purpose: 'Discovers and analyzes WiFi networks and their configurations',
         scripts: [

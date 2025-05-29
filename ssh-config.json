@@ -1,15 +1,15 @@
 {
   "id": 1,
   "host": "173.25.127.254",
-  "port": 22,
+  "port": 1215,
   "username": "HAL",
   "enabled": true,
   "syncInterval": 5,
-  "lastConnected": "2025-05-29T03:48:56.595Z",
+  "lastConnected": "2025-05-29T03:40:03.049Z",
   "connectionStatus": "connected",
   "encryptedCredentials": {
-    "encrypted": "de179df4ff74ab8afac5a6520f18edd4923cc1391b495b",
-    "iv": "c0e130e718420020458951cae5dfcf54",
-    "tag": "76d85a660f3bfe6424c51f395ac18bb5"
+    "encrypted": "b5dc36055fa4035e6261e20fd13ea1e0db3e5b098802a8",
+    "iv": "2f7a26c33a9bf619565bc353d081d145",
+    "tag": "50baad96304a791aa043fdc77f5cc797"
   }
 }
