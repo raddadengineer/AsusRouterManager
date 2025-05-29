@@ -196,9 +196,9 @@ export default function BackgroundServicesManager() {
       'device-detail-sync': {
         purpose: 'Enriches device information with detailed connection data',
         scripts: [
-          'for iface in eth6 eth7 eth8; do wl -i $iface assoclist 2>/dev/null | tr \' \' \'\\n\' | grep -E \'^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$\'; done', 
+          'for iface in eth6 eth7 eth8; do echo "Clients on $iface:"; wl -i $iface assoclist | tr \' \' \'\\n\'; done', 
           'cat /var/lib/misc/dnsmasq.leases',
-          'for iface in eth6 eth7 eth8; do echo "Clients on $iface:"; for mac in $(wl -i $iface assoclist 2>/dev/null | tr \' \' \'\\n\' | grep -iE \'^([0-9A-F]{2}:){5}[0-9A-F]{2}$\'); do ip=$(grep -i "$mac" /var/lib/misc/dnsmasq.leases | awk \'{print $3}\'); echo "$mac -> ${ip:-IP not found}"; done; done'
+          'ifconfig wl0 | grep "inet addr"'
         ],
         dataCollected: [
           'Wireless signal strength (RSSI)',
