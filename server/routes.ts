@@ -244,6 +244,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bandwidth Data Routes
   app.get("/api/bandwidth", async (req, res) => {
     try {
+      // Prevent caching for real-time data
+      res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 24;
       const data = await storage.getBandwidthData(limit);
       res.json(data);
