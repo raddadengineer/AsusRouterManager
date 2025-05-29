@@ -197,7 +197,7 @@ export default function BackgroundServicesManager() {
         purpose: 'Enriches device information with detailed connection data',
         scripts: [
           'for iface in eth6 eth7 eth8; do echo "Clients on $iface:"; wl -i $iface assoclist | tr \' \' \'\\n\'; done', 
-          'cat /tmp/dhcp.leases',
+          'cat /var/lib/misc/dnsmasq.leases',
           'ifconfig wl0 | grep "inet addr"'
         ],
         dataCollected: [
