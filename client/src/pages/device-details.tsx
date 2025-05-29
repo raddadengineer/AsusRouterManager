@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function DeviceDetailsPage() {
   const params = useParams();
-  const deviceMac = params.mac; // Changed from id to mac
+  const deviceId = params.id;
   const { toast } = useToast();
 
   const { data: devices, isLoading, refetch } = useQuery<ConnectedDevice[]>({
@@ -22,7 +22,7 @@ export default function DeviceDetailsPage() {
     refetchInterval: 5000, // Refresh every 5 seconds for live data
   });
 
-  const device = devices?.find(d => d.macAddress === deviceMac);
+  const device = devices?.find(d => d.id.toString() === deviceId);
 
   // Refresh device data mutation
   const refreshDeviceData = useMutation({

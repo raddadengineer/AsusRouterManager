@@ -51,7 +51,7 @@ function Router() {
               <Route path="/" component={Dashboard} />
               <Route path="/topology" component={NetworkTopology} />
               <Route path="/devices" component={ConnectedDevices} />
-              <Route path="/devices/:mac" component={DeviceDetailsPage} />
+              <Route path="/devices/:id" component={DeviceDetailsPage} />
 
               <Route path="/wifi" component={WiFiSettings} />
               <Route path="/port-forwarding" component={PortForwarding} />

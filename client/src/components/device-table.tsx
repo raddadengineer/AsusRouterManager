@@ -194,7 +194,7 @@ export default function DeviceTable({ className, showSearch = true }: DeviceTabl
                 {filteredAndSortedDevices.map((device) => (
                   <TableRow key={device.id} className="hover:bg-muted/50 cursor-pointer">
                     <TableCell>
-                      <Link href={`/devices/${encodeURIComponent(device.macAddress)}`}>
+                      <Link href={`/devices/${device.id}`}>
                         <a className="flex items-center space-x-3 w-full">
                           <div className={`device-icon ${getDeviceColorClass(device.deviceType)}`}>
                             <DeviceIcon type={device.deviceType} />

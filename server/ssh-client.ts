@@ -722,79 +722,18 @@ export class SSHClient {
 
   async getBandwidthData(): Promise<any> {
     try {
-      // Use the specified command to get network usage
-      const networkUsage = await this.executeCommand("cat /proc/net/dev | grep -E 'eth|vlan|ppp' | sort -k2 -nr");
-      
-      // Also get the br0 interface for comparison
       const rxBytes = await this.executeCommand("cat /sys/class/net/br0/statistics/rx_bytes");
       const txBytes = await this.executeCommand("cat /sys/class/net/br0/statistics/tx_bytes");
-      
-      // Calculate WAN usage from network interfaces
-      const wanUsage = this.calculateWanUsage(networkUsage);
       
       return {
         download: parseFloat(rxBytes.trim()) / (1024 * 1024), // Convert to MB
         upload: parseFloat(txBytes.trim()) / (1024 * 1024),
         totalDownload: parseFloat(rxBytes.trim()) / (1024 * 1024 * 1024), // Convert to GB
-        totalUpload: parseFloat(txBytes.trim()) / (1024 * 1024 * 1024),
-        wanUsage: wanUsage,
-        networkInterfaces: networkUsage
+        totalUpload: parseFloat(txBytes.trim()) / (1024 * 1024 * 1024)
       };
     } catch (error) {
       console.error('Error getting bandwidth data:', error);
-      return { download: 0, upload: 0, totalDownload: 0, totalUpload: 0, wanUsage: null };
-    }
-  }
-
-  private calculateWanUsage(networkData: string): any {
-    try {
-      const lines = networkData.split('\n').filter(line => line.trim());
-      let totalRxBytes = 0;
-      let totalTxBytes = 0;
-      const interfaces: any[] = [];
-
-      lines.forEach(line => {
-        const parts = line.trim().split(/\s+/);
-        if (parts.length >= 10) {
-          const interfaceName = parts[0].replace(':', '');
-          const rxBytes = parseInt(parts[1]) || 0;
-          const rxPackets = parseInt(parts[2]) || 0;
-          const txBytes = parseInt(parts[9]) || 0;
-          const txPackets = parseInt(parts[10]) || 0;
-
-          // Only count WAN interfaces (exclude internal interfaces)
-          if (interfaceName.match(/^(eth|vlan|ppp)/)) {
-            totalRxBytes += rxBytes;
-            totalTxBytes += txBytes;
-
-            interfaces.push({
-              name: interfaceName,
-              rxBytes,
-              rxPackets,
-              txBytes,
-              txPackets,
-              rxMB: (rxBytes / (1024 * 1024)).toFixed(2),
-              txMB: (txBytes / (1024 * 1024)).toFixed(2),
-              rxGB: (rxBytes / (1024 * 1024 * 1024)).toFixed(3),
-              txGB: (txBytes / (1024 * 1024 * 1024)).toFixed(3)
-            });
-          }
-        }
-      });
-
-      return {
-        totalRxBytes,
-        totalTxBytes,
-        totalRxMB: (totalRxBytes / (1024 * 1024)).toFixed(2),
-        totalTxMB: (totalTxBytes / (1024 * 1024)).toFixed(2),
-        totalRxGB: (totalRxBytes / (1024 * 1024 * 1024)).toFixed(3),
-        totalTxGB: (totalTxBytes / (1024 * 1024 * 1024)).toFixed(3),
-        interfaces,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Error calculating WAN usage:', error);
-      return null;
+      return { download: 0, upload: 0, totalDownload: 0, totalUpload: 0 };
     }
   }
 
