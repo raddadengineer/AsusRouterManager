@@ -452,7 +452,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('\n=== AiMesh Command Results ===');
       console.log('Command:', aimeshCommand);
       console.log('Raw output:');
-      console.log(aimeshLeases);
+      console.log('Length:', aimeshLeases.length);
+      console.log('Content:', JSON.stringify(aimeshLeases));
+      console.log('Lines:');
+      aimeshLeases.split('\n').forEach((line, i) => {
+        console.log(`  ${i}: "${line}"`);
+      });
       console.log('==============================\n');
       
       // Parse authentic router data to detect AiMesh nodes
