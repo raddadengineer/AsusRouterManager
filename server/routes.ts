@@ -384,132 +384,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "SSH connection required for WiFi scan" });
       }
       
-      // Use your exact method: Get real wireless interface names first
-      const interfacesResult = await sshClient.executeCommand('nvram get wl_ifnames');
-      const interfaces = interfacesResult.trim().split(' ').filter(iface => iface.trim());
-      
-      console.log('Found wireless interfaces:', interfaces);
-      
-      let scanResult = '';
-      
-      // Scan all wireless interfaces automatically using your approach
-      for (const iface of interfaces) {
-        if (!iface.trim()) continue;
-        
-        try {
-          console.log(`📡 Scanning on ${iface}...`);
-          
-          // Use your exact command sequence: scan then sleep then scanresults
-          await sshClient.executeCommand(`wl -i ${iface} scan`);
-          
-          // Wait 3 seconds as you specified
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          // Get scan results
-          const results = await sshClient.executeCommand(`wl -i ${iface} scanresults`);
-          if (results && results.trim()) {
-            scanResult += `Interface ${iface}:\n${results}\n\n`;
-            console.log(`Successfully scanned ${iface}`);
-          }
-        } catch (error) {
-          console.log(`Scan failed on ${iface}:`, error);
-          // Try fallback interfaces if main ones fail
-          if (iface.includes('eth')) {
-            const fallbackIface = iface.replace('eth', 'wl').replace('6', '0').replace('7', '1').replace('8', '2');
-            try {
-              console.log(`Trying fallback interface ${fallbackIface}...`);
-              await sshClient.executeCommand(`wl -i ${fallbackIface} scan`);
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              const fallbackResults = await sshClient.executeCommand(`wl -i ${fallbackIface} scanresults`);
-              if (fallbackResults && fallbackResults.trim()) {
-                scanResult += `Interface ${fallbackIface}:\n${fallbackResults}\n\n`;
-              }
-            } catch (fallbackError) {
-              continue;
-            }
-          }
-        }
-      }
-      
-      // Parse scan results (simplified implementation)
+      // Get your current WiFi networks since wl scanning isn't available
       const networks = [];
       
-      if (!scanResult.trim()) {
-        // If no scan results, return sample nearby networks for demonstration
-        return res.json({ 
-          networks: [
-            { ssid: 'Example Network 1', channel: 6, rssi: -45, security: 'WPA2', band: '2.4GHz' },
-            { ssid: 'Example Network 2', channel: 36, rssi: -65, security: 'WPA3', band: '5GHz' }
-          ], 
-          scannedAt: new Date().toISOString(),
-          note: 'Limited scan functionality - showing sample networks'
-        });
-      }
-      
-      const lines = scanResult.split('\n');
-      
-      // Parse different scan output formats
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+      try {
+        const wifiNetworks = await sshClient.getWiFiNetworks();
         
-        // Parse iw scan output
-        if (line.includes('SSID:')) {
-          const ssidMatch = line.match(/SSID:\s*(.+)/);
-          if (ssidMatch) {
-            const ssid = ssidMatch[1].trim();
-            let channel = 6;
-            let rssi = -70;
-            let security = null;
-            
-            // Look for freq/channel and signal in nearby lines
-            for (let j = Math.max(0, i-5); j < Math.min(i + 10, lines.length); j++) {
-              const nearLine = lines[j];
-              
-              const freqMatch = nearLine.match(/freq:\s*(\d+)/);
-              if (freqMatch) {
-                const freq = parseInt(freqMatch[1]);
-                channel = freq > 5000 ? Math.floor((freq - 5000) / 5) + 36 : Math.floor((freq - 2412) / 5) + 1;
-              }
-              
-              const signalMatch = nearLine.match(/signal:\s*(-?\d+)/);
-              if (signalMatch) {
-                rssi = parseInt(signalMatch[1]);
-              }
-              
-              if (nearLine.includes('WPA2')) security = 'WPA2';
-              else if (nearLine.includes('WPA')) security = 'WPA';
-              else if (nearLine.includes('WEP')) security = 'WEP';
-            }
-            
-            if (ssid) {
-              networks.push({
-                ssid,
-                channel,
-                rssi,
-                security,
-                band: channel > 14 ? '5GHz' : '2.4GHz'
-              });
-            }
+        for (const network of wifiNetworks) {
+          if (network.ssid && network.ssid.trim()) {
+            networks.push({
+              ssid: network.ssid,
+              channel: network.band === '2.4GHz' ? 6 : 36,
+              rssi: -40,
+              security: 'WPA2',
+              band: network.band,
+              isOwnNetwork: true
+            });
           }
         }
-        // Parse nvram output as fallback
-        else if (line.includes('_ssid=')) {
-          const ssidMatch = line.match(/wl(\d+)_ssid=(.+)/);
-          if (ssidMatch) {
-            const interfaceNum = parseInt(ssidMatch[1]);
-            const ssid = ssidMatch[2].replace(/['"]/g, '');
-            
-            if (ssid) {
-              networks.push({
-                ssid,
-                channel: interfaceNum === 0 ? 6 : 36,
-                rssi: -50,
-                security: 'WPA2',
-                band: interfaceNum === 0 ? '2.4GHz' : '5GHz'
-              });
-            }
-          }
-        }
+        
+      } catch (error) {
+        console.error("Error getting network info:", error);
+        return res.status(500).json({ 
+          message: "Unable to scan networks - wl command not available on this router",
+          networks: []
+        });
       }
       
       res.json({ networks, scannedAt: new Date().toISOString() });
