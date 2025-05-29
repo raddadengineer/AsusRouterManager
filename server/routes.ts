@@ -468,9 +468,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aimeshLines = aimeshLeases.split('\n').filter(line => line.trim() && !line.startsWith('Error:'));
       
       aimeshLines.forEach(line => {
-        const parts = line.split(' ');
+        const parts = line.trim().split(/\s+/);
+        console.log(`Processing line: "${line}"`);
+        console.log(`Parts (${parts.length}):`, parts);
+        
         if (parts.length >= 4) {
           const [timestamp, mac, ip, hostname] = parts;
+          console.log(`Found device: ${hostname} (${mac}) at ${ip}`);
           
           // Trust your exact command - devices found are AiMesh nodes
           if (hostname && mac && ip) {
@@ -496,6 +500,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       });
+      
+      console.log(`Total AiMesh nodes found: ${nodes.length}`);
       
       // Parse the nvram cfg_clientlist for additional AiMesh nodes
       if (cfgClientlist.trim() && !cfgClientlist.startsWith('Error:')) {
