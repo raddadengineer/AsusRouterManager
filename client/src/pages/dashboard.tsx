@@ -484,30 +484,28 @@ export default function Dashboard() {
                       })
                       .slice(0, 5)
                       .map((device) => (
-                      <Link key={device.id} href={`/devices/${encodeURIComponent(device.macAddress)}`}>
-                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 cursor-pointer transition-colors">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                              <Tablet className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-sm">{device.name}</div>
-                              <div className="text-xs text-muted-foreground">{device.ipAddress}</div>
-                            </div>
+                      <div key={device.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Tablet className="h-5 w-5 text-primary" />
                           </div>
-                          <div className="text-right min-w-[120px] flex-shrink-0">
-                            <Badge variant={device.isOnline ? "default" : "secondary"} className="text-xs mb-1">
-                              {device.isOnline ? "Online" : "Offline"}
-                            </Badge>
-                            {device.isOnline && (
-                              <div className="text-xs text-muted-foreground whitespace-nowrap">
-                                <div>↓{(device.downloadSpeed || 0).toFixed(1)} Mbps</div>
-                                <div>↑{(device.uploadSpeed || 0).toFixed(1)} Mbps</div>
-                              </div>
-                            )}
+                          <div>
+                            <div className="font-medium text-sm">{device.name}</div>
+                            <div className="text-xs text-muted-foreground">{device.ipAddress}</div>
                           </div>
                         </div>
-                      </Link>
+                        <div className="text-right min-w-[120px] flex-shrink-0">
+                          <Badge variant={device.isOnline ? "default" : "secondary"} className="text-xs mb-1">
+                            {device.isOnline ? "Online" : "Offline"}
+                          </Badge>
+                          {device.isOnline && (
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">
+                              <div>↓{(device.downloadSpeed || 0).toFixed(1)} Mbps</div>
+                              <div>↑{(device.uploadSpeed || 0).toFixed(1)} Mbps</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     ))}
                     {devices && devices.length > 5 && (
                       <div className="text-center pt-2">
