@@ -266,6 +266,7 @@ export default function SystemSettingsPage() {
       return await apiRequest("DELETE", "/api/ssh/config");
     },
     onSuccess: () => {
+      setConnectionStatus('disconnected');
       toast({
         title: "Settings Cleared",
         description: "SSH configuration has been cleared",
@@ -276,6 +277,7 @@ export default function SystemSettingsPage() {
         username: "",
         password: "",
         enabled: false,
+        syncInterval: 5,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/ssh/config"] });
     },
