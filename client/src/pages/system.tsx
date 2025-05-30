@@ -92,9 +92,9 @@ export default function SystemSettingsPage() {
   const sshForm = useForm<SSHConnectionConfig>({
     resolver: zodResolver(sshConnectionSchema),
     defaultValues: {
-      host: "192.168.1.1",
+      host: "",
       port: 22,
-      username: "admin",
+      username: "",
       password: "",
       enabled: false,
       syncInterval: 5,
@@ -111,9 +111,9 @@ export default function SystemSettingsPage() {
   useEffect(() => {
     if (sshConfig) {
       sshForm.reset({
-        host: sshConfig.host || "192.168.1.1",
+        host: sshConfig.host || "",
         port: sshConfig.port || 22,
-        username: sshConfig.username || "admin",
+        username: sshConfig.username || "",
         password: sshConfig.password || "",
         enabled: sshConfig.enabled || false,
         syncInterval: sshConfig.syncInterval || 5,
@@ -573,7 +573,6 @@ export default function SystemSettingsPage() {
                         <FormLabel>Router IP Address</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="192.168.1.1" 
                             {...field} 
                           />
                         </FormControl>
@@ -591,7 +590,6 @@ export default function SystemSettingsPage() {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="22" 
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 22)}
                           />
@@ -609,7 +607,6 @@ export default function SystemSettingsPage() {
                         <FormLabel>Username</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="admin" 
                             {...field} 
                           />
                         </FormControl>
